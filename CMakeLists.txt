@@ -3,9 +3,14 @@ project (dfterm2)
 
 subdirs (trankesbel)
 
-add_executable(dfterm2 main.cc)
+add_executable(dfterm2 main.cc client.cc)
 
 target_link_libraries(dfterm2 trankesbel)
-include_directories(dfterm2 ./trankesbel)
+include_directories(./trankesbel)
+include_directories(./trankesbel/auxiliary)
+include_directories(${ICU_INCLUDE_PATH})
+include_directories(${BOOST_ROOT})
+include_directories(${CURSES_INCLUDE_DIR})
+include_directories(${PCRE_INCLUDE_PATH})
 
 
