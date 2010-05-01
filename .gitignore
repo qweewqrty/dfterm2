@@ -1,0 +1,8 @@
+# Executable
+dfterm2.exe
+# CMake garbage
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+Makefile
+
