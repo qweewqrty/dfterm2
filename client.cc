@@ -77,8 +77,9 @@ Client::Client(SP<Socket> client_socket)
     do_full_redraw = false;
 
     nicklist_window = interface.createInterfaceElementWindow();
-    nicklist_window->addListElementUTF8("Apina", "", true);
+    ui32 first_element = nicklist_window->addListElementUTF8("Apina", "", true);
     nicklist_window->addListElementUTF8("Gorilla", "", true);
+    nicklist_window->modifyListSelection(first_element);
 }
 
 Client::~Client()
@@ -116,6 +117,7 @@ void Client::cycle()
         interface.setTerminalSize(w, h);
     }
     interface.refresh();
+    interface.cycle();
 
     if (packet_pending && ts.isPacketCancellable(packet_pending_index))
         ts.cancelPacket(packet_pending_index);
