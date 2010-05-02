@@ -52,11 +52,11 @@ class Client
         void setSelf(WP<Client> c) { self = c; ts.setClient(self); };
 
     public:
-        SP<Client> createClient(SP<Socket> client_socket)
+        static SP<Client> createClient(SP<Socket> client_socket)
         {
             SP<Client> c(new Client(client_socket));
             c->setSelf(WP<Client>(c));
-            ts.handShake();
+            c->ts.handShake();
             return c;
         }
         /* Destructor */

@@ -1,4 +1,5 @@
 #include "client.hpp"
+#include <iostream>
 
 using namespace std; 
 using namespace trankesbel;
@@ -84,5 +85,7 @@ bool Client::isActive() const
 void Client::cycle()
 {
     if (!isActive()) return;
+
+    ts.cycle();
 }
 
