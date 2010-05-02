@@ -80,6 +80,8 @@ Client::Client(SP<Socket> client_socket)
     ui32 first_element = nicklist_window->addListElementUTF8("Apina", "", true);
     nicklist_window->addListElementUTF8("Gorilla", "", true);
     nicklist_window->modifyListSelection(first_element);
+
+    interface.initialize();
 }
 
 Client::~Client()
@@ -119,17 +121,18 @@ void Client::cycle()
     interface.refresh();
     interface.cycle();
 
+    const Terminal& client_t = interface.getTerminal();
+
     if (packet_pending && ts.isPacketCancellable(packet_pending_index))
         ts.cancelPacket(packet_pending_index);
     else if (deltas.size() > 0)
     {
-        buffer_terminal.feedString(deltas);
+        buffer_terminal.copyPreserve(&client_t);
         deltas.clear();
         packet_pending = false;
         packet_pending_index = 0;
     }
 
-    const Terminal& client_t = interface.getTerminal();
     if (!do_full_redraw)
         deltas = client_t.restrictedUpdateCycle(&buffer_terminal); 
     else
