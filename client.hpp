@@ -37,6 +37,13 @@ class Client
         InterfaceTermemu interface;
         Terminal buffer_terminal;
 
+        SP<InterfaceElementWindow> nicklist_window;
+
+        bool do_full_redraw;
+        bool packet_pending;
+        ui32 packet_pending_index;
+        string deltas;
+
         WP<Client> self;
 
         /* No copies */

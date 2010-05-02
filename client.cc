@@ -1,5 +1,6 @@
 #include "client.hpp"
 #include <iostream>
+#include <algorithm>
 
 using namespace std; 
 using namespace trankesbel;
@@ -71,6 +72,13 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
 Client::Client(SP<Socket> client_socket)
 {
     this->client_socket = client_socket;
+    packet_pending = false;
+    packet_pending_index = 0;
+    do_full_redraw = false;
+
+    nicklist_window = interface.createInterfaceElementWindow();
+    nicklist_window->addListElementUTF8("Apina", "", true);
+    nicklist_window->addListElementUTF8("Gorilla", "", true);
 }
 
 Client::~Client()
@@ -87,5 +95,70 @@ void Client::cycle()
     if (!isActive()) return;
 
     ts.cycle();
+
+    /* Check if client has resized their terminal, adjust
+       if necessary. */
+    do_full_redraw = false;
+    ui32 w, h;
+    ts.getTerminalSize(&w, &h);
+    if (w != buffer_terminal.getWidth() || h != buffer_terminal.getHeight())
+    {
+        /* Do not allow larger than 300x300 terminals. */
+        w = (w > 300) ? 300 : w;
+        h = (h > 300) ? 300 : h;
+
+        buffer_terminal.resize(w, h);
+        buffer_terminal.feedString("\x1b[2J", 4);
+        do_full_redraw = true;
+
+        ts.sendPacket("\x1b[2J", 4);
+
+        interface.setTerminalSize(w, h);
+    }
+    interface.refresh();
+
+    if (packet_pending && ts.isPacketCancellable(packet_pending_index))
+        ts.cancelPacket(packet_pending_index);
+    else if (deltas.size() > 0)
+    {
+        buffer_terminal.feedString(deltas);
+        deltas.clear();
+        packet_pending = false;
+        packet_pending_index = 0;
+    }
+
+    const Terminal& client_t = interface.getTerminal();
+    if (!do_full_redraw)
+        deltas = client_t.restrictedUpdateCycle(&buffer_terminal); 
+    else
+        deltas = client_t.updateCycle();
+    if (deltas.size() > 0)
+    {
+        packet_pending_index = ts.sendPacket(deltas.c_str(), deltas.size());
+        packet_pending = true;
+        /* If full redraw, throw away the packet indices so that
+           we can't discard this package */
+        if (do_full_redraw)
+        {
+            packet_pending = false;
+            packet_pending_index = 0;
+            deltas.clear();
+        }
+    }
+
+    ts.cycle();
+
+    char buf[500];
+    size_t buf_size = 500;
+    do
+    {
+        bool active = ts.receive((void*) buf, &buf_size);
+        if (buf_size == 0) break;
+
+        size_t i1;
+        for (i1 = 0; i1 < buf_size; i1++)
+            interface.pushKeyPress((ui32) buf[i1], false);
+    }
+    while(buf_size == 500);
 }
 
