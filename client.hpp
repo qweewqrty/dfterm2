@@ -36,6 +36,7 @@ class Client
         SP<Socket> client_socket;
         InterfaceTermemu interface;
         Terminal buffer_terminal;
+        Terminal last_client_terminal;
 
         /* Nicks go in this window */
         SP<InterfaceElementWindow> nicklist_window;

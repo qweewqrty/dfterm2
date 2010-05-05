@@ -79,13 +79,16 @@ Client::Client(SP<Socket> client_socket)
     game_window = interface.createInterface2DWindow();
     nicklist_window = interface.createInterfaceElementWindow();
     chat_window = interface.createInterfaceElementWindow();
-    game_window->setMinimumSize(40, 10);
+    game_window->setMinimumSize(30, 30);
     chat_window->addListElementUTF8("Apina", "kapina", true);
     chat_window->setDesiredWidth(60);
     chat_window->setDesiredHeight(5);
+    chat_window->addListElementUTF8("Chat> ", "chat", true, true);
     nicklist_window->addListElementUTF8("Korilla", "morilla", true);
 
     interface.initialize();
+    /* Hide cursor */
+    ts.sendPacket("\x1b[?25l", 6);
 }
 
 Client::~Client()
@@ -131,11 +134,16 @@ void Client::cycle()
         ts.cancelPacket(packet_pending_index);
     else if (deltas.size() > 0)
     {
-        buffer_terminal.copyPreserve(&client_t);
+        buffer_terminal.copyPreserve(&last_client_terminal);
         deltas.clear();
         packet_pending = false;
         packet_pending_index = 0;
     }
+
+    if (last_client_terminal.getWidth() != client_t.getWidth() ||
+        last_client_terminal.getHeight() != client_t.getHeight())
+        last_client_terminal.resize(client_t.getWidth(), client_t.getHeight());
+    last_client_terminal.copyPreserve(&client_t);
 
     if (!do_full_redraw)
         deltas = client_t.restrictedUpdateCycle(&buffer_terminal); 
@@ -152,6 +160,7 @@ void Client::cycle()
             packet_pending = false;
             packet_pending_index = 0;
             deltas.clear();
+            buffer_terminal.copyPreserve(&client_t);
         }
     }
 
@@ -166,7 +175,7 @@ void Client::cycle()
 
         size_t i1;
         for (i1 = 0; i1 < buf_size; i1++)
-            interface.pushKeyPress((ui32) buf[i1], false);
+            interface.pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
     }
     while(buf_size == 500);
 }
