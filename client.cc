@@ -76,10 +76,14 @@ Client::Client(SP<Socket> client_socket)
     packet_pending_index = 0;
     do_full_redraw = false;
 
+    game_window = interface.createInterface2DWindow();
     nicklist_window = interface.createInterfaceElementWindow();
-    ui32 first_element = nicklist_window->addListElementUTF8("Apina", "", true);
-    nicklist_window->addListElementUTF8("Gorilla", "", true);
-    nicklist_window->modifyListSelection(first_element);
+    chat_window = interface.createInterfaceElementWindow();
+    game_window->setMinimumSize(40, 10);
+    chat_window->addListElementUTF8("Apina", "kapina", true);
+    chat_window->setDesiredWidth(60);
+    chat_window->setDesiredHeight(5);
+    nicklist_window->addListElementUTF8("Korilla", "morilla", true);
 
     interface.initialize();
 }

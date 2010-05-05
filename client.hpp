@@ -37,7 +37,12 @@ class Client
         InterfaceTermemu interface;
         Terminal buffer_terminal;
 
+        /* Nicks go in this window */
         SP<InterfaceElementWindow> nicklist_window;
+        /* And chat to this window */
+        SP<InterfaceElementWindow> chat_window;
+        /* And the game screen to this one */
+        SP<Interface2DWindow> game_window;
 
         bool do_full_redraw;
         bool packet_pending;
