@@ -1,6 +1,7 @@
 #include "nanoclock.hpp"
 #ifndef __WIN32
 #include <sys/time.h>
+#include <time.h>
 #else
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
