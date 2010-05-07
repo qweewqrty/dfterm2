@@ -3,7 +3,7 @@ project (dfterm2)
 
 subdirs (trankesbel)
 
-add_executable(dfterm2 main.cc client.cc nanoclock.cc)
+add_executable(dfterm2 main.cc client.cc nanoclock.cc logger.cc)
 
 target_link_libraries(dfterm2 trankesbel)
 include_directories(./trankesbel)

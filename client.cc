@@ -69,6 +69,20 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
     return true;
 }
 
+/* Used as a callback function for element window input. */
+bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
+{
+    /* Don't allow cursor to move before 6 characters. */
+    if ((*cursor) < 6) { (*cursor) = 6; return false; };
+    if ((*keycode) == 0) return true;
+
+    /* Restrict minimum length to 6 characters. (length of "Chat> ") */
+    UnicodeString us = chat_window->getListElement(chat_window_input_index);
+    if (us.countChar32() <= 6 && ((*keycode) == 8 || (*keycode) == 127)) return false;
+       
+    return true;
+}
+
 Client::Client(SP<Socket> client_socket)
 {
     this->client_socket = client_socket;
@@ -79,12 +93,15 @@ Client::Client(SP<Socket> client_socket)
     game_window = interface.createInterface2DWindow();
     nicklist_window = interface.createInterfaceElementWindow();
     chat_window = interface.createInterfaceElementWindow();
-    game_window->setMinimumSize(30, 30);
+    game_window->setMinimumSize(40, 20);
     chat_window->addListElementUTF8("Apina", "kapina", true);
-    chat_window->setDesiredWidth(60);
+    chat_window->setDesiredWidth(40);
     chat_window->setDesiredHeight(5);
-    chat_window->addListElementUTF8("Chat> ", "chat", true, true);
+    chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
     nicklist_window->addListElementUTF8("Korilla", "morilla", true);
+
+    function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
+    chat_window->setInputCallback(bound_function);
 
     interface.initialize();
     /* Hide cursor */

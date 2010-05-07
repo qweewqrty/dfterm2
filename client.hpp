@@ -38,6 +38,8 @@ class Client
         Terminal buffer_terminal;
         Terminal last_client_terminal;
 
+        ui32 chat_window_input_index;
+
         /* Nicks go in this window */
         SP<InterfaceElementWindow> nicklist_window;
         /* And chat to this window */
@@ -63,6 +65,7 @@ class Client
         Client(SP<Socket> client_socket);
 
         void setSelf(WP<Client> c) { self = c; ts.setClient(self); };
+        bool chatRestrictFunction(ui32* keycode, ui32* cursor);
 
     public:
         static SP<Client> createClient(SP<Socket> client_socket)
