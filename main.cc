@@ -120,6 +120,9 @@ int main(int argc, char* argv[])
     /* This is the list of connected clients. */
     vector<SP<Client> > clients;
 
+    /* The global chat logger */
+    SP<Logger> global_chat(new Logger);
+
     /* Use these for timing ticks */
     uint64_t start_time;
     const uint64_t tick_time = 1000000000 / ticks_per_second;
@@ -148,6 +151,7 @@ int main(int argc, char* argv[])
         if (got_connection)
         {
             SP<Client> new_client = Client::createClient(new_connection);
+            new_client->setGlobalChatLogger(global_chat);
             clients.push_back(new_client);
             cout << "Got new connection." << endl;
         }

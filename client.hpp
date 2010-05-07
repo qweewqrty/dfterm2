@@ -5,6 +5,7 @@
 #include "termemu.h"
 #include "sockets.hpp"
 #include "telnet.hpp"
+#include "logger.hpp"
 
 namespace dfterm
 {
@@ -40,6 +41,10 @@ class Client
 
         ui32 chat_window_input_index;
 
+        SP<Logger> global_chat;
+        SP<LoggerReader> global_chat_reader;
+        void cycleChat();
+
         /* Nicks go in this window */
         SP<InterfaceElementWindow> nicklist_window;
         /* And chat to this window */
@@ -66,6 +71,7 @@ class Client
 
         void setSelf(WP<Client> c) { self = c; ts.setClient(self); };
         bool chatRestrictFunction(ui32* keycode, ui32* cursor);
+        bool chatSelectFunction(ui32 index);
 
     public:
         static SP<Client> createClient(SP<Socket> client_socket)
@@ -83,6 +89,10 @@ class Client
 
         /* Returns true if client connection is active. */
         bool isActive() const;
+
+        /* Sets the global chat. */
+        void setGlobalChatLogger(SP<Logger> global_chat);
+        SP<Logger> getGlobalChatLogger() const;
 
         /* Cycle the client connection */
         void cycle();

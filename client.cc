@@ -69,6 +69,15 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
     return true;
 }
 
+bool Client::chatSelectFunction(ui32 index)
+{
+    UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
+    chat_message.remove(0, 5);
+    chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
+    global_chat->logMessage(chat_message);
+    return false;
+};
+
 /* Used as a callback function for element window input. */
 bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 {
@@ -92,16 +101,20 @@ Client::Client(SP<Socket> client_socket)
 
     game_window = interface.createInterface2DWindow();
     nicklist_window = interface.createInterfaceElementWindow();
+
     chat_window = interface.createInterfaceElementWindow();
-    game_window->setMinimumSize(40, 20);
-    chat_window->addListElementUTF8("Apina", "kapina", true);
+    function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
+    chat_window->setInputCallback(bound_function);
+    function1<bool, ui32> bound_select_callback = bind(&Client::chatSelectFunction, this, _1);
+    chat_window->setListCallback(bound_select_callback);
+
+    game_window->setMinimumSize(10, 10);
     chat_window->setDesiredWidth(40);
     chat_window->setDesiredHeight(5);
     chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
+    chat_window->modifyListSelection(chat_window_input_index);
     nicklist_window->addListElementUTF8("Korilla", "morilla", true);
 
-    function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
-    chat_window->setInputCallback(bound_function);
 
     interface.initialize();
     /* Hide cursor */
@@ -115,6 +128,26 @@ Client::~Client()
 bool Client::isActive() const
 {
     return client_socket->active();
+}
+
+void Client::cycleChat()
+{
+    if (!global_chat) return;
+    if (!global_chat_reader) return;
+
+    while(1)
+    {
+        bool message;
+        UnicodeString us = global_chat_reader->getLogMessage(&message);
+        if (!message) break;
+
+        chat_window->deleteListElement(chat_window_input_index);
+        chat_window_input_index = 0xFFFFFFFF;
+
+        chat_window->addListElement(us, "", false, false);
+        chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
+        chat_window->modifyListSelection(chat_window_input_index);
+    }
 }
 
 void Client::cycle()
@@ -195,5 +228,18 @@ void Client::cycle()
             interface.pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
     }
     while(buf_size == 500);
+
+    cycleChat();
+}
+
+void Client::setGlobalChatLogger(SP<Logger> global_chat)
+{
+    this->global_chat = global_chat;
+    global_chat_reader = global_chat->createReader();
+};
+
+SP<Logger> Client::getGlobalChatLogger() const
+{
+    return global_chat;
 }
 
