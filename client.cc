@@ -72,7 +72,7 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
 bool Client::chatSelectFunction(ui32 index)
 {
     UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
-    chat_message.remove(0, 5);
+    chat_message.remove(0, 6);
     chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
     global_chat->logMessage(chat_message);
     return false;
