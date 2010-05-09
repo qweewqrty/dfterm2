@@ -265,7 +265,12 @@ bool Client::chatSelectFunction(ui32 index)
     chat_message.remove(0, 6);
     chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
     chat_window->modifyListSelection(chat_window_input_index);
-    global_chat->logMessage(chat_message);
+
+    UnicodeString prefix;
+    prefix = UnicodeString::fromUTF8("<") +
+             nickname +
+             UnicodeString::fromUTF8("> ");
+    global_chat->logMessage(prefix + chat_message);
     return false;
 };
 
