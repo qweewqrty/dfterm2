@@ -91,6 +91,8 @@ Client::Client(SP<Socket> client_socket)
     identify_window->modifyListSelection(index);
     identify_window->setListCallback(bind(&Client::identifySelectFunction, this, _1));
 
+    max_chat_history = 500;
+
     /* Hide cursor */
     ts.sendPacket("\x1b[?25l", 6);
 }
@@ -120,6 +122,12 @@ void Client::cycleChat()
         chat_window_input_index = 0xFFFFFFFF;
 
         chat_window->addListElement(us, "", true, false);
+
+        /* Remove first item from list if maximum chat history is reached */
+        ui32 list_elements = chat_window->getNumberOfListElements();
+        if (list_elements > max_chat_history)
+            chat_window->deleteListElement(0);
+
         chat_window_input_index = chat_window->addListElement(chat_str, "chat", true, true);
         chat_window->modifyListSelection(chat_window_input_index);
     }

@@ -49,6 +49,9 @@ class Client
 
         ui32 chat_window_input_index;
 
+        /* Maximum number of lines in chat history. */
+        ui32 max_chat_history;
+
         SP<Logger> global_chat;
         SP<LoggerReader> global_chat_reader;
         void cycleChat();
