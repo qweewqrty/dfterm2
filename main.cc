@@ -119,6 +119,8 @@ int main(int argc, char* argv[])
 
     /* This is the list of connected clients. */
     vector<SP<Client> > clients;
+    /* And weak pointers to them. */
+    vector<WP<Client> > clients_weak;
 
     /* The global chat logger */
     SP<Logger> global_chat(new Logger);
@@ -131,6 +133,7 @@ int main(int argc, char* argv[])
     {
         start_time = nanoclock();
 
+        bool update_nicklists = false;
         /* Prune inactive clients */
         unsigned int i2, len = clients.size();
         for (i2 = 0; i2 < len; i2++)
@@ -138,9 +141,11 @@ int main(int argc, char* argv[])
             if (!clients[i2]->isActive())
             {
                 clients.erase(clients.begin() + i2);
+                clients_weak.erase(clients_weak.begin() + i2);
                 len--;
                 i2--;
                 cout << "Pruned an inactive connection." << endl;
+                update_nicklists = true;
                 continue;
             }
         }
@@ -153,14 +158,19 @@ int main(int argc, char* argv[])
             SP<Client> new_client = Client::createClient(new_connection);
             new_client->setGlobalChatLogger(global_chat);
             clients.push_back(new_client);
-            new_client->setClientVector(&clients);
+            clients_weak.push_back(new_client);
+            new_client->setClientVector(&clients_weak);
             cout << "Got new connection." << endl;
+            update_nicklists = true;
         }
 
         /* Read and write from and to connections */
         len = clients.size();
         for (i2 = 0; i2 < len; i2++)
+        {
+            if (update_nicklists) clients[i2]->updateClients();
             clients[i2]->cycle();
+        }
 
         /* Ticky wait. */
         uint64_t end_time = nanoclock();

@@ -79,7 +79,7 @@ Client::Client(SP<Socket> client_socket)
     do_full_redraw = false;
 
     identified = false;
-    clients = (vector<SP<Client> >*) 0;
+    clients = (vector<WP<Client> >*) 0;
 
     interface.initialize();
 
@@ -288,22 +288,41 @@ bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
     return true;
 }
 
+void Client::updateNicklistWindowForAll()
+{
+    vector<WP<Client> >::iterator i1;
+    for (i1 = clients->begin(); i1 != clients->end(); i1++)
+    {
+        SP<Client> c = (*i1).lock();
+        if (c)
+            c->updateNicklistWindow();
+    }
+}
 
 void Client::updateNicklistWindow()
 {
+    if (!nicklist_window) return;
+
     nicklist_window->deleteAllListElements();
     if (!clients) return;
 
     vector<UnicodeString> nicks;
     nicks.reserve(clients->size());
 
-    vector<SP<Client> >::iterator i1;
+    vector<WP<Client> >::iterator i1;
     for (i1 = clients->begin(); i1 != clients->end(); i1++)
     {
-        UnicodeString us = (*i1)->nickname;
+        SP<Client> c = (*i1).lock();
+        if (!c)
+        {
+            clients->erase(i1);
+            i1--;
+            continue;
+        };
+        UnicodeString us = c->nickname;
         if (us.countChar32() == 0) continue;
 
-        nicks.push_back((*i1)->nickname);
+        nicks.push_back(c->nickname);
     }
     sort(nicks.begin(), nicks.end());
 
@@ -333,10 +352,10 @@ void Client::clientIdentified()
 
     identified = true;
 
-    updateNicklistWindow();
+    updateNicklistWindowForAll();
 }
 
-void Client::setClientVector(vector<SP<Client> >* clients)
+void Client::setClientVector(vector<WP<Client> >* clients)
 {
     this->clients = clients;
 }

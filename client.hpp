@@ -67,8 +67,10 @@ class Client
         SP<InterfaceElementWindow> identify_window;
 
         /* Used to keep nick list up to date. */
-        vector<SP<Client> >* clients;
+        vector<WP<Client> >* clients;
         void updateNicklistWindow();
+        /* This one calls updateNicklistWindow for all clients in that vector. */
+        void updateNicklistWindowForAll();
 
         bool do_full_redraw;
         bool packet_pending;
@@ -115,7 +117,7 @@ class Client
 
         /* Sets the vector of clients that are connected. This is used
            to fill nicklist window, if set. */
-        void setClientVector(vector<SP<Client> >* clients);
+        void setClientVector(vector<WP<Client> >* clients);
         /* Tells this client that client list has been updated. 
            No effect if client vector has not been set with above call. */
         void updateClients() { updateNicklistWindow(); };
