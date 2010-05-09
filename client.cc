@@ -141,11 +141,12 @@ void Client::cycleChat()
         UnicodeString us = global_chat_reader->getLogMessage(&message);
         if (!message) break;
 
+        UnicodeString chat_str = chat_window->getListElement(chat_window_input_index);
         chat_window->deleteListElement(chat_window_input_index);
         chat_window_input_index = 0xFFFFFFFF;
 
         chat_window->addListElement(us, "", false, false);
-        chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
+        chat_window_input_index = chat_window->addListElement(chat_str, "chat", true, true);
         chat_window->modifyListSelection(chat_window_input_index);
     }
 }
