@@ -153,6 +153,7 @@ int main(int argc, char* argv[])
             SP<Client> new_client = Client::createClient(new_connection);
             new_client->setGlobalChatLogger(global_chat);
             clients.push_back(new_client);
+            new_client->setClientVector(&clients);
             cout << "Got new connection." << endl;
         }
 
@@ -166,5 +167,7 @@ int main(int argc, char* argv[])
         if (end_time - start_time < tick_time)
             nanowait( tick_time - (end_time - start_time) );
     }
+
+    clients.clear();
 }
 

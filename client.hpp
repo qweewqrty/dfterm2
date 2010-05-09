@@ -39,6 +39,14 @@ class Client
         Terminal buffer_terminal;
         Terminal last_client_terminal;
 
+        /* Nickname and whether the client has identified itself. */
+        UnicodeString nickname;
+        bool identified;
+
+        /* This method handles what happens when client identified.
+           (Creates windows etc.) */
+        void clientIdentified();
+
         ui32 chat_window_input_index;
 
         SP<Logger> global_chat;
@@ -51,6 +59,13 @@ class Client
         SP<InterfaceElementWindow> chat_window;
         /* And the game screen to this one */
         SP<Interface2DWindow> game_window;
+
+        /* Identify window. Exists only at start. */
+        SP<InterfaceElementWindow> identify_window;
+
+        /* Used to keep nick list up to date. */
+        vector<SP<Client> >* clients;
+        void updateNicklistWindow();
 
         bool do_full_redraw;
         bool packet_pending;
@@ -72,6 +87,7 @@ class Client
         void setSelf(WP<Client> c) { self = c; ts.setClient(self); };
         bool chatRestrictFunction(ui32* keycode, ui32* cursor);
         bool chatSelectFunction(ui32 index);
+        bool identifySelectFunction(ui32 index);
 
     public:
         static SP<Client> createClient(SP<Socket> client_socket)
@@ -93,6 +109,13 @@ class Client
         /* Sets the global chat. */
         void setGlobalChatLogger(SP<Logger> global_chat);
         SP<Logger> getGlobalChatLogger() const;
+
+        /* Sets the vector of clients that are connected. This is used
+           to fill nicklist window, if set. */
+        void setClientVector(vector<SP<Client> >* clients);
+        /* Tells this client that client list has been updated. 
+           No effect if client vector has not been set with above call. */
+        void updateClients() { updateNicklistWindow(); };
 
         /* Cycle the client connection */
         void cycle();

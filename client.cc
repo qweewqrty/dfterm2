@@ -69,28 +69,7 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
     return true;
 }
 
-bool Client::chatSelectFunction(ui32 index)
-{
-    UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
-    chat_message.remove(0, 6);
-    chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
-    global_chat->logMessage(chat_message);
-    return false;
-};
 
-/* Used as a callback function for element window input. */
-bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
-{
-    /* Don't allow cursor to move before 6 characters. */
-    if ((*cursor) < 6) { (*cursor) = 6; return false; };
-    if ((*keycode) == 0) return true;
-
-    /* Restrict minimum length to 6 characters. (length of "Chat> ") */
-    UnicodeString us = chat_window->getListElement(chat_window_input_index);
-    if (us.countChar32() <= 6 && ((*keycode) == 8 || (*keycode) == 127)) return false;
-       
-    return true;
-}
 
 Client::Client(SP<Socket> client_socket)
 {
@@ -99,24 +78,19 @@ Client::Client(SP<Socket> client_socket)
     packet_pending_index = 0;
     do_full_redraw = false;
 
-    game_window = interface.createInterface2DWindow();
-    nicklist_window = interface.createInterfaceElementWindow();
-
-    chat_window = interface.createInterfaceElementWindow();
-    function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
-    chat_window->setInputCallback(bound_function);
-    function1<bool, ui32> bound_select_callback = bind(&Client::chatSelectFunction, this, _1);
-    chat_window->setListCallback(bound_select_callback);
-
-    game_window->setMinimumSize(10, 10);
-    chat_window->setDesiredWidth(40);
-    chat_window->setDesiredHeight(5);
-    chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
-    chat_window->modifyListSelection(chat_window_input_index);
-    nicklist_window->addListElementUTF8("Korilla", "morilla", true);
-
+    identified = false;
+    clients = (vector<SP<Client> >*) 0;
 
     interface.initialize();
+
+    identify_window = interface.createInterfaceElementWindow();
+    identify_window->setDesiredWidth(30);
+    identify_window->setDesiredHeight(1);
+    identify_window->setTitleUTF8("Enter your nickname for this session");
+    ui32 index = identify_window->addListElementUTF8("", "", true, true);
+    identify_window->modifyListSelection(index);
+    identify_window->setListCallback(bind(&Client::identifySelectFunction, this, _1));
+
     /* Hide cursor */
     ts.sendPacket("\x1b[?25l", 6);
 }
@@ -145,7 +119,7 @@ void Client::cycleChat()
         chat_window->deleteListElement(chat_window_input_index);
         chat_window_input_index = 0xFFFFFFFF;
 
-        chat_window->addListElement(us, "", false, false);
+        chat_window->addListElement(us, "", true, false);
         chat_window_input_index = chat_window->addListElement(chat_str, "chat", true, true);
         chat_window->modifyListSelection(chat_window_input_index);
     }
@@ -154,6 +128,7 @@ void Client::cycleChat()
 void Client::cycle()
 {
     if (!isActive()) return;
+    if (identified) identify_window = SP<InterfaceElementWindow>();
 
     ts.cycle();
 
@@ -242,5 +217,114 @@ void Client::setGlobalChatLogger(SP<Logger> global_chat)
 SP<Logger> Client::getGlobalChatLogger() const
 {
     return global_chat;
+}
+
+bool Client::identifySelectFunction(ui32 index)
+{
+    /* Some restrictions on name. */
+    UnicodeString suggested_name = identify_window->getListElement(index);
+    /* Remove leading and trailing whitespace */
+    suggested_name.trim();
+    /* Reject nicknames with embedded whitespace */
+    i32 pos = suggested_name.indexOf(' ');
+    if (pos != -1)
+    {
+        suggested_name.findAndReplace(' ', '_');
+        identify_window->modifyListElementText(index, suggested_name);
+        return false;
+    }
+
+    ui32 str_len = suggested_name.countChar32();
+    if (str_len == 0) return false; /* no empty nicks! */
+    if (str_len > 20)
+    {
+        /* no overly long nicks either! */
+        suggested_name.truncate(20);
+        identify_window->modifyListElementText(index, suggested_name);
+        return false; 
+    }
+
+    /* The string has no whitespace, is at most 20 characters long but does have at least 1 character.
+       This is an acceptable nickname. */
+    nickname = suggested_name;
+    clientIdentified();
+    return true;
+}
+
+bool Client::chatSelectFunction(ui32 index)
+{
+    UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
+    chat_message.remove(0, 6);
+    chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
+    chat_window->modifyListSelection(chat_window_input_index);
+    global_chat->logMessage(chat_message);
+    return false;
+};
+
+/* Used as a callback function for element window input. */
+bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
+{
+    /* Don't allow cursor to move before 6 characters. */
+    if ((*cursor) < 6) { (*cursor) = 6; return false; };
+    if ((*keycode) == 0) return true;
+
+    /* Restrict minimum length to 6 characters. (length of "Chat> ") */
+    UnicodeString us = chat_window->getListElement(chat_window_input_index);
+    if (us.countChar32() <= 6 && ((*keycode) == 8 || (*keycode) == 127)) return false;
+       
+    return true;
+}
+
+
+void Client::updateNicklistWindow()
+{
+    nicklist_window->deleteAllListElements();
+    if (!clients) return;
+
+    vector<UnicodeString> nicks;
+    nicks.reserve(clients->size());
+
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients->begin(); i1 != clients->end(); i1++)
+    {
+        UnicodeString us = (*i1)->nickname;
+        if (us.countChar32() == 0) continue;
+
+        nicks.push_back((*i1)->nickname);
+    }
+    sort(nicks.begin(), nicks.end());
+
+    vector<UnicodeString>::iterator i2;
+    for (i2 = nicks.begin(); i2 != nicks.end(); i2++)
+        nicklist_window->addListElement((*i2), "", false);
+}
+
+void Client::clientIdentified()
+{
+    game_window = interface.createInterface2DWindow();
+    nicklist_window = interface.createInterfaceElementWindow();
+    chat_window = interface.createInterfaceElementWindow();
+
+    /* Set callbacks for chat window */
+    function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
+    chat_window->setInputCallback(bound_function);
+    function1<bool, ui32> bound_select_callback = bind(&Client::chatSelectFunction, this, _1);
+    chat_window->setListCallback(bound_select_callback);
+
+    /* 10x10 is small, and a good default. */
+    game_window->setMinimumSize(10, 10);
+    chat_window->setDesiredWidth(40);
+    chat_window->setDesiredHeight(5);
+    chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
+    chat_window->modifyListSelection(chat_window_input_index);
+
+    identified = true;
+
+    updateNicklistWindow();
+}
+
+void Client::setClientVector(vector<SP<Client> >* clients)
+{
+    this->clients = clients;
 }
 
