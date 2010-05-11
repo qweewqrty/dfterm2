@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 #include <iostream>
 #include "nanoclock.hpp"
+#include "cp437_to_unicode.hpp"
 
 using namespace dfterm;
 using namespace trankesbel;
@@ -122,6 +123,11 @@ int main(int argc, char* argv[])
     /* And weak pointers to them. */
     vector<WP<Client> > clients_weak;
 
+    /* A list of local slots. */
+    vector<SP<Slot> > slots;
+
+    SP<Slot> default_slot = Slot::createSlot("Grab a running DF instance.");
+
     /* The global chat logger */
     SP<Logger> global_chat(new Logger);
 
@@ -157,6 +163,7 @@ int main(int argc, char* argv[])
         {
             SP<Client> new_client = Client::createClient(new_connection);
             new_client->setGlobalChatLogger(global_chat);
+            new_client->setSlot(default_slot);
             clients.push_back(new_client);
             clients_weak.push_back(new_client);
             new_client->setClientVector(&clients_weak);

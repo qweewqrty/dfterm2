@@ -1,6 +1,7 @@
 #include "client.hpp"
 #include <iostream>
 #include <algorithm>
+#include "cp437_to_unicode.hpp"
 
 using namespace std; 
 using namespace trankesbel;
@@ -83,6 +84,15 @@ Client::Client(SP<Socket> client_socket)
 
     interface.initialize();
 
+    /* Register CP437 to unicode maps */
+    initCharacterMappings();
+    ui32 i1 = 0;
+    for (i1 = 0; i1 < 256; i1++)
+    {
+        CursesElement ce(mapCharacter(i1), White, Black, false);
+        interface.mapElementIdentifier(i1, (void*) &ce, sizeof(ce));
+    }
+
     identify_window = interface.createInterfaceElementWindow();
     identify_window->setDesiredWidth(30);
     identify_window->setDesiredHeight(1);
@@ -159,6 +169,11 @@ void Client::cycle()
 
         interface.setTerminalSize(w, h);
     }
+
+    SP<Slot> sp_slot = slot.lock();
+    if (sp_slot)
+        sp_slot->unloadToWindow(game_window);
+
     interface.refresh();
     interface.cycle();
 

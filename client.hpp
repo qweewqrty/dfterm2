@@ -6,6 +6,7 @@
 #include "sockets.hpp"
 #include "telnet.hpp"
 #include "logger.hpp"
+#include "slot.hpp"
 
 namespace dfterm
 {
@@ -38,6 +39,9 @@ class Client
         InterfaceTermemu interface;
         Terminal buffer_terminal;
         Terminal last_client_terminal;
+
+        /* Slot for game. */
+        WP<Slot> slot;
 
         /* Nickname and whether the client has identified itself. */
         UnicodeString nickname;
@@ -110,6 +114,13 @@ class Client
 
         /* Returns true if client connection is active. */
         bool isActive() const;
+
+        /* Sets a slot for this client. */
+        void setSlot(SP<Slot> slot)
+        { this->slot = slot; };
+
+        /* Gets the slot this client is seeing. */
+        WP<Slot> getSlot() const { return slot; };
 
         /* Sets the global chat. */
         void setGlobalChatLogger(SP<Logger> global_chat);
