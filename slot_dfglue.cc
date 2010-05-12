@@ -45,6 +45,8 @@ DFGlue::DFGlue() : Slot()
     df_w = 80;
     df_h = 25;
 
+    ticks_per_second = 20;
+
     alive = true;
     // Create a thread that will launch or grab the DF process.
     glue_thread = SP<thread>(new thread(static_thread_function, this));
