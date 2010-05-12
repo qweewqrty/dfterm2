@@ -16,6 +16,7 @@
 #include <vector>
 #include "interface.hpp"
 #include "termemu.h"
+#include "interface_ncurses.hpp"
 
 using namespace boost;
 using namespace trankesbel;
@@ -188,6 +189,9 @@ class DFGlue : public Slot
 
         /* Data format in DF memory */
         DFScreenDataFormat data_format;
+
+        /* Turns rgb floating point values to a terminal color. */
+        static void buildColorFromFloats(float32 r, float32 g, float32 b, Color* color, bool* bold);
 
         void updateDFWindowTerminal();
 

@@ -10,10 +10,13 @@
 #include <iostream>
 #include "slot_dfglue.hpp"
 #include "nanoclock.hpp"
+#include "interface_ncurses.hpp"
+#include "cp437_to_unicode.hpp"
 
 using namespace dfterm;
 using namespace boost;
 using namespace std;
+using namespace trankesbel;
 
 /* A simple checksum function. */
 static ui32 checksum(const char* buf, size_t buflen)
@@ -121,6 +124,39 @@ void DFGlue::thread_function()
     alive = false;
 }
 
+void DFGlue::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color, bool* bold)
+{
+    (*color) = Black;
+    (*bold) = false;
+
+    Color result = Black;
+    bool bold_result = false;
+
+    if (r > 0.1) result = Red;
+    if (g > 0.1)
+    {
+        if (result == Red) result = Yellow;
+        else result = Green;
+    }
+    if (b > 0.1)
+    {
+        if (result == Red) result = Magenta;
+        else if (result == Green) result = Cyan;
+        else if (result == Yellow) result = White;
+        else result = Blue;
+    }
+    if (r >= 0.9 || g >= 0.9 || b >= 0.9)
+        bold_result = true;
+    if (result == White && r < 0.75)
+    {
+        result = Black;
+        bold_result = true;
+    }
+
+    (*color) = result;
+    (*bold) = bold_result;
+}
+
 void DFGlue::updateDFWindowTerminal()
 {
     if (data_format == DistinctFloatingPointVarying && df_w < 256 && df_h < 256)
@@ -155,7 +191,15 @@ void DFGlue::updateDFWindowTerminal()
         ui32 i1, i2;
         for (i2 = 0; i2 < df_h; i2++)
             for (i1 = 0; i1 < df_w; i1++)
-                df_terminal.setTile(i1, i2, TerminalTile(symbol_buf[i1 * df_h + i2], 7, 0, false, false));
+            {
+                ui32 offset = i1 * df_h + i2;
+                Color f_color, b_color;
+                bool f_bold = false;
+                bool b_bold = false;
+                buildColorFromFloats(blue_buf[offset], green_buf[offset], red_buf[offset], &f_color, &f_bold);
+                buildColorFromFloats(blue_b_buf[offset], green_b_buf[offset], red_b_buf[offset], &b_color, &b_bold);
+                df_terminal.setTile(i1, i2, TerminalTile(symbol_buf[i1 * df_h + i2], f_color, b_color, false, f_bold));
+            }
     };
 }
 
@@ -285,7 +329,6 @@ void DFGlue::updateWindowSizeFromDFMemory()
 
 bool DFGlue::detectDFVersion()
 {
-    cout << "ulululu" << endl;
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     if (!df_handle) return false;
 
@@ -417,7 +460,7 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     target_window->setMinimumSize(df_w, df_h);
 
-    ui32 elements[256*256];
+    CursesElement elements[256*256];
     ui32 i1, i2;
     for (i1 = 0; i1 < df_w; i1++)
         for (i2 = 0; i2 < df_h; i2++)
@@ -425,8 +468,8 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
             const TerminalTile &t = df_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();
             if (symbol > 255) symbol = symbol % 256;
-            elements[i1 + i2 * 256] = symbol;
+            elements[i1 + i2 * 256] = CursesElement(mapCharacter(symbol), (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
         }
-    target_window->setScreenDisplay(elements, 256, df_w, df_h, 0, 0);
+    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), 256, df_w, df_h, 0, 0);
 }
 

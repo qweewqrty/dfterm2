@@ -94,7 +94,7 @@ Client::Client(SP<Socket> client_socket)
     }
 
     identify_window = interface.createInterfaceElementWindow();
-    identify_window->setDesiredWidth(30);
+    identify_window->setDesiredWidth(50);
     identify_window->setDesiredHeight(1);
     identify_window->setTitleUTF8("Enter your nickname for this session");
     ui32 index = identify_window->addListElementUTF8("", "", true, true);
@@ -360,12 +360,18 @@ void Client::clientIdentified()
 
     /* 10x10 is small, and a good default. */
     game_window->setMinimumSize(10, 10);
+    game_window->setTitle("Game");
+
     chat_window->setDesiredWidth(40);
     chat_window->setDesiredHeight(5);
     chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
     chat_window->modifyListSelection(chat_window_input_index);
+    chat_window->setTitle("Chat");
 
     identified = true;
+
+    nicklist_window->setTitle("Local players");
+    nicklist_window->setDesiredWidth(20);
 
     updateNicklistWindowForAll();
 }
