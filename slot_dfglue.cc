@@ -9,6 +9,7 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <iostream>
 #include "slot_dfglue.hpp"
+#include "nanoclock.hpp"
 
 using namespace dfterm;
 using namespace boost;
@@ -113,6 +114,7 @@ void DFGlue::thread_function()
 
         update_mutex.unlock();
         updateDFWindowTerminal();
+        nanowait(1000000000LL / ticks_per_second);
     }
     alive = false;
 }

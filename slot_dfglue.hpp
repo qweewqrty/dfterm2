@@ -156,6 +156,8 @@ class DFGlue : public Slot
         recursive_mutex glue_mutex;
         SP<thread> glue_thread;
 
+        ui64 ticks_per_second;
+
         ui32 df_w, df_h;
 
         /* If these are known */
