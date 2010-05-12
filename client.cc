@@ -278,6 +278,8 @@ bool Client::chatSelectFunction(ui32 index)
 {
     UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
     chat_message.remove(0, 6);
+    if (chat_message.countChar32() == 0) return false;
+
     chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
     chat_window->modifyListSelection(chat_window_input_index);
 
@@ -362,8 +364,8 @@ void Client::clientIdentified()
     game_window->setMinimumSize(10, 10);
     game_window->setTitle("Game");
 
-    chat_window->setDesiredWidth(40);
-    chat_window->setDesiredHeight(5);
+    chat_window->setDesiredWidth(50);
+    chat_window->setDesiredHeight(10);
     chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
     chat_window->modifyListSelection(chat_window_input_index);
     chat_window->setTitle("Chat");
