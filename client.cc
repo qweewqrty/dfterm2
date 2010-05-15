@@ -291,6 +291,14 @@ bool Client::chatSelectFunction(ui32 index)
     return false;
 };
 
+/* Callback for game window input */
+void Client::gameInputFunction(ui32 keycode, bool special_key)
+{
+    SP<Slot> sp_slot = slot.lock();
+    if (sp_slot)
+        sp_slot->feedInput(keycode, special_key);
+}
+
 /* Used as a callback function for element window input. */
 bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 {
@@ -359,6 +367,10 @@ void Client::clientIdentified()
     chat_window->setInputCallback(bound_function);
     function1<bool, ui32> bound_select_callback = bind(&Client::chatSelectFunction, this, _1);
     chat_window->setListCallback(bound_select_callback);
+
+    /* And for game window */
+    function2<void, ui32, bool> bound_function2 = bind(&Client::gameInputFunction, this, _1, _2);
+    game_window->setInputCallback(bound_function2);
 
     /* 10x10 is small, and a good default. */
     game_window->setMinimumSize(10, 10);

@@ -49,6 +49,9 @@ class Slot
         /* Unloads current screen to target window.
            This may include a resize to the window. */
         virtual void unloadToWindow(SP<Interface2DWindow> target_window) = 0;
+
+        /* Sends input to the slot. */
+        virtual void feedInput(ui32 keycode, bool special_key) = 0;
 };
 
 class SlotEnumerator

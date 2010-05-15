@@ -14,4 +14,6 @@ include_directories(${BOOST_ROOT})
 include_directories(${CURSES_INCLUDE_DIR})
 include_directories(${PCRE_INCLUDE_PATH})
 
+add_library(dfterm_injection_glue SHARED dfterm_injection_glue.cc)
+
 

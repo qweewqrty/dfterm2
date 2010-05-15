@@ -94,9 +94,12 @@ class Client
         Client(SP<Socket> client_socket);
 
         void setSelf(WP<Client> c) { self = c; ts.setClient(self); };
+
+        /* Callback functions. */
         bool chatRestrictFunction(ui32* keycode, ui32* cursor);
         bool chatSelectFunction(ui32 index);
         bool identifySelectFunction(ui32 index);
+        void gameInputFunction(ui32 keycode, bool special_key);
 
     public:
         static SP<Client> createClient(SP<Socket> client_socket)

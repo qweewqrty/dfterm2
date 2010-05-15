@@ -161,6 +161,9 @@ class DFGlue : public Slot
 
         ui32 df_w, df_h;
 
+        /* Input deque */
+        deque<pair<ui32, bool> > input_queue;
+
         /* If these are known */
         HANDLE df_handle;
         HWND df_window;
@@ -208,6 +211,14 @@ class DFGlue : public Slot
         /* Detects DF version and fills in pointer paths for them. */
         bool detectDFVersion();
 
+        /* Injects a DLL to the DF process.  */
+        bool injectDLL(string dllname);
+
+        /* Maps trankesbel (special) key codes to windows virtual keys. */
+        map<KeyCode, DWORD> vkey_mappings;
+        /* Initialize aformentioned map */
+        void initVkeyMappings();
+
     public:
         DFGlue();
         ~DFGlue();
@@ -215,6 +226,7 @@ class DFGlue : public Slot
         void getSize(ui32* width, ui32* height);
         bool isAlive();
         void unloadToWindow(SP<Interface2DWindow> target_window);
+        void feedInput(ui32 keycode, bool special_key);
 };
 
 }

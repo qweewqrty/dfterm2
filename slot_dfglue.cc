@@ -51,6 +51,9 @@ DFGlue::DFGlue() : Slot()
     ticks_per_second = 20;
 
     alive = true;
+
+    initVkeyMappings();
+
     // Create a thread that will launch or grab the DF process.
     glue_thread = SP<thread>(new thread(static_thread_function, this));
     if (glue_thread->get_id() == thread::id())
@@ -78,6 +81,38 @@ bool DFGlue::isAlive()
 void DFGlue::static_thread_function(DFGlue* self)
 {
     self->thread_function();
+}
+
+void DFGlue::initVkeyMappings()
+{
+    vkey_mappings[AUp] = VK_UP;
+    vkey_mappings[ADown] = VK_DOWN;
+    vkey_mappings[ALeft] = VK_LEFT;
+    vkey_mappings[ARight] = VK_RIGHT;
+    vkey_mappings[CtrlUp] = VK_UP;
+    vkey_mappings[CtrlDown] = VK_DOWN;
+    vkey_mappings[CtrlLeft] = VK_LEFT;
+    vkey_mappings[CtrlRight] = VK_RIGHT;
+    vkey_mappings[F1] = VK_F1;
+    vkey_mappings[F2] = VK_F2;
+    vkey_mappings[F3] = VK_F3;
+    vkey_mappings[F4] = VK_F4;
+    vkey_mappings[F5] = VK_F5;
+    vkey_mappings[F6] = VK_F6;
+    vkey_mappings[F7] = VK_F7;
+    vkey_mappings[F8] = VK_F8;
+    vkey_mappings[F9] = VK_F9;
+    vkey_mappings[F10] = VK_F10;
+    vkey_mappings[F11] = VK_F11;
+    vkey_mappings[F12] = VK_F12;
+
+    vkey_mappings[Home] = VK_HOME;
+    vkey_mappings[End] = VK_END;
+    vkey_mappings[PgUp] = VK_NEXT;
+    vkey_mappings[PgDown] = VK_PRIOR;
+
+    vkey_mappings[InsertChar] = VK_INSERT;
+    vkey_mappings[DeleteChar] = VK_DELETE;
 }
 
 void DFGlue::thread_function()
@@ -108,6 +143,7 @@ void DFGlue::thread_function()
         alive_lock.unlock();
         return;
     }
+    injectDLL("libdfterm_injection_glue.dll");
     alive_lock.unlock();
 
     while(1)
@@ -116,9 +152,69 @@ void DFGlue::thread_function()
 
         if (close_thread) break;
         updateWindowSizeFromDFMemory();
+        
+        bool esc_down = false;
+        while(input_queue.size() > 0)
+        {
+            bool esc_down_now = esc_down;
+            bool ctrl_down_now = false;
+            bool shift_down_now = false;
+            esc_down = false;
+
+            DWORD vkey;
+            ui32 keycode = input_queue.front().first;
+            bool special_key = input_queue.front().second;
+            input_queue.pop_front();
+
+            if (!special_key)
+            {
+                if (keycode == 27 && input_queue.size() > 0)
+                {
+                    esc_down = true;
+                    continue;
+                }
+                else if (keycode == 27)
+                    vkey = VK_ESCAPE;
+                else
+                {
+                    SHORT keyscan = VkKeyScan(keycode);
+                    vkey = (DWORD) (keyscan & 0xFF);
+                    if ((keyscan & 0x00ff) != -1 && (keyscan & 0xff00))
+                        shift_down_now = true;
+                    if (keycode == 127) // backspace
+                        vkey = VK_BACK;
+                }
+            }
+            else if (special_key)
+            {
+                map<KeyCode, DWORD>::iterator i1 = vkey_mappings.find((KeyCode) keycode);
+                if (i1 == vkey_mappings.end()) continue;
+
+                vkey = i1->second;
+                
+                KeyCode kc = (KeyCode) keycode;
+                if (kc == CtrlUp || kc == CtrlDown || kc == CtrlRight || kc == CtrlLeft)
+                    ctrl_down_now = true;
+            }
+
+            if (shift_down_now)
+                PostMessage(df_window, WM_USER, 1, 0);
+            if (ctrl_down_now)
+                PostMessage(df_window, WM_USER, 1, 1);
+            if (esc_down_now)
+                PostMessage(df_window, WM_USER, 1, 2);
+            PostMessage(df_window, WM_USER, vkey, 3);
+            if (shift_down_now)
+                PostMessage(df_window, WM_USER, 0, 0);
+            if (ctrl_down_now)
+                PostMessage(df_window, WM_USER, 0, 1);
+            if (esc_down_now)
+                PostMessage(df_window, WM_USER, 0, 2);
+        }
 
         update_mutex.unlock();
         updateDFWindowTerminal();
+
         nanowait(1000000000LL / ticks_per_second);
     }
     alive = false;
@@ -471,5 +567,33 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
             elements[i1 + i2 * 256] = CursesElement(mapCharacter(symbol), (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
         }
     target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), 256, df_w, df_h, 0, 0);
+}
+
+bool DFGlue::injectDLL(string dllname)
+{
+    if (df_handle == INVALID_HANDLE_VALUE) return false;
+
+    /* Allocate memory for the dll string in the target process */
+    LPVOID address = VirtualAllocEx(df_handle, NULL, dllname.size()+1, MEM_COMMIT, PAGE_READWRITE);
+    if (!address)
+        return false;
+    if (!WriteProcessMemory(df_handle, address, 
+                            (LPCVOID) dllname.c_str(), dllname.size(), NULL))
+        return false;
+
+    HMODULE k32 = GetModuleHandle("Kernel32");
+    FARPROC loadlibrary_address = GetProcAddress(k32, "LoadLibraryA");
+
+    HANDLE remote_thread = CreateRemoteThread(df_handle, NULL, 0, (LPTHREAD_START_ROUTINE) loadlibrary_address, address, 0, NULL);
+    if (!remote_thread)
+        return false;
+
+    return true;
+}
+
+void DFGlue::feedInput(ui32 keycode, bool special_key)
+{
+    lock_guard<recursive_mutex> alive_lock(glue_mutex);
+    input_queue.push_back(pair<ui32, bool>(keycode, special_key));
 }
 
