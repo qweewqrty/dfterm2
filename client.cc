@@ -345,7 +345,7 @@ void Client::updateNicklistWindow()
 
     vector<UnicodeString>::iterator i2;
     for (i2 = nicks.begin(); i2 != nicks.end(); i2++)
-        nicklist_window->addListElement((*i2), "", false);
+        nicklist_window->addListElement((*i2), "", true);
 }
 
 void Client::clientIdentified()
@@ -364,7 +364,7 @@ void Client::clientIdentified()
     game_window->setMinimumSize(10, 10);
     game_window->setTitle("Game");
 
-    chat_window->setDesiredWidth(50);
+    chat_window->setDesiredWidth(150);
     chat_window->setDesiredHeight(10);
     chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
     chat_window->modifyListSelection(chat_window_input_index);
