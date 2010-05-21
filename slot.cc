@@ -1,5 +1,8 @@
 #include "slot.hpp"
+
+#ifdef __WIN32
 #include "slot_dfglue.hpp"
+#endif
 
 using namespace dfterm;
 using namespace std;
@@ -16,12 +19,15 @@ SP<Slot> Slot::createSlot(string slottype)
 
     switch((SlotType) i1)
     {
+        #ifdef __win32
         case DFGrab:
             return SP<Slot>(new DFGlue);
         break;
         case DFLaunch:
             return SP<Slot>(new DFGlue);
         break;
+        #endif
+
         default:
             return SP<Slot>();
     };
