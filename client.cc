@@ -94,8 +94,7 @@ Client::Client(SP<Socket> client_socket)
     }
 
     identify_window = interface.createInterfaceElementWindow();
-    identify_window->setDesiredWidth(50);
-    identify_window->setDesiredHeight(1);
+    identify_window->setHint("chat");
     identify_window->setTitleUTF8("Enter your nickname for this session");
     ui32 index = identify_window->addListElementUTF8("", "", true, true);
     identify_window->modifyListSelection(index);
@@ -362,6 +361,8 @@ void Client::clientIdentified()
     nicklist_window = interface.createInterfaceElementWindow();
     chat_window = interface.createInterfaceElementWindow();
 
+    chat_window->setHint("chat");
+
     /* Set callbacks for chat window */
     function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
     chat_window->setInputCallback(bound_function);
@@ -376,8 +377,6 @@ void Client::clientIdentified()
     game_window->setMinimumSize(10, 10);
     game_window->setTitle("Game");
 
-    chat_window->setDesiredWidth(150);
-    chat_window->setDesiredHeight(10);
     chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
     chat_window->modifyListSelection(chat_window_input_index);
     chat_window->setTitle("Chat");
@@ -385,7 +384,7 @@ void Client::clientIdentified()
     identified = true;
 
     nicklist_window->setTitle("Local players");
-    nicklist_window->setDesiredWidth(20);
+    nicklist_window->setHint("nicklist");
 
     updateNicklistWindowForAll();
 }
