@@ -2,6 +2,8 @@
 
 #ifdef __WIN32
 #include "slot_dfglue.hpp"
+#else
+#include "slot_terminal.hpp"
 #endif
 
 using namespace dfterm;
@@ -25,6 +27,10 @@ SP<Slot> Slot::createSlot(string slottype)
         break;
         case DFLaunch:
             return SP<Slot>(new DFGlue);
+        break;
+        #else
+        case TerminalLaunch:
+            return SP<Slot>(new TerminalGlue);
         break;
         #endif
 

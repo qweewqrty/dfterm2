@@ -9,7 +9,7 @@ IF (WIN32)
     add_executable(dfterm2 main.cc client.cc nanoclock.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc)
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
-    add_executable(dfterm2 main.cc client.cc nanoclock.cc logger.cc slot.cc cp437_to_unicode.cc)
+    add_executable(dfterm2 main.cc client.cc nanoclock.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.c)
 ENDIF (WIN32)
 
 

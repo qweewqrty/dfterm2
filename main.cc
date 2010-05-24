@@ -126,7 +126,15 @@ int main(int argc, char* argv[])
     /* A list of local slots. */
     vector<SP<Slot> > slots;
 
+    #ifdef __WIN32
     SP<Slot> default_slot = Slot::createSlot("Grab a running DF instance.");
+    #else
+    SP<Slot> default_slot = Slot::createSlot("Launch a new terminal program instance.");
+    default_slot->setParameter("w", "80");
+    default_slot->setParameter("h", "24");
+    default_slot->setParameter("path", "/bin/bash");
+    default_slot->setParameter("work", "/");
+    #endif
 
     /* The global chat logger */
     SP<Logger> global_chat(new Logger);
