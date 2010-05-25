@@ -48,7 +48,6 @@ int
 openpty(int *amaster, int *aslave, char *name, struct termios *termp,
     struct winsize *winp)
 {
-	const char *slavename;
 	int master, slave;
 
 	master = posix_openpt(O_RDWR|O_NOCTTY);
@@ -61,19 +60,21 @@ openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 	if (unlockpt(master) == -1)
 		goto bad;
 
-	slavename = ptsname(master);
-	if (slavename == NULL)
+    char buf[1001];
+    memset(buf, 0, 1001);
+	int result = ptsname_r(master, buf, 1000);
+	if (result)
 		goto bad;
 
-	slave = open(slavename, O_RDWR);
+	slave = open(buf, O_RDWR);
 	if (slave == -1)
+    {
 		goto bad;
+    }
 
 	*amaster = master;
 	*aslave = slave;
 
-	if (name)
-		strcpy(name, slavename);
 	if (termp)
 		tcsetattr(slave, TCSAFLUSH, termp);
 	if (winp)
@@ -85,6 +86,7 @@ bad:	close(master);
 	return (-1);
 }
 
+/* Never writes to 'name', even if its not null */
 int
 forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
 {

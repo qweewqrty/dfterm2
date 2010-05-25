@@ -5,6 +5,7 @@
 #include "nanoclock.hpp"
 #include "interface.hpp"
 #include "interface_ncurses.hpp"
+#include <iostream>
 
 #include "bsd_pty.h"
 
@@ -191,6 +192,8 @@ void TerminalGlue::getSize(ui32* width, ui32* height)
 
 void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 {
+    if (!target_window) return;
+
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     if (!alive) return;
 
