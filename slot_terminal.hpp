@@ -25,6 +25,7 @@ class TerminalGlue : public Slot
         SP<thread> glue_thread;
 
         Terminal game_terminal;
+        recursive_mutex game_terminal_mutex;
 
         map<string, UnicodeString> parameters;
 

@@ -73,7 +73,8 @@ void TerminalGlue::flushInput(Pty* program_pty)
         input_buf.push_back(k);
     }
 
-    program_pty->feed(input_buf.c_str(), input_buf.size());
+    if (input_buf.size() > 0)
+        program_pty->feed(input_buf.c_str(), input_buf.size());
 }
 
 void TerminalGlue::thread_function()
@@ -136,6 +137,10 @@ void TerminalGlue::thread_function()
         return;
     }
 
+    unique_lock<recursive_mutex> lock3(game_terminal_mutex);
+    game_terminal.resize(terminal_w, terminal_h);
+    lock3.unlock();
+
     /* There is a situation where, where we need to wait on two things at once:
      * 1. Data read directly from pty (blocking POSIX poll())
      * 2. Data from TerminalGlue::feedInput (blocking boost condition variable wait)
@@ -160,6 +165,7 @@ void TerminalGlue::thread_function()
                 break;
             }
 
+            lock_guard<recursive_mutex> lock2(game_terminal_mutex);
             game_terminal.feedString(buf, data);
         }
 
@@ -194,8 +200,7 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 {
     if (!target_window) return;
 
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    if (!alive) return;
+    lock_guard<recursive_mutex> lock(game_terminal_mutex);
 
     target_window->setMinimumSize(terminal_w, terminal_h);
     CursesElement* elements = new CursesElement[terminal_w * terminal_h];
