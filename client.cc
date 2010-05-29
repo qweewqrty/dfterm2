@@ -82,7 +82,8 @@ Client::Client(SP<Socket> client_socket)
     identified = false;
     clients = (vector<WP<Client> >*) 0;
 
-    interface.initialize();
+    interface = SP<InterfaceTermemu>(new InterfaceTermemu);
+    interface->initialize();
 
     /* Register CP437 to unicode maps */
     initCharacterMappings();
@@ -90,10 +91,12 @@ Client::Client(SP<Socket> client_socket)
     for (i1 = 0; i1 < 256; i1++)
     {
         CursesElement ce(mapCharacter(i1), White, Black, false);
-        interface.mapElementIdentifier(i1, (void*) &ce, sizeof(ce));
+        interface->mapElementIdentifier(i1, (void*) &ce, sizeof(ce));
     }
 
-    identify_window = interface.createInterfaceElementWindow();
+    config_interface.setInterface(interface);
+
+    identify_window = interface->createInterfaceElementWindow();
     identify_window->setHint("chat");
     identify_window->setTitleUTF8("Enter your nickname for this session");
     ui32 index = identify_window->addListElementUTF8("", "", true, true);
@@ -166,17 +169,17 @@ void Client::cycle()
 
         ts.sendPacket("\x1b[2J", 4);
 
-        interface.setTerminalSize(w, h);
+        interface->setTerminalSize(w, h);
     }
 
     SP<Slot> sp_slot = slot.lock();
     if (sp_slot)
         sp_slot->unloadToWindow(game_window);
 
-    interface.refresh();
-    interface.cycle();
+    interface->refresh();
+    interface->cycle();
 
-    const Terminal& client_t = interface.getTerminal();
+    const Terminal& client_t = interface->getTerminal();
 
     if (packet_pending && ts.isPacketCancellable(packet_pending_index))
         ts.cancelPacket(packet_pending_index);
@@ -223,7 +226,7 @@ void Client::cycle()
 
         size_t i1;
         for (i1 = 0; i1 < buf_size; i1++)
-            interface.pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
+            interface->pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
     }
     while(buf_size == 500);
 
@@ -306,7 +309,7 @@ bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 
     /* Restrict minimum length to 6 characters. (length of "Chat> ") */
     UnicodeString us = chat_window->getListElement(chat_window_input_index);
-       
+
     return true;
 }
 
@@ -355,9 +358,9 @@ void Client::updateNicklistWindow()
 
 void Client::clientIdentified()
 {
-    game_window = interface.createInterface2DWindow();
-    nicklist_window = interface.createInterfaceElementWindow();
-    chat_window = interface.createInterfaceElementWindow();
+    game_window = interface->createInterface2DWindow();
+    nicklist_window = interface->createInterfaceElementWindow();
+    chat_window = interface->createInterfaceElementWindow();
 
     chat_window->setHint("chat");
 
@@ -378,6 +381,8 @@ void Client::clientIdentified()
     chat_window_input_index = chat_window->addListElementUTF8("", "Chat> ", "chat", true, true);
     chat_window->modifyListSelection(chat_window_input_index);
     chat_window->setTitle("Chat");
+
+    config_window = config_interface.getUserWindow();
 
     identified = true;
 

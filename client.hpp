@@ -7,6 +7,7 @@
 #include "telnet.hpp"
 #include "logger.hpp"
 #include "slot.hpp"
+#include "dfterm2_configuration.hpp"
 
 namespace dfterm
 {
@@ -36,7 +37,7 @@ class Client
     private:
         ClientTelnetSession ts;
         SP<Socket> client_socket;
-        InterfaceTermemu interface;
+        SP<InterfaceTermemu> interface;
         Terminal buffer_terminal;
         Terminal last_client_terminal;
 
@@ -60,12 +61,18 @@ class Client
         SP<LoggerReader> global_chat_reader;
         void cycleChat();
 
+        /* Configuring dfterm2 is complex enough to warrant
+         * dedicated classes and files. Here's a class handle to them. */
+        ConfigurationInterface config_interface;
+
         /* Nicks go in this window */
         SP<InterfaceElementWindow> nicklist_window;
         /* And chat to this window */
         SP<InterfaceElementWindow> chat_window;
         /* And the game screen to this one */
         SP<Interface2DWindow> game_window;
+        /* Configuration window */
+        SP<InterfaceElementWindow> config_window;
 
         /* Identify window. Exists only at start. */
         SP<InterfaceElementWindow> identify_window;
