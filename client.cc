@@ -137,7 +137,7 @@ void Client::cycleChat()
         if (list_elements > max_chat_history)
             chat_window->deleteListElement(0);
 
-        chat_window_input_index = chat_window->addListElement(chat_str, "chat", true, true);
+        chat_window_input_index = chat_window->addListElement(chat_str, "Chat> ", "chat", true, true);
         chat_window->modifyListSelection(chat_window_input_index);
     }
 }
@@ -276,10 +276,10 @@ bool Client::identifySelectFunction(ui32 index)
 bool Client::chatSelectFunction(ui32 index)
 {
     UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
-    chat_message.remove(0, 6);
+    //chat_message.remove(0, 6);
     if (chat_message.countChar32() == 0) return false;
 
-    chat_window->modifyListElementText(chat_window_input_index, "Chat> ");
+    chat_window->modifyListElementText(chat_window_input_index, "");
     chat_window->modifyListSelection(chat_window_input_index);
 
     UnicodeString prefix;
@@ -302,12 +302,12 @@ void Client::gameInputFunction(ui32 keycode, bool special_key)
 bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 {
     /* Don't allow cursor to move before 6 characters. */
-    if ((*cursor) < 6) { (*cursor) = 6; return false; };
+    //if ((*cursor) < 6) { (*cursor) = 6; return false; };
     if ((*keycode) == 0) return true;
 
     /* Restrict minimum length to 6 characters. (length of "Chat> ") */
     UnicodeString us = chat_window->getListElement(chat_window_input_index);
-    if (us.countChar32() <= 6 && ((*keycode) == 8 || (*keycode) == 127)) return false;
+    if (((*keycode) == 8 || (*keycode) == 127)) return false;
        
     return true;
 }
@@ -377,7 +377,7 @@ void Client::clientIdentified()
     game_window->setMinimumSize(10, 10);
     game_window->setTitle("Game");
 
-    chat_window_input_index = chat_window->addListElementUTF8("Chat> ", "chat", true, true);
+    chat_window_input_index = chat_window->addListElementUTF8("", "Chat> ", "chat", true, true);
     chat_window->modifyListSelection(chat_window_input_index);
     chat_window->setTitle("Chat");
 
