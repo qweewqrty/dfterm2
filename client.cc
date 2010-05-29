@@ -276,7 +276,6 @@ bool Client::identifySelectFunction(ui32 index)
 bool Client::chatSelectFunction(ui32 index)
 {
     UnicodeString chat_message = chat_window->getListElement(chat_window_input_index);
-    //chat_message.remove(0, 6);
     if (chat_message.countChar32() == 0) return false;
 
     chat_window->modifyListElementText(chat_window_input_index, "");
@@ -307,7 +306,6 @@ bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 
     /* Restrict minimum length to 6 characters. (length of "Chat> ") */
     UnicodeString us = chat_window->getListElement(chat_window_input_index);
-    if (((*keycode) == 8 || (*keycode) == 127)) return false;
        
     return true;
 }
