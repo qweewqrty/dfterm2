@@ -94,6 +94,7 @@ Client::Client(SP<Socket> client_socket)
         interface->mapElementIdentifier(i1, (void*) &ce, sizeof(ce));
     }
 
+    user = SP<User>(new User);
     config_interface.setInterface(interface);
 
     identify_window = interface->createInterfaceElementWindow();
@@ -148,6 +149,7 @@ void Client::cycleChat()
 void Client::cycle()
 {
     if (!isActive()) return;
+    if (!user->isActive() && client_socket) { client_socket->close(); return; };
     if (identified) identify_window = SP<InterfaceElementWindow>();
 
     ts.cycle();
@@ -383,6 +385,8 @@ void Client::clientIdentified()
     chat_window->setTitle("Chat");
 
     config_window = config_interface.getUserWindow();
+    user->setName(nickname);
+    config_interface.setUser(user);
 
     identified = true;
 

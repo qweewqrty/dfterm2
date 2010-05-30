@@ -14,13 +14,22 @@ class User
 {
     private:
         UnicodeString name;
+        bool active;
+        bool admin;
 
     public:
-        User();
-        User(UnicodeString us) { name = us; };
+        User() { active = true; admin = false; };
+        User(UnicodeString us) { name = us; active = true; admin = false; };
         User(string us) { name = UnicodeString::fromUTF8(us); };
 
         UnicodeString getName() const { return name; };
+        void setName(UnicodeString us) { name = us; };
+
+        bool isActive() const { return active; };
+        void kill() { active = false; };
+
+        bool isAdmin() const { return admin; };
+        void setAdmin(bool admin_status) { admin = admin_status; };
 };
 
 
@@ -40,7 +49,7 @@ class ConfigurationDatabase
         UnicodeString getString(UnicodeString key);
 };
 
-enum Menu { MainMenu };
+enum Menu { MainMenu, AdminMainMenu };
 
 /* Handles windows for easy online editing of configuration */
 class ConfigurationInterface
@@ -55,6 +64,12 @@ class ConfigurationInterface
 
         Menu current_menu;
         void enterMainMenu();
+        void enterAdminMainMenu();
+
+        bool admin;
+        SP<User> user;
+
+        bool menuSelectFunction(ui32 index);
 
     public:
         ConfigurationInterface();
@@ -63,6 +78,19 @@ class ConfigurationInterface
 
         /* Set interface to use from this */
         void setInterface(SP<Interface> interface);
+
+        /* Sets the user for this interface. Calling this will also
+         * call enableAdmin/disableAdmin according to user admin status. */
+        void setUser(SP<User> user);
+        /* And gets the user. */
+        SP<User> getUser();
+
+        /* Allow admin stuff to be controlled from this interface. 
+         * Better do some authentication on the user before calling this... 
+         * Also causes current user to drop to the main menu. */
+        void enableAdmin();
+        /* Revoke admin stuff. Drops the user to the main menu. */
+        void disableAdmin();
 
         /* Generic user window, configuration and stuff is handled through this. */
         SP<InterfaceElementWindow> getUserWindow();

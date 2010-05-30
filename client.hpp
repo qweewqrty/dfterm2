@@ -65,6 +65,9 @@ class Client
          * dedicated classes and files. Here's a class handle to them. */
         ConfigurationInterface config_interface;
 
+        /* User handle. */
+        SP<User> user;
+
         /* Nicks go in this window */
         SP<InterfaceElementWindow> nicklist_window;
         /* And chat to this window */
