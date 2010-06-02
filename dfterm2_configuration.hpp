@@ -11,6 +11,12 @@ using namespace trankesbel;
 
 namespace dfterm {
 
+/* Hash function (SHA512). This uses OpenSSL as backend. */
+
+/* This one hashes the given data chunk and returns an ASCII data chunk
+ * containing the hash in hex. */
+data1D hash_data(data1D chunk);
+
 class User
 {
     private:
@@ -26,6 +32,30 @@ class User
 
         data1D getPasswordHash() const { return password_hash_sha512; };
         void setPasswordHash(data1D hash) { password_hash_sha512 = hash; };
+
+        /* This one hashes the password and then calls setPasswordHash. */
+        /* UnicodeString will be first converted to UTF-8 */
+        void setPassword(UnicodeString password)
+        {
+            data1D password_utf8;
+            password.toUTF8String(password_utf8);
+            setPassword(password_utf8);
+        }
+        void setPassword(data1D password)
+        {
+            setPasswordHash(hash_data(password));
+        }
+        /* Returns true if password is correct. */
+        bool verifyPassword(UnicodeString password)
+        {
+            data1D password_utf8;
+            password.toUTF8String(password_utf8);
+            return verifyPassword(password_utf8);
+        }
+        bool verifyPassword(data1D password)
+        {
+            return (hash_data(password) == password_hash_sha512);
+        }
 
         UnicodeString getName() const { return name; };
         void setName(UnicodeString us) { name = us; };
@@ -113,12 +143,6 @@ class SlotProfile
 {
     public:
 };
-
-/* Hash function (SHA512). This uses OpenSSL as backend. */
-
-/* This one hashes the given data chunk and returns an ASCII data chunk
- * containing the hash in hex. */
-data1D hash_data(data1D chunk);
 
 };
 
