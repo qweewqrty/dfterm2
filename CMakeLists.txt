@@ -18,6 +18,15 @@ target_link_libraries(dfterm2 trankesbel)
 add_executable(dfterm2_configure dfterm2_configure.cc dfterm2_configuration_db.cc sqlite3.c)
 target_link_libraries(dfterm2_configure trankesbel dl)
 
+add_executable(dfterm2_sha512 dfterm2_sha512.cc dfterm2_configuration_db.cc sqlite3.c)
+target_link_libraries(dfterm2_sha512 trankesbel dl)
+
+FIND_PACKAGE(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
+target_link_libraries(dfterm2 ${OPENSSL_LIBRARIES})
+target_link_libraries(dfterm2_configure ${OPENSSL_LIBRARIES})
+target_link_libraries(dfterm2_sha512 ${OPENSSL_LIBRARIES})
+
 include_directories(./trankesbel)
 include_directories(./trankesbel/auxiliary)
 include_directories(${ICU_INCLUDE_PATH})

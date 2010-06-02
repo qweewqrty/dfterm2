@@ -114,6 +114,12 @@ class SlotProfile
     public:
 };
 
+/* Hash function (SHA512). This uses OpenSSL as backend. */
+
+/* This one hashes the given data chunk and returns an ASCII data chunk
+ * containing the hash in hex. */
+data1D hash_data(data1D chunk);
+
 };
 
 #endif
