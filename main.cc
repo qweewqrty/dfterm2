@@ -40,6 +40,8 @@ int main(int argc, char* argv[])
     string port("8000");
     string address("0.0.0.0");
 
+    string database_file("dfterm2_database.sqlite3");
+
     SocketAddress listen_address;
     bool succeeded_resolve = false;
     string error_message;
@@ -54,6 +56,8 @@ int main(int argc, char* argv[])
     {
         if (!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p") && i1 < argc-1)
             port = argv[++i1];
+        else if (!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "-db") && i1 < argc-1)
+            database_file = argv[++i1];
         else if (!strcmp(argv[i1], "--address") || !strcmp(argv[i1], "-l") && i1 < argc-1)
             address = argv[++i1];
         else if (!strcmp(argv[i1], "--version") || !strcmp(argv[i1], "-v"))
@@ -81,6 +85,10 @@ int main(int argc, char* argv[])
             cout << "-v                    Show version information and exit." << endl << endl;
             cout << "--tickspersecond (ticks per second)" << endl;
             cout << "-t (ticks per second) Set number of ticks per second. Defaults to 20." << endl << endl;;
+            cout << "--database (database file)" << endl;
+            cout << "-db (database file)   Set the database file used. By default dfterm2 will try to look for" << endl;
+            cout << "                      environment variable DFTERM2_DB for the file location. If there is no" << endl;
+            cout << "                      such variable, it will try opening dfterm2_database.sqlite3 instead." << endl;
             cout << "--help"  << endl;;
             cout << "-h"  << endl;
             cout << "-?                    Show this help." << endl;
@@ -138,6 +146,10 @@ int main(int argc, char* argv[])
 
     /* The global chat logger */
     SP<Logger> global_chat(new Logger);
+
+    /* Configuration */
+    SP<ConfigurationDatabase> cdb(new ConfigurationDatabase);
+    cdb->openUTF8(database_file);
 
     /* Use these for timing ticks */
     uint64_t start_time;

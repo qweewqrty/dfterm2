@@ -5,6 +5,7 @@
 #define dfterm2_configuration_hpp
 
 #include "interface.hpp"
+#include "sqlite3.h"
 
 using namespace trankesbel;
 
@@ -14,6 +15,7 @@ class User
 {
     private:
         UnicodeString name;
+        data1D password_hash_sha512;
         bool active;
         bool admin;
 
@@ -21,6 +23,9 @@ class User
         User() { active = true; admin = false; };
         User(UnicodeString us) { name = us; active = true; admin = false; };
         User(string us) { name = UnicodeString::fromUTF8(us); };
+
+        data1D getPasswordHash() const { return password_hash_sha512; };
+        void setPasswordHash(data1D hash) { password_hash_sha512 = hash; };
 
         UnicodeString getName() const { return name; };
         void setName(UnicodeString us) { name = us; };
@@ -33,20 +38,28 @@ class User
 };
 
 
-/* A class that handles access to the actual database file on disk. */
+/* A class that handles access to the actual database file on disk. 
+ * Note that this class does not do input sanitization. Beware of SQL injection! */
 class ConfigurationDatabase
 {
     private:
         ConfigurationDatabase(const ConfigurationDatabase &) { };
         ConfigurationDatabase& operator=(const ConfigurationDatabase &) { };
 
+        sqlite3* db;
+        int userDataCallback(string* name, string* password_hash, void* v_self, int argc, char** argv, char** colname);
+
     public:
+        ConfigurationDatabase();
         ~ConfigurationDatabase();
 
         bool open(UnicodeString filename);
+        bool openUTF8(string filename)
+        { return open(UnicodeString::fromUTF8(filename)); };
 
-        void setString(UnicodeString key, UnicodeString us);
-        UnicodeString getString(UnicodeString key);
+        SP<User> loadUserData(UnicodeString name);
+        void saveUserData(User* user);
+        void saveUserData(SP<User> user) { saveUserData(user.get()); };
 };
 
 enum Menu { MainMenu, AdminMainMenu };
