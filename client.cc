@@ -495,6 +495,7 @@ void Client::updateNicklistWindow()
 {
     if (!nicklist_window) return;
 
+    ui32 nicklist_window_index = nicklist_window->getListSelectionIndex();
     nicklist_window->deleteAllListElements();
     if (!clients) return;
 
@@ -519,8 +520,15 @@ void Client::updateNicklistWindow()
     sort(nicks.begin(), nicks.end());
 
     vector<UnicodeString>::iterator i2;
+    bool found_index = false;
+    int index = 0;
     for (i2 = nicks.begin(); i2 != nicks.end(); i2++)
-        nicklist_window->addListElement((*i2), "", true);
+    {
+        index = nicklist_window->addListElement((*i2), "", true);
+        if (index == nicklist_window_index) found_index = true;
+    }
+    if (!found_index)
+        nicklist_window->modifyListSelectionIndex(index);
 }
 
 void Client::clientIdentified()
