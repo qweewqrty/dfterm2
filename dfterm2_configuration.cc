@@ -71,7 +71,7 @@ void ConfigurationInterface::enterMainMenu()
 
     current_menu = MainMenu;
     int slot_index = window->addListElement("Disconnect", "disconnect", true, false); 
-    window->modifyListSelection(slot_index);
+    window->modifyListSelectionIndex(slot_index);
 }
 
 void ConfigurationInterface::enterAdminMainMenu()
@@ -85,7 +85,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     int slot_index = window->addListElement("Configure slots", "slots", true, false); 
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
-    window->modifyListSelection(slot_index);
+    window->modifyListSelectionIndex(slot_index);
 }
 
 bool ConfigurationInterface::menuSelectFunction(ui32 index)

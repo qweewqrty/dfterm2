@@ -199,6 +199,7 @@ int main(int argc, char* argv[])
         if (got_connection)
         {
             SP<Client> new_client = Client::createClient(new_connection);
+            new_client->setConfigurationDatabase(cdb);
             new_client->setGlobalChatLogger(global_chat);
             new_client->setSlot(default_slot);
             clients.push_back(new_client);

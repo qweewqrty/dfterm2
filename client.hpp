@@ -43,6 +43,15 @@ class Client
 
         /* Slot for game. */
         WP<Slot> slot;
+        /* Database access. */
+        WP<ConfigurationDatabase> configuration;
+
+        /* In the identifying window, track the index numbers for password fields. */
+        int password1_index, password2_index, message_index;
+
+        /* Last time a password was entered. Used for limiting how fast passwords
+         * can be tried. */
+        uint64_t password_enter_time;
 
         /* Nickname and whether the client has identified itself. */
         UnicodeString nickname;
@@ -121,6 +130,14 @@ class Client
         }
         /* Destructor */
         ~Client();
+
+        /* Set the configuration database to use. Clients will use a weak reference to the database. 
+         * You should set it before you put the client into use. */
+        void setConfigurationDatabase(SP<ConfigurationDatabase> configuration_database)
+        { setConfigurationDatabase(WP<ConfigurationDatabase>(configuration_database)); };
+        void setConfigurationDatabase(WP<ConfigurationDatabase> configuration_database);
+        /* Returns the configuration database this client is using. */
+        WP<ConfigurationDatabase> getConfigurationDatabase() const;
 
         /* Returns the socket the client is using */
         SP<Socket> getSocket() { return client_socket; };

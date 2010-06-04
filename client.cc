@@ -2,10 +2,47 @@
 #include <iostream>
 #include <algorithm>
 #include "cp437_to_unicode.hpp"
+#include <openssl/rand.h>
+#include "nanoclock.hpp"
 
 using namespace std; 
 using namespace trankesbel;
 using namespace dfterm;
+
+void seedRNG()
+{
+    int rng_counter = 100000;
+    /* Seed random number generator a bit */
+    while(!RAND_status() && rng_counter > 0)
+    {
+        rng_counter--;
+
+        #ifdef __WIN32
+        #define WIN32_LEAN_AND_MEAN
+        #include <windows.h>
+
+        RAND_screen();
+        DWORD t = GetTickCount();
+        RAND_ADD((void*) &t, sizeof(t), sizeof(t) / 2);
+        #endif
+
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        RAND_add((void*) &tv, sizeof(tv), sizeof(tv) / 4);
+    }
+}
+
+void makeRandomBytes(unsigned char* output, int output_size)
+{
+    if (!RAND_status()) seedRNG();
+
+    if (!RAND_bytes(output, output_size))
+    {
+        seedRNG();
+        if (!RAND_bytes(output, output_size))
+            RAND_pseudo_bytes(output, output_size);
+    }
+}
 
 ClientTelnetSession::ClientTelnetSession() : TelnetSession()
 {
@@ -100,11 +137,13 @@ Client::Client(SP<Socket> client_socket)
     identify_window = interface->createInterfaceElementWindow();
     identify_window->setHint("chat");
     identify_window->setTitleUTF8("Enter your nickname for this session");
-    ui32 index = identify_window->addListElementUTF8("", "", true, true);
-    identify_window->modifyListSelection(index);
+    ui32 index = identify_window->addListElementUTF8("", "nickname", true, true);
+    identify_window->modifyListSelectionIndex(index);
     identify_window->setListCallback(bind(&Client::identifySelectFunction, this, _1));
 
     max_chat_history = 500;
+
+    password_enter_time = nanoclock();
 
     /* Hide cursor */
     ts.sendPacket("\x1b[?25l", 6);
@@ -142,7 +181,7 @@ void Client::cycleChat()
             chat_window->deleteListElement(0);
 
         chat_window_input_index = chat_window->addListElement(chat_str, "Chat> ", "chat", true, true);
-        chat_window->modifyListSelection(chat_window_input_index);
+        chat_window->modifyListSelectionIndex(chat_window_input_index);
     }
 }
 
@@ -248,33 +287,159 @@ SP<Logger> Client::getGlobalChatLogger() const
 
 bool Client::identifySelectFunction(ui32 index)
 {
-    /* Some restrictions on name. */
-    UnicodeString suggested_name = identify_window->getListElement(index);
-    /* Remove leading and trailing whitespace */
-    suggested_name.trim();
-    /* Reject nicknames with embedded whitespace */
-    i32 pos = suggested_name.indexOf(' ');
-    if (pos != -1)
+    string select_type = identify_window->getListElementData(index);
+    if (select_type == "nickname")
     {
-        suggested_name.findAndReplace(' ', '_');
-        identify_window->modifyListElementText(index, suggested_name);
-        return false;
-    }
+        /* Some restrictions on name. */
+        UnicodeString suggested_name = identify_window->getListElement(index);
+        /* Remove leading and trailing whitespace */
+        suggested_name.trim();
+        /* Reject nicknames with embedded whitespace */
+        i32 pos = suggested_name.indexOf(' ');
+        if (pos != -1)
+        {
+            suggested_name.findAndReplace(' ', '_');
+            identify_window->modifyListElementText(index, suggested_name);
+            return false;
+        }
 
-    ui32 str_len = suggested_name.countChar32();
-    if (str_len == 0) return false; /* no empty nicks! */
-    if (str_len > 20)
+        ui32 str_len = suggested_name.countChar32();
+        if (str_len == 0) return false; /* no empty nicks! */
+        if (str_len > 20)
+        {
+            /* no overly long nicks either! */
+            suggested_name.truncate(20);
+            identify_window->modifyListElementText(index, suggested_name);
+            return false; 
+        }
+
+        /* The string has no whitespace, is at most 20 characters long but does have at least 1 character.
+           This is an acceptable nickname. */
+        nickname = suggested_name;
+
+        /* Then, check from database what sort of user information is available. */
+        SP<ConfigurationDatabase> cdb = configuration.lock();
+
+        /* If there is no configuraition, just do the standard non-permanent login. */
+        if (!cdb)
+        {
+            clientIdentified();
+            return true;
+        }
+
+        SP<User> user = cdb->loadUserData(nickname);
+        if (!user)
+        {
+            /* No user information? Then we ask the user whether they want a permanent
+             * or non-permanent account. */
+            identify_window->setTitle("New user - Password");
+            identify_window->deleteAllListElements();
+            identify_window->addListElementUTF8("If you want to make this a permanent account, enter your password here.", "dummy", false, false);
+            identify_window->addListElementUTF8("Otherwise, leave them empty; your user data will not be preserved.", "dummy", false, false);
+            password1_index = identify_window->addListElementUTF8("", "Password: ", "new_password1", true, true);
+            password2_index = identify_window->addListElementUTF8("", "Retype password: ", "new_password2", true, true);
+            identify_window->modifyListSelectionIndex(password1_index);
+        }
+        else
+        {
+            /* Something wrong with this user if this evaluates to true. */
+            if (user->getPasswordHash() == "")
+                return true;
+
+            /* Normal log-in */
+            /* Ask for password. */
+            identify_window->setTitle("Existing user - Password");
+            identify_window->deleteAllListElements();
+            password1_index = identify_window->addListElementUTF8("", "Password: ", "password1", true, true);
+            identify_window->modifyListSelectionIndex(password1_index);
+        }
+    } /* if "nickname" */
+    else if (select_type == "password1")
     {
-        /* no overly long nicks either! */
-        suggested_name.truncate(20);
-        identify_window->modifyListElementText(index, suggested_name);
-        return false; 
-    }
+        /* Don't allow the client to check for passwords in shorter than 1 second intervals. */
+        if (nanoclock() - password_enter_time < 1000000000) return true;
 
-    /* The string has no whitespace, is at most 20 characters long but does have at least 1 character.
-       This is an acceptable nickname. */
-    nickname = suggested_name;
-    clientIdentified();
+        UnicodeString password1 = identify_window->getListElement(password1_index);
+
+        SP<ConfigurationDatabase> cdb = configuration.lock();
+        /* Refuse to log the user in this case, if database does not exist. */
+        /* (Different from new user handling when database doesn't exist, I think there's a higher chance
+         *  of malicious user impersonating someone if it's allowed here than there). */
+        if (!cdb)
+        {
+            client_socket->close();
+            return true;
+        }
+        SP<User> user = cdb->loadUserData(nickname);
+        /* The user *should* exist, disconnect the client if it doesn't. */
+        if (!user)
+        {
+            client_socket->close();
+            return true;
+        }
+        password_enter_time = nanoclock();
+
+        if (!user->verifyPassword(password1))
+        {
+            /* Invalid password! */
+            identify_window->modifyListElementText(password1_index, "");
+            return true;
+        }
+
+        this->user = user;
+        clientIdentified();
+        return true;
+    }
+    else if (select_type == "new_password1")
+        identify_window->modifyListSelectionIndex(identify_window->getListSelectionIndex()+1);
+    else if (select_type == "new_password2")
+    {
+        /* Check that passwords match. */
+        UnicodeString password1 = identify_window->getListElement(password1_index);
+        UnicodeString password2 = identify_window->getListElement(password2_index);
+        if (password1 != password2)
+        {
+            identify_window->modifyListSelectionIndex(password1_index);
+            identify_window->modifyListElementTextUTF8(password1_index, "");
+            identify_window->modifyListElementTextUTF8(password2_index, "");
+            return true;
+        }
+        /* Empty passwords? Make non-permanent login. */
+        if (password1.countChar32() == 0)
+        {
+            clientIdentified();
+            return true;
+        }
+
+        /* User wants to be a permanent user. */
+        /* FINE! Let's create them and add them to database */
+        if (!user) user = SP<User>(new User);
+
+        SP<ConfigurationDatabase> cdb = configuration.lock();
+        if (!cdb)
+        {
+            /* Oops, no configuration database? Should not happen at this point. */
+            /* Set safe values for user and just log them in. */
+            user->setPasswordSalt("");
+            user->setPasswordHash("");
+            user->setAdmin(false);
+            clientIdentified();
+            return true;
+        }
+
+        unsigned char random_salt[8];
+        makeRandomBytes(random_salt, 8);
+        user->setPasswordSalt(bytes_to_hex(data1D((char*) random_salt, 8)));
+
+        user->setName(nickname);
+        user->setAdmin(false);
+        user->setPassword(password1);
+
+        cdb->saveUserData(user);
+        clientIdentified();
+    }
+    
+
     return true;
 }
 
@@ -284,7 +449,7 @@ bool Client::chatSelectFunction(ui32 index)
     if (chat_message.countChar32() == 0) return false;
 
     chat_window->modifyListElementText(chat_window_input_index, "");
-    chat_window->modifyListSelection(chat_window_input_index);
+    chat_window->modifyListSelectionIndex(chat_window_input_index);
 
     UnicodeString prefix;
     prefix = UnicodeString::fromUTF8("<") +
@@ -381,7 +546,7 @@ void Client::clientIdentified()
     game_window->setTitle("Game");
 
     chat_window_input_index = chat_window->addListElementUTF8("", "Chat> ", "chat", true, true);
-    chat_window->modifyListSelection(chat_window_input_index);
+    chat_window->modifyListSelectionIndex(chat_window_input_index);
     chat_window->setTitle("Chat");
 
     config_window = config_interface.getUserWindow();
@@ -399,5 +564,10 @@ void Client::clientIdentified()
 void Client::setClientVector(vector<WP<Client> >* clients)
 {
     this->clients = clients;
+}
+
+void Client::setConfigurationDatabase(WP<ConfigurationDatabase> configuration_database)
+{
+    configuration = configuration_database;
 }
 
