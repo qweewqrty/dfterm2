@@ -84,6 +84,18 @@ static int c_callback(void* a, int b, char** c, char** d)
     return (*sql_callback_function)((void*) 0, b, c, d);
 }
 
+void ConfigurationDatabase::deleteUserData(UnicodeString name)
+{
+    if (!db) return;
+
+    string name_utf8;
+    name.toUTF8String(name_utf8);
+    if (escape_sql_string(name_utf8).size() < 1) return;
+
+    string statement = string("DELETE FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';"); 
+    sqlite3_exec(db, statement.c_str(), 0, 0, 0);
+}
+
 SP<User> ConfigurationDatabase::loadUserData(UnicodeString name)
 {
     if (!db) return SP<User>();

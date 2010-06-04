@@ -98,6 +98,8 @@ class ConfigurationDatabase
         OpenStatus openUTF8(string filename)
         { return open(UnicodeString::fromUTF8(filename)); };
 
+        void deleteUserData(UnicodeString name);
+
         SP<User> loadUserData(UnicodeString name);
         void saveUserData(User* user);
         void saveUserData(SP<User> user) { saveUserData(user.get()); };

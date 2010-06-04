@@ -15,9 +15,12 @@ enum Action { Nothing, ListUsers, AddUser, RemoveUser, UserInfo };
 
 void seedRNG()
 {
+    int rng_counter = 100000;
     /* Seed random number generator a bit */
-    while(!RAND_status())
+    while(!RAND_status() && rng_counter > 0)
     {
+        rng_counter--;
+
         #ifdef __WIN32
         #define WIN32_LEAN_AND_MEAN
         #include <windows.h>
@@ -132,6 +135,17 @@ int main(int argc, char* argv[])
     SP<User> user_sp;
     switch(action)
     {
+        case RemoveUser:
+        cout << "Removing user." << endl;
+        user_sp = cdb->loadUserData(username);
+        if (!user_sp)
+        {
+            cout << "Cannot do that. No such user." << endl;
+            return 0;
+        }
+
+        cdb->deleteUserData(username);
+        return 0;
         case AddUser:
         cout << "Adding user." << endl;
         /* Check if user of this name already exists. */
@@ -147,14 +161,13 @@ int main(int argc, char* argv[])
             user.setAdmin(true);
 
         {
+            unsigned char random_salt[8];
+            makeRandomBytes(random_salt, 8);
+            user.setPasswordSalt(bytes_to_hex(data1D((char*) random_salt, 8)));
+
             string password_utf8;
             password.toUTF8String(password_utf8);
             user.setPassword(password_utf8);
-
-            unsigned char random_salt[8];
-            makeRandomBytes(random_salt, 8);
-
-            user.setPasswordSalt(bytes_to_hex(data1D((char*) random_salt, 8)));
         }
 
         cdb->saveUserData(&user);
