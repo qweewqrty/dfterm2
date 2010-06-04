@@ -95,8 +95,6 @@ int main(int argc, char* argv[])
             action = UserInfo;
             i1++;
         }
-        else if (!strcmp(argv[i1], "--listusers"))
-            action = ListUsers;
         else if (!strcmp(argv[i1], "--help") || !strcmp(argv[i1], "-h"))
         {
             cout << "Usage: " << endl;
@@ -112,8 +110,6 @@ int main(int argc, char* argv[])
             cout << "                      Removes a user from the database." << endl;
             cout << "--userinfo (name)" << endl;
             cout << "                      Shows user information." << endl;
-            cout << "--listusers" << endl;
-            cout << "                      Lists all users in the database." << endl;
             cout << endl;
             cout << "Examples:" << endl;
             cout << "  Adding an administrator: " << endl;
