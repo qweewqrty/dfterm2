@@ -69,6 +69,8 @@ void ConfigurationInterface::enterMainMenu()
     }
 
     window->deleteAllListElements();
+    window->setHint("default");
+    window->setTitle("Main menu");
 
     current_menu = MainMenu;
     int slot_index = window->addListElement("Disconnect", "disconnect", true, false); 
@@ -80,6 +82,8 @@ void ConfigurationInterface::enterAdminMainMenu()
     if (!admin) return;
 
     window->deleteAllListElements();
+    window->setHint("default");
+    window->setTitle("Main menu");
 
     current_menu = AdminMainMenu;
 
@@ -94,6 +98,8 @@ void ConfigurationInterface::enterSlotsMenu()
     if (!admin) return;
 
     window->deleteAllListElements();
+    window->setHint("default");
+    window->setTitle("Slot configuration");
 
     current_menu = SlotsMenu;
 
@@ -105,6 +111,30 @@ void ConfigurationInterface::enterSlotsMenu()
 void ConfigurationInterface::enterNewSlotProfileMenu()
 {
     if (!admin) return;
+    
+    window->deleteAllListElements();
+    window->setHint("wide");
+    window->setTitle("Creating a new slot profile");
+
+    current_menu = SlotsMenu;
+
+    int slot_index = window->addListElement("Back to slot profile menu", "slots", true, false);
+    window->addListElement("",                            "Slot profile name:         ", "newslot_name", true, true);
+    window->addListElement("launch in a pty+vt102/ANSI",  "Method of screen scraping: ", "newslot_method", true, false);
+    window->addListElement("",                            "Game executable path:      ", "newslot_executable", true, true);
+    window->addListElement("",                            "Game working directory:    ", "newslot_workingdir", true, true);
+    window->addListElement("anyone",                      "Allowed watchers:          ", "newslot_watchers", true, false);
+    window->addListElement("anyone",                      "Allowed launchers:         ", "newslot_launchers", true, false);
+    window->addListElement("anyone",                      "Allowed players:           ", "newslot_players", true, false);
+    window->addListElement("nobody",                      "Forbidden watchers:        ", "newslot_watchers_forbidden", true, false);
+    window->addListElement("nobody",                      "Forbidden launchers:       ", "newslot_launchers_forbidden", true, false);
+    window->addListElement("nobody",                      "Forbidden players:         ", "newslot_players_forbidden", true, false);
+    window->addListElement("80",                          "Width:                     ", "newslot_width", true, false);
+    window->addListElement("25",                          "Height:                    ", "newslot_height", true, false);
+    window->addListElement("5",                           "Maximum slots:             ", "newslot_maxslots", true, true);
+    window->addListElement(                               "Create slot profile", "newslot_create", false, true);
+
+    window->modifyListSelectionIndex(slot_index);
 }
 
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
