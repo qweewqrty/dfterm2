@@ -172,7 +172,9 @@ int main(int argc, char* argv[])
     uint64_t start_time;
     const uint64_t tick_time = 1000000000 / ticks_per_second;
 
-    while(listening_socket.active())
+    bool close = false;
+
+    while(listening_socket.active() && !close)
     {
         start_time = nanoclock();
 
@@ -215,6 +217,7 @@ int main(int argc, char* argv[])
         {
             if (update_nicklists) clients[i2]->updateClients();
             clients[i2]->cycle();
+            if (clients[i2]->shouldShutdown()) close = true;
         }
 
         /* Ticky wait. */

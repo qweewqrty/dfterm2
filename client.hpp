@@ -163,6 +163,9 @@ class Client
            No effect if client vector has not been set with above call. */
         void updateClients() { updateNicklistWindow(); };
 
+        /* Returns true if the entire server should close. */
+        bool shouldShutdown() const;
+
         /* Cycle the client connection */
         void cycle();
 };

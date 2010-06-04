@@ -127,6 +127,8 @@ class ConfigurationInterface
 
         bool menuSelectFunction(ui32 index);
 
+        bool shutdown;
+
     public:
         ConfigurationInterface();
         ConfigurationInterface(SP<Interface> interface);
@@ -140,6 +142,9 @@ class ConfigurationInterface
         void setUser(SP<User> user);
         /* And gets the user. */
         SP<User> getUser();
+
+        /* Returns true if shutdown of the entire server has been requested. */
+        bool shouldShutdown() const;
 
         /* Allow admin stuff to be controlled from this interface. 
          * Better do some authentication on the user before calling this... 

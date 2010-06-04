@@ -10,6 +10,7 @@ ConfigurationInterface::ConfigurationInterface()
 {
     current_menu = MainMenu;
     admin = false;
+    shutdown = false;
 }
 
 ConfigurationInterface::~ConfigurationInterface()
@@ -94,7 +95,15 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     if (selection == "disconnect")
         if (user)
             user->kill();
+    if (selection == "shutdown")
+    {
+        shutdown = true;
+        return false;
+    }
     return false;
 };
+
+bool ConfigurationInterface::shouldShutdown() const
+{ return shutdown; };
 
 

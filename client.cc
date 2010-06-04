@@ -188,6 +188,7 @@ void Client::cycleChat()
 void Client::cycle()
 {
     if (!isActive()) return;
+    if (!user) { client_socket->close(); return; };
     if (!user->isActive() && client_socket) { client_socket->close(); return; };
     if (identified) identify_window = SP<InterfaceElementWindow>();
 
@@ -577,5 +578,11 @@ void Client::setClientVector(vector<WP<Client> >* clients)
 void Client::setConfigurationDatabase(WP<ConfigurationDatabase> configuration_database)
 {
     configuration = configuration_database;
+}
+
+bool Client::shouldShutdown() const
+{
+    if (config_interface.shouldShutdown()) return true;
+    return false;
 }
 
