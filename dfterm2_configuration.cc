@@ -89,15 +89,49 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->modifyListSelectionIndex(slot_index);
 }
 
+void ConfigurationInterface::enterSlotsMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+
+    current_menu = SlotsMenu;
+
+    int slot_index = window->addListElement("Back to main menu", "mainmenu", true, false);
+    window->addListElement("Add a new slot profile", "new_slotprofile", true, false);
+    window->modifyListSelectionIndex(slot_index);
+}
+
+void ConfigurationInterface::enterNewSlotProfileMenu()
+{
+    if (!admin) return;
+}
+
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
 {
     data1D selection = window->getListElementData(index);
-    if (selection == "disconnect")
+    if (selection == "mainmenu")
+    {
+        enterMainMenu();
+    }
+    else if (selection == "new_slotprofile")
+    {
+        enterNewSlotProfileMenu();
+    }
+    else if (selection == "disconnect")
+    {
         if (user)
             user->kill();
-    if (selection == "shutdown")
+        return false;
+    }
+    else if (selection == "shutdown")
     {
         shutdown = true;
+        return false;
+    }
+    else if (selection == "slots")
+    {
+        enterSlotsMenu();
         return false;
     }
     return false;

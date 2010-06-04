@@ -105,7 +105,12 @@ class ConfigurationDatabase
         void saveUserData(SP<User> user) { saveUserData(user.get()); };
 };
 
-enum Menu { MainMenu, AdminMainMenu };
+enum Menu { /* These are menus for all of us! */
+            MainMenu,
+
+            /* And the following are admin-only menus. */
+            AdminMainMenu, 
+            SlotsMenu };
 
 /* Handles windows for easy online editing of configuration */
 class ConfigurationInterface
@@ -121,6 +126,8 @@ class ConfigurationInterface
         Menu current_menu;
         void enterMainMenu();
         void enterAdminMainMenu();
+        void enterSlotsMenu();
+        void enterNewSlotProfileMenu();
 
         bool admin;
         SP<User> user;
