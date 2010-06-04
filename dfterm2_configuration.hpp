@@ -18,6 +18,9 @@ namespace dfterm {
 data1D hash_data(data1D chunk);
 /* Turns a byte chunk into an ASCII hex-encoded chunk */
 data1D bytes_to_hex(data1D bytes);
+/* Escapes a string so that it can be used as an SQL string in its statements. */
+/* Used internally. Throws null characters away. */
+data1D escape_sql_string(data1D str);
 
 class User
 {

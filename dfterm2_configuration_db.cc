@@ -90,6 +90,7 @@ SP<User> ConfigurationDatabase::loadUserData(UnicodeString name)
 
     string name_utf8;
     name.toUTF8String(name_utf8);
+    if (escape_sql_string(name_utf8).size() < 1) return SP<User>();
 
     string r_name, r_password_hash, r_password_salt;
     bool r_admin = false;
@@ -98,7 +99,7 @@ SP<User> ConfigurationDatabase::loadUserData(UnicodeString name)
     sql_callback_function = bind(&ConfigurationDatabase::userDataCallback, this, &r_name, &r_password_hash, &r_password_salt, &r_admin, _1, _2, _3, _4);
 
     string statement;
-    statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users WHERE Name = \'") + name_utf8 + string("\';");
+    statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, 0);
     if (result != SQLITE_OK) return SP<User>();
     if (r_name.size() == 0) return SP<User>();
@@ -116,21 +117,41 @@ void ConfigurationDatabase::saveUserData(User* user)
 {
     if (!db) return;
     if (!user) return;
-    if (user->getName().countChar32() < 1) return;
 
     string name_utf8;
     user->getName().toUTF8String(name_utf8);
+    if (escape_sql_string(name_utf8).size() < 1) return;
 
     string statement;
-    statement = string("DELETE FROM Users WHERE Name = \'") + name_utf8 + string("\';"); 
+    statement = string("DELETE FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';"); 
     int result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 
     string admin_str("No");
     if (user->isAdmin()) admin_str = "Yes";
         
-    statement = string("INSERT INTO Users(Name, PasswordSHA512, PasswordSalt, Admin) VALUES(\'") + name_utf8 + string("\', \'") + user->getPasswordHash() + string("\', \'") + user->getPasswordSalt() + string("\', \'") + admin_str + string("\');");
+    statement = string("INSERT INTO Users(Name, PasswordSHA512, PasswordSalt, Admin) VALUES(\'") + escape_sql_string(name_utf8) + string("\', \'") + escape_sql_string(user->getPasswordHash()) + string("\', \'") + escape_sql_string(user->getPasswordSalt()) + string("\', \'") + admin_str + string("\');");
     result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 };
+
+data1D dfterm::escape_sql_string(data1D str)
+{
+    data1D result;
+    result.reserve(str.size());
+    size_t str_size = str.size();
+
+    size_t i1;
+    for (i1 = 0; i1 < str_size; i1++)
+    {
+        if (str[i1] == '\'')
+            result.append("\'\'");
+        else if (str[i1] == 0)
+            continue;
+        else
+            result.push_back(str[i1]);
+    }
+
+    return result;
+}
 
 data1D dfterm::bytes_to_hex(data1D bytes)
 {
