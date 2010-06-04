@@ -109,6 +109,27 @@ int main(int argc, char* argv[])
         ticks_per_second = 1;
     }
 
+    /* Configuration */
+    SP<ConfigurationDatabase> cdb(new ConfigurationDatabase);
+    OpenStatus d_result = cdb->openUTF8(database_file);
+    if (d_result == Failure)
+    {
+        cout << "Failed to open database file " << database_file << endl;
+        return -1;
+    }
+    if (d_result == OkCreatedNewDatabase)
+    {
+        cout << "Created a new database from scratch. You should add an admin account to configure dfterm2." << endl;
+        cout << "You need to use the command line tool dfterm2_configure for that. Close dfterm2 and then" << endl;
+        cout << "add an account like this: " << endl;
+        cout << "dfterm2_configure --adduser (user name) (password) admin" << endl;
+        cout << "For example:" << endl;
+        cout << "dfterm2_configure --adduser Adeon s3cr3t_p4ssw0rd admin" << endl;
+        cout << "This will create a new admin account for you." << endl;
+        cout << "If you are not using the default database (if you don't know then you are using it), use" << endl;
+        cout << "the --database switch to modify the correct database." << endl;
+    }
+
     SocketAddress::resolve(address, port, resolve_binding, true);
     if (!succeeded_resolve)
     {
@@ -146,10 +167,6 @@ int main(int argc, char* argv[])
 
     /* The global chat logger */
     SP<Logger> global_chat(new Logger);
-
-    /* Configuration */
-    SP<ConfigurationDatabase> cdb(new ConfigurationDatabase);
-    cdb->openUTF8(database_file);
 
     /* Use these for timing ticks */
     uint64_t start_time;

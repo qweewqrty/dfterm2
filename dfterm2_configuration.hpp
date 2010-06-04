@@ -16,12 +16,15 @@ namespace dfterm {
 /* This one hashes the given data chunk and returns an ASCII data chunk
  * containing the hash in hex. */
 data1D hash_data(data1D chunk);
+/* Turns a byte chunk into an ASCII hex-encoded chunk */
+data1D bytes_to_hex(data1D bytes);
 
 class User
 {
     private:
         UnicodeString name;
         data1D password_hash_sha512;
+        data1D password_salt;
         bool active;
         bool admin;
 
@@ -33,8 +36,12 @@ class User
         data1D getPasswordHash() const { return password_hash_sha512; };
         void setPasswordHash(data1D hash) { password_hash_sha512 = hash; };
 
+        data1D getPasswordSalt() const { return password_salt; };
+        void setPasswordSalt(data1D salt) { password_salt = salt; };
+
         /* This one hashes the password and then calls setPasswordHash. */
         /* UnicodeString will be first converted to UTF-8 */
+        /* If you use salt, set it before calling this function. */
         void setPassword(UnicodeString password)
         {
             data1D password_utf8;
@@ -43,7 +50,7 @@ class User
         }
         void setPassword(data1D password)
         {
-            setPasswordHash(hash_data(password));
+            setPasswordHash(hash_data(password + password_salt));
         }
         /* Returns true if password is correct. */
         bool verifyPassword(UnicodeString password)
@@ -54,7 +61,7 @@ class User
         }
         bool verifyPassword(data1D password)
         {
-            return (hash_data(password) == password_hash_sha512);
+            return (hash_data(password + password_salt) == password_hash_sha512);
         }
 
         UnicodeString getName() const { return name; };
@@ -67,6 +74,7 @@ class User
         void setAdmin(bool admin_status) { admin = admin_status; };
 };
 
+enum OpenStatus { Failure, Ok, OkCreatedNewDatabase };
 
 /* A class that handles access to the actual database file on disk. 
  * Note that this class does not do input sanitization. Beware of SQL injection! */
@@ -77,14 +85,14 @@ class ConfigurationDatabase
         ConfigurationDatabase& operator=(const ConfigurationDatabase &) { };
 
         sqlite3* db;
-        int userDataCallback(string* name, string* password_hash, void* v_self, int argc, char** argv, char** colname);
+        int userDataCallback(string* name, string* password_hash, string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
 
     public:
         ConfigurationDatabase();
         ~ConfigurationDatabase();
 
-        bool open(UnicodeString filename);
-        bool openUTF8(string filename)
+        OpenStatus open(UnicodeString filename);
+        OpenStatus openUTF8(string filename)
         { return open(UnicodeString::fromUTF8(filename)); };
 
         SP<User> loadUserData(UnicodeString name);
