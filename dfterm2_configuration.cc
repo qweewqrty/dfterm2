@@ -87,7 +87,7 @@ void ConfigurationInterface::enterAdminMainMenu()
 
     current_menu = AdminMainMenu;
 
-    int slot_index = window->addListElement("Configure slots", "slots", true, false); 
+    ui32 slot_index = window->addListElement("Configure slots", "slots", true, false); 
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
     window->modifyListSelectionIndex(slot_index);
@@ -129,16 +129,18 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     window->addListElement("nobody",                      "Forbidden watchers:        ", "newslot_watchers_forbidden", true, false);
     window->addListElement("nobody",                      "Forbidden launchers:       ", "newslot_launchers_forbidden", true, false);
     window->addListElement("nobody",                      "Forbidden players:         ", "newslot_players_forbidden", true, false);
-    window->addListElement("80",                          "Width:                     ", "newslot_width", true, false);
-    window->addListElement("25",                          "Height:                    ", "newslot_height", true, false);
-    window->addListElement("5",                           "Maximum slots:             ", "newslot_maxslots", true, true);
-    window->addListElement(                               "Create slot profile", "newslot_create", false, true);
+    window->addListElement("80",                          "Width:                     ", "newslot_width", true, true);
+    window->addListElement("25",                          "Height:                    ", "newslot_height", true, true);
+    window->addListElement("1",                           "Maximum slots:             ", "newslot_maxslots", true, true);
+    window->addListElement(                               "Create slot profile",         "newslot_create", false, true);
 
     window->modifyListSelectionIndex(slot_index);
 }
 
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
 {
+    if (auxiliary_window) return false;
+
     data1D selection = window->getListElementData(index);
     if (selection == "mainmenu")
     {
@@ -146,6 +148,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (selection == "new_slotprofile")
     {
+        edit_slotprofile = SlotProfile();
         enterNewSlotProfileMenu();
     }
     else if (selection == "disconnect")
@@ -164,8 +167,64 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         enterSlotsMenu();
         return false;
     }
+    /* The new slot profile menu */
+    else if (selection == "newslot_watchers")
+    {
+        edit_usergroup = edit_slotprofile.getAllowedWatchers();
+        auxiliaryEnterUsergroupWindow();
+    }
     return false;
 };
+
+void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
+{
+    auxiliary_window = interface->createInterfaceElementWindow();
+    auxiliary_window->setHint("wide");
+
+    auxiliary_window->setTitle("Select user group");
+    int nobody = auxiliary_window->addListElement("Nobody", "usergroup_nobody", true, false);
+    int anybody = auxiliary_window->addListElement("Anybody", "usergroup_anybody", true, false);
+    int launcher = auxiliary_window->addListElement("Launcher", "usergroup_launcher", true, false);
+    int players = auxiliary_window->addListElement("Specific users", "usergroup_players", true, false);
+    int ok = auxiliary_window->addListElement("Ok", "usergroup_ok", true, false);
+    int cancel = auxiliary_window->addListElement("Cancel", "usergroup_cancel", true, false);
+    auxiliary_window->modifyListSelectionIndex(ok);
+
+    checkAuxiliaryWindowUsergroupSelections();
+}
+
+void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
+{
+    /* This function iteraters over all list elements in auxiliary window, and updates
+     * the texts to reflect what users the user has selected for a user group.
+     * Se we can have the list looking like:
+     * | Nobody          |
+     * | Anybody*        |
+     * | Launcher*       |
+     * | Specific users* |
+     * | Ok              |
+     * | Cancel          |
+     * (where * denotes selected users) */
+    ui32 index;
+    string data;
+    for (index = 0; (data = auxiliary_window->getListElementData(index)).size() > 0; index++)
+    {
+        if (data == "usergroup_nobody")
+        {
+            if (edit_usergroup.hasNobody())
+                auxiliary_window->modifyListElementTextUTF8(index, "Nobody*");
+            else
+                auxiliary_window->modifyListElementTextUTF8(index, "Nobody");
+        }
+        if (data == "usergroup_anybody")
+        {
+            if (edit_usergroup.hasAnybody())
+                auxiliary_window->modifyListElementTextUTF8(index, "Anybody*");
+            else
+                auxiliary_window->modifyListElementTextUTF8(index, "Anybody");
+        }
+    }
+}
 
 bool ConfigurationInterface::shouldShutdown() const
 { return shutdown; };

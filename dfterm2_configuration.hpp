@@ -6,8 +6,11 @@
 
 #include "interface.hpp"
 #include "sqlite3.h"
+#include "slot.hpp"
+#include <set>
 
 using namespace trankesbel;
+using namespace std;
 
 namespace dfterm {
 
@@ -21,6 +24,9 @@ data1D bytes_to_hex(data1D bytes);
 /* Escapes a string so that it can be used as an SQL string in its statements. */
 /* Used internally. Throws null characters away. */
 data1D escape_sql_string(data1D str);
+
+class UserGroup;
+class User;
 
 class User
 {
@@ -77,6 +83,152 @@ class User
         void setAdmin(bool admin_status) { admin = admin_status; };
 };
 
+class UserGroup
+{
+    private:
+        bool has_nobody;
+        bool has_anybody;
+        bool has_launcher;
+        set<UnicodeString> has_user;
+
+    public:
+        UserGroup()
+        {
+            has_nobody = true;
+            has_anybody = false;
+            has_launcher = false;
+        }
+
+        bool hasNobody() const { return has_nobody; };
+        bool hasAnybody() const { return has_anybody; };
+        bool hasLauncher() const { return has_launcher; };
+        bool hasUser(UnicodeString username) const 
+        { 
+            if (has_nobody) return false;
+            if (has_anybody) return true;
+            return has_user.find(username) != has_user.end(); 
+        };
+
+        void setNobody()
+        {
+            has_nobody = true;
+            has_anybody = false;
+            has_launcher = false;
+            has_user.clear();
+        }
+        void setAnybody()
+        {
+            has_nobody = false;
+            has_anybody = true;
+            has_launcher = true;
+            has_user.clear();
+        }
+        void setLauncher()
+        {
+            has_launcher = true;
+            has_nobody = false;
+        }
+        void unsetLauncher()
+        {
+            if (has_anybody)
+                has_launcher = true;
+            else
+            {
+                has_launcher = false;
+                if (has_user.empty())
+                    has_nobody = true;
+            }
+        }
+        void setUser(UnicodeString username)
+        {
+            has_user.insert(username);
+        }
+        void unsetUser(UnicodeString username)
+        {
+            has_user.erase(username);
+        }
+};
+
+class SlotProfile
+{
+    private:
+        UnicodeString name;              /* name of the slot profile */
+        ui32 w, h;                       /* width and height of the game inside slot */
+        UnicodeString path;              /* path to game executable */
+        UnicodeString working_path;      /* working directory for the game. */
+        SlotType slot_type;              /* slot type */
+        UserGroup allowed_watchers;      /* who may watch */
+        UserGroup allowed_launchers;     /* who may launch */
+        UserGroup allowed_players;       /* who may play */
+        UserGroup forbidden_watchers;    /* who may not watch */
+        UserGroup forbidden_launchers;   /* who may not launch */
+        UserGroup forbidden_players;     /* who may not play */
+        ui32 max_slots;                  /* maximum number of slots to create */
+
+    public:
+        SlotProfile()
+        {
+            w = 80; h = 25;
+            #ifdef __WIN32
+            slot_type = DFLaunch;
+            #else
+            slot_type = TerminalLaunch;
+            #endif
+            max_slots = 1;
+            allowed_watchers.setAnybody();
+            allowed_launchers.setAnybody();
+            allowed_players.setAnybody();
+            forbidden_players.setNobody();
+            forbidden_launchers.setNobody();
+            forbidden_watchers.setNobody();
+        }
+
+        /* All these functions are just simple getter/setter pairs */
+        void setName(UnicodeString name) { this->name = name; };
+        void setNameUTF8(string name) { this->name = UnicodeString::fromUTF8(name); };
+        UnicodeString getName() const { return name; };
+        string getNameUTF8() const { string r; name.toUTF8String(r); return r; };
+
+        void setWidth(ui32 w) { this->w = w; };
+        ui32 getWidth() const { return w; };
+        void setHeight(ui32 h) { this->h = h; };
+        ui32 getHeight() const { return h; };
+        void setSize(ui32 w, ui32 h)
+        { setWidth(w); setHeight(h); };
+        void getSize(ui32* w, ui32* h)
+        { (*w) = getWidth(); (*h) = getHeight(); };
+
+        void setExecutable(UnicodeString executable) { path = executable; };
+        void setExecutableUTF8(string executable) { path = UnicodeString::fromUTF8(executable); };
+        UnicodeString getExecutable() const { return path; };
+        string getExecutableUTF8() const { string r; path.toUTF8String(r); return r; };
+
+        void setWorkingPath(UnicodeString executable_path) { working_path = executable_path; };
+        void setWorkingPathUTF8(string executable_path) { working_path = UnicodeString::fromUTF8(executable_path); };
+        UnicodeString getWorkingPath() const { return working_path; };
+        string getWorkingPathUTF8() const { string r; working_path.toUTF8String(r); return r; };
+
+        void setSlotType(SlotType t) { slot_type = t; };
+        SlotType getSlotType() const { return slot_type; };
+
+        void setMaxSlots(ui32 slots) { max_slots = slots; };
+        ui32 getMaxSlots() const { return max_slots; };
+
+        UserGroup getAllowedWatchers() const { return allowed_watchers; };
+        UserGroup getAllowedLaunchers() const { return allowed_launchers; };
+        UserGroup getAllowedPlayers() const { return allowed_players; };
+        UserGroup getForbiddenWatchers() const { return forbidden_watchers; };
+        UserGroup getForbiddenLaunchers() const { return forbidden_launchers; };
+        UserGroup getForbiddenPlayers() const { return forbidden_players; };
+        
+        void setAllowedWatchers(UserGroup gr) { allowed_watchers = gr; };
+        void setAllowedLaunchers(UserGroup gr) { allowed_launchers = gr; };
+        void setAllowedPlayers(UserGroup gr) { allowed_players = gr; };
+        void setForbiddenWatchers(UserGroup gr) { forbidden_watchers = gr; };
+        void setForbiddenLaunchers(UserGroup gr) { forbidden_launchers = gr; };
+        void setForbiddenPlayers(UserGroup gr) { forbidden_players = gr; };
+};
+
 enum OpenStatus { Failure, Ok, OkCreatedNewDatabase };
 
 /* A class that handles access to the actual database file on disk. 
@@ -122,12 +274,21 @@ class ConfigurationInterface
 
         SP<Interface> interface;
         SP<InterfaceElementWindow> window;
+        SP<InterfaceElementWindow> auxiliary_window;
 
         Menu current_menu;
         void enterMainMenu();
         void enterAdminMainMenu();
         void enterSlotsMenu();
         void enterNewSlotProfileMenu();
+
+        void auxiliaryEnterUsergroupWindow();
+        void checkAuxiliaryWindowUsergroupSelections();
+
+        /* When defining user groups, this is the currently edited user group. */
+        UserGroup edit_usergroup;
+        /* And this is currently edited slot profile */
+        SlotProfile edit_slotprofile;
 
         bool admin;
         SP<User> user;
@@ -164,10 +325,6 @@ class ConfigurationInterface
         SP<InterfaceElementWindow> getUserWindow();
 };
 
-class SlotProfile
-{
-    public:
-};
 
 };
 
