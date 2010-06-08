@@ -20,6 +20,16 @@ ConfigurationInterface::~ConfigurationInterface()
 {
 }
 
+void ConfigurationInterface::setConfigurationDatabase(SP<ConfigurationDatabase> c_database)
+{
+    configuration_database = c_database;
+}
+
+SP<ConfigurationDatabase> ConfigurationInterface::getConfigurationDatabase()
+{
+    return configuration_database;
+}
+
 void ConfigurationInterface::cycle()
 {
     if (destroy_auxiliary_window) auxiliary_window = SP<InterfaceElementWindow>();
@@ -157,6 +167,8 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
         edit_usergroup.toggleAnybody();
     else if (selection == "usergroup_launcher")
         edit_usergroup.toggleLauncher();
+    else if (selection == "usergroup_users")
+        auxiliaryEnterSpecificUsersWindow();
     else if (selection == "usergroup_ok")
     {
         true_if_ok = true;
@@ -169,6 +181,8 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
         window->gainFocus();
         auxiliary_window = SP<InterfaceElementWindow>();
     }
+
+    checkAuxiliaryWindowUsergroupSelections();
 
     return false;
 }
@@ -214,15 +228,15 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
 
 void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
 {
-    destroy_auxiliary_window = false;
-    auxiliary_window = interface->createInterfaceElementWindow();
+    if (!auxiliary_window) auxiliary_window = interface->createInterfaceElementWindow();
     auxiliary_window->setHint("wide");
+    auxiliary_window->deleteAllListElements();
 
     auxiliary_window->setTitle("Select user group");
     int nobody = auxiliary_window->addListElement("Nobody", "usergroup_nobody", true, false);
     int anybody = auxiliary_window->addListElement("Anybody", "usergroup_anybody", true, false);
     int launcher = auxiliary_window->addListElement("Launcher", "usergroup_launcher", true, false);
-    int players = auxiliary_window->addListElement("Specific users", "usergroup_players", true, false);
+    int players = auxiliary_window->addListElement("Specific users", "usergroup_users", true, false);
     int ok = auxiliary_window->addListElement("Ok", "usergroup_ok", true, false);
     int cancel = auxiliary_window->addListElement("Cancel", "usergroup_cancel", true, false);
 
@@ -235,8 +249,41 @@ void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
     auxiliary_window->gainFocus();
 }
 
+void ConfigurationInterface::auxiliaryEnterSpecificUsersWindow()
+{
+    if (!configuration_database) return;
+    if (!auxiliary_window) return;
+
+    auxiliary_window->deleteAllListElements(); 
+
+    auxiliary_window->setTitle("Select users");
+    int ok = auxiliary_window->addListElementUTF8("Ok", "usergroup_users_ok", true, false);
+
+    vector<SP<User> > users = configuration_database->loadAllUserData();
+    ui32 i1, len = users.size();
+    for (i1 = 0; i1 < len; i1++)
+    {
+        if (!users[i1]) continue;
+        string element = string("\"") + users[i1]->getNameUTF8() + string("\"");
+        if (edit_usergroup.hasUser(users[i1]->getName())) element.push_back('*');
+
+        string user_str = string("userselect_") + users[i1]->getNameUTF8();
+        auxiliary_window->addListElementUTF8(element.c_str(), user_str.c_str(), true, false);
+    }
+
+    auxiliary_window->modifyListSelectionIndex(ok);
+    auxiliary_window->setListCallback(bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
+
+    checkAuxiliaryWindowUsergroupSelections();
+
+    interface->cycle();
+    auxiliary_window->gainFocus();
+}
+
 void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
 {
+    if (!auxiliary_window) return;
+
     /* This function iteraters over all list elements in auxiliary window, and updates
      * the texts to reflect what users the user has selected for a user group.
      * Se we can have the list looking like:

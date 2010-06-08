@@ -8,6 +8,7 @@
 #include "sqlite3.h"
 #include "slot.hpp"
 #include <set>
+#include <vector>
 
 using namespace trankesbel;
 using namespace std;
@@ -74,7 +75,18 @@ class User
         }
 
         UnicodeString getName() const { return name; };
+        string getNameUTF8() const
+        {
+            string r;
+            name.toUTF8String(r);
+            return r;
+        }
+
         void setName(UnicodeString us) { name = us; };
+        void setNameUTF8(string us)
+        {
+            setName(UnicodeString::fromUTF8(us));
+        }
 
         bool isActive() const { return active; };
         void kill() { active = false; };
@@ -256,6 +268,7 @@ class ConfigurationDatabase
 
         sqlite3* db;
         int userDataCallback(string* name, string* password_hash, string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
+        int userListDataCallback(vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
 
     public:
         ConfigurationDatabase();
@@ -267,6 +280,7 @@ class ConfigurationDatabase
 
         void deleteUserData(UnicodeString name);
 
+        vector<SP<User> > loadAllUserData();
         SP<User> loadUserData(UnicodeString name);
         void saveUserData(User* user);
         void saveUserData(SP<User> user) { saveUserData(user.get()); };
@@ -291,6 +305,8 @@ class ConfigurationInterface
         SP<InterfaceElementWindow> window;
         SP<InterfaceElementWindow> auxiliary_window;
 
+        SP<ConfigurationDatabase> configuration_database;
+
         Menu current_menu;
         void enterMainMenu();
         void enterAdminMainMenu();
@@ -298,6 +314,7 @@ class ConfigurationInterface
         void enterNewSlotProfileMenu();
 
         void auxiliaryEnterUsergroupWindow();
+        void auxiliaryEnterSpecificUsersWindow();
         void checkAuxiliaryWindowUsergroupSelections();
 
         /* When defining user groups, this is the currently edited user group. */
@@ -322,6 +339,10 @@ class ConfigurationInterface
         ConfigurationInterface();
         ConfigurationInterface(SP<Interface> interface);
         ~ConfigurationInterface();
+
+        /* Set/get the configuration database */
+        void setConfigurationDatabase(SP<ConfigurationDatabase> c_database);
+        SP<ConfigurationDatabase> getConfigurationDatabase();
 
         /* Some menus change over time, without interaction.
          * This function has to be called to fix'em. */

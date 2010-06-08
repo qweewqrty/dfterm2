@@ -74,6 +74,41 @@ int ConfigurationDatabase::userDataCallback(string* name, string* password_hash,
             if (!strcmp(argv[i], "Yes"))
                 (*admin) = true;
     }
+
+    return 0;
+};
+
+int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname)
+{
+    string name, password_hash, password_salt;
+    bool admin = false;
+
+    int i;
+    for (i = 0; i < argc; i++)
+    {
+        if (!argv[i]) continue;
+
+        if (!strcmp(colname[i], "Name"))
+            name = argv[i];
+        else if (!strcmp(colname[i], "PasswordSHA512"))
+            password_hash = argv[i];
+        else if (!strcmp(colname[i], "PasswordSalt"))
+            password_salt = argv[i];
+        else if (!strcmp(colname[i], "Admin"))
+            if (!strcmp(argv[i], "Yes"))
+                admin = true;
+    }
+
+    if (name.size() <= 0) return 0;
+
+    SP<User> user(new User);
+    user->setPasswordSalt(password_salt);
+    user->setPasswordHash(password_hash);
+    user->setName(UnicodeString::fromUTF8(name));
+    user->setAdmin(admin);
+
+    (*user_list).push_back(user);
+    return 0;
 };
 
 static int c_callback(void* a, int b, char** c, char** d)
@@ -82,6 +117,23 @@ static int c_callback(void* a, int b, char** c, char** d)
     (function4<int, void*, int, char**, char**>*) a;
 
     return (*sql_callback_function)((void*) 0, b, c, d);
+}
+
+vector<SP<User> > ConfigurationDatabase::loadAllUserData()
+{
+    if (!db) return vector<SP<User> >();
+
+    vector<SP<User> > result_users;
+
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = bind(&ConfigurationDatabase::userListDataCallback, this, &result_users, _1, _2, _3, _4);
+
+    string statement;
+    statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users;");
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, 0);
+    if (result != SQLITE_OK) return vector<SP<User> >();
+
+    return result_users;
 }
 
 void ConfigurationDatabase::deleteUserData(UnicodeString name)

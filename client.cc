@@ -580,6 +580,7 @@ void Client::setClientVector(vector<WP<Client> >* clients)
 void Client::setConfigurationDatabase(WP<ConfigurationDatabase> configuration_database)
 {
     configuration = configuration_database;
+    config_interface.setConfigurationDatabase(configuration.lock());
 }
 
 bool Client::shouldShutdown() const
