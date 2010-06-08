@@ -11,10 +11,19 @@ ConfigurationInterface::ConfigurationInterface()
     current_menu = MainMenu;
     admin = false;
     shutdown = false;
+
+    true_if_ok = false;
+    destroy_auxiliary_window = false;
 }
 
 ConfigurationInterface::~ConfigurationInterface()
 {
+}
+
+void ConfigurationInterface::cycle()
+{
+    if (destroy_auxiliary_window) auxiliary_window = SP<InterfaceElementWindow>();
+    destroy_auxiliary_window = false;
 }
 
 ConfigurationInterface::ConfigurationInterface(SP<Interface> interface)
@@ -137,6 +146,33 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     window->modifyListSelectionIndex(slot_index);
 }
 
+bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
+{
+    if (!auxiliary_window) return false;
+
+    data1D selection = auxiliary_window->getListElementData(index);
+    if (selection == "usergroup_nobody")
+        edit_usergroup.setNobody();   /* toggling doesn't seem to make much sense for "nobody" */
+    else if (selection == "usergroup_anybody")
+        edit_usergroup.toggleAnybody();
+    else if (selection == "usergroup_launcher")
+        edit_usergroup.toggleLauncher();
+    else if (selection == "usergroup_ok")
+    {
+        true_if_ok = true;
+        window->gainFocus();
+        auxiliary_window = SP<InterfaceElementWindow>();
+    }
+    else if (selection == "usergroup_cancel")
+    {
+        true_if_ok = false;
+        window->gainFocus();
+        auxiliary_window = SP<InterfaceElementWindow>();
+    }
+
+    return false;
+}
+
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
 {
     if (auxiliary_window) return false;
@@ -178,6 +214,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
 
 void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
 {
+    destroy_auxiliary_window = false;
     auxiliary_window = interface->createInterfaceElementWindow();
     auxiliary_window->setHint("wide");
 
@@ -188,9 +225,14 @@ void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
     int players = auxiliary_window->addListElement("Specific users", "usergroup_players", true, false);
     int ok = auxiliary_window->addListElement("Ok", "usergroup_ok", true, false);
     int cancel = auxiliary_window->addListElement("Cancel", "usergroup_cancel", true, false);
+
     auxiliary_window->modifyListSelectionIndex(ok);
+    auxiliary_window->setListCallback(bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
 
     checkAuxiliaryWindowUsergroupSelections();
+
+    interface->cycle();
+    auxiliary_window->gainFocus();
 }
 
 void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
@@ -222,6 +264,20 @@ void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
                 auxiliary_window->modifyListElementTextUTF8(index, "Anybody*");
             else
                 auxiliary_window->modifyListElementTextUTF8(index, "Anybody");
+        }
+        if (data == "usergroup_launcher")
+        {
+            if (edit_usergroup.hasLauncher())
+                auxiliary_window->modifyListElementTextUTF8(index, "Launcher*");
+            else
+                auxiliary_window->modifyListElementTextUTF8(index, "Launcher");
+        }
+        if (data == "usergroup_players")
+        {
+            if (edit_usergroup.hasAnySpecificUser())
+                auxiliary_window->modifyListElementTextUTF8(index, "Specific users*");
+            else
+                auxiliary_window->modifyListElementTextUTF8(index, "Specific users");
         }
     }
 }

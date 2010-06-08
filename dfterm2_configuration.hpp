@@ -99,6 +99,8 @@ class UserGroup
             has_launcher = false;
         }
 
+        bool hasAnySpecificUser() const { return ((!has_user.empty()) || has_anybody); };
+
         bool hasNobody() const { return has_nobody; };
         bool hasAnybody() const { return has_anybody; };
         bool hasLauncher() const { return has_launcher; };
@@ -108,6 +110,19 @@ class UserGroup
             if (has_anybody) return true;
             return has_user.find(username) != has_user.end(); 
         };
+
+        bool toggleAnybody()
+        {
+            if (!has_anybody)
+                setAnybody();
+            else
+                setNobody();
+        }
+        bool toggleLauncher()
+        {
+            if (has_launcher) unsetLauncher();
+            else setLauncher();
+        }
 
         void setNobody()
         {
@@ -289,11 +304,17 @@ class ConfigurationInterface
         UserGroup edit_usergroup;
         /* And this is currently edited slot profile */
         SlotProfile edit_slotprofile;
+        /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
+        bool true_if_ok;
+        /* For the moment there is no convenient way to destroy a window from its callback.
+         * This is set to true when auxiliary_window should be destoyed. */
+        bool destroy_auxiliary_window;
 
         bool admin;
         SP<User> user;
 
         bool menuSelectFunction(ui32 index);
+        bool auxiliaryMenuSelectFunction(ui32 index);
 
         bool shutdown;
 
@@ -301,6 +322,10 @@ class ConfigurationInterface
         ConfigurationInterface();
         ConfigurationInterface(SP<Interface> interface);
         ~ConfigurationInterface();
+
+        /* Some menus change over time, without interaction.
+         * This function has to be called to fix'em. */
+        void cycle();
 
         /* Set interface to use from this */
         void setInterface(SP<Interface> interface);

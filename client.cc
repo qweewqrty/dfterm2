@@ -192,6 +192,8 @@ void Client::cycle()
     if (!user->isActive() && client_socket) { client_socket->close(); return; };
     if (identified) identify_window = SP<InterfaceElementWindow>();
 
+    config_interface.cycle();
+
     ts.cycle();
 
     /* Check if client has resized their terminal, adjust
