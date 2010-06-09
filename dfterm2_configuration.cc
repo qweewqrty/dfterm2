@@ -1,6 +1,7 @@
 #include <boost/bind.hpp>
 #include <iostream>
 #include "dfterm2_configuration.hpp"
+#include <algorithm>
 
 using namespace dfterm;
 using namespace boost;
@@ -167,8 +168,10 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
         edit_usergroup.toggleAnybody();
     else if (selection == "usergroup_launcher")
         edit_usergroup.toggleLauncher();
-    else if (selection == "usergroup_users")
+    else if (selection == "usergroup_users" && !edit_usergroup.hasAnybody())
         auxiliaryEnterSpecificUsersWindow();
+    else if (selection == "usergroup_users_ok")
+        auxiliaryEnterUsergroupWindow();
     else if (selection == "usergroup_ok")
     {
         true_if_ok = true;
@@ -180,6 +183,11 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
         true_if_ok = false;
         window->gainFocus();
         auxiliary_window = SP<InterfaceElementWindow>();
+    }
+    else if (!selection.compare(0, min(selection.size(), (size_t) 11), "userselect_", 11))
+    {
+        string username = selection.substr(11);
+        edit_usergroup.toggleUserUTF8(username);
     }
 
     checkAuxiliaryWindowUsergroupSelections();
@@ -305,26 +313,36 @@ void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
             else
                 auxiliary_window->modifyListElementTextUTF8(index, "Nobody");
         }
-        if (data == "usergroup_anybody")
+        else if (data == "usergroup_anybody")
         {
             if (edit_usergroup.hasAnybody())
                 auxiliary_window->modifyListElementTextUTF8(index, "Anybody*");
             else
                 auxiliary_window->modifyListElementTextUTF8(index, "Anybody");
         }
-        if (data == "usergroup_launcher")
+        else if (data == "usergroup_launcher")
         {
             if (edit_usergroup.hasLauncher())
                 auxiliary_window->modifyListElementTextUTF8(index, "Launcher*");
             else
                 auxiliary_window->modifyListElementTextUTF8(index, "Launcher");
         }
-        if (data == "usergroup_players")
+        else if (data == "usergroup_users")
         {
-            if (edit_usergroup.hasAnySpecificUser())
+            if (edit_usergroup.hasAnybody())
+                auxiliary_window->modifyListElementTextUTF8(index, "(Specific users)");
+            else if (edit_usergroup.hasAnySpecificUser())
                 auxiliary_window->modifyListElementTextUTF8(index, "Specific users*");
             else
                 auxiliary_window->modifyListElementTextUTF8(index, "Specific users");
+        }
+        else if (!data.compare(0, min(data.size(), (size_t) 11), "userselect_", 11))
+        {
+            string username = data.substr(11);
+            if (edit_usergroup.hasUserUTF8(username))
+                auxiliary_window->modifyListElementTextUTF8(index, string("\"") + username + string("\"*"));
+            else
+                auxiliary_window->modifyListElementTextUTF8(index, string("\"") + username + string("\""));
         }
     }
 }

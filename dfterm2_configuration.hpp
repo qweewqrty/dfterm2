@@ -122,6 +122,10 @@ class UserGroup
             if (has_anybody) return true;
             return has_user.find(username) != has_user.end(); 
         };
+        bool hasUserUTF8(string username) const
+        {
+            return hasUser(UnicodeString::fromUTF8(username));
+        }
 
         bool toggleAnybody()
         {
@@ -129,11 +133,33 @@ class UserGroup
                 setAnybody();
             else
                 setNobody();
+            return hasAnybody();
         }
         bool toggleLauncher()
         {
             if (has_launcher) unsetLauncher();
             else setLauncher();
+            return hasLauncher();
+        }
+        bool toggleUser(UnicodeString username)
+        {
+            set<UnicodeString>::iterator i1 = has_user.find(username);
+            if (i1 != has_user.end())
+            {
+                has_user.erase(i1);
+                if (has_user.empty() && !has_anybody && !has_nobody) setNobody();
+                return false;
+            }
+            else
+            {
+                has_user.insert(username);
+                if (has_nobody) has_nobody = false;
+                return true;
+            }
+        }
+        bool toggleUserUTF8(string username)
+        {
+            return toggleUser(UnicodeString::fromUTF8(username));
         }
 
         void setNobody()
