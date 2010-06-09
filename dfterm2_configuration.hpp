@@ -285,7 +285,7 @@ class SlotProfile
 enum OpenStatus { Failure, Ok, OkCreatedNewDatabase };
 
 /* A class that handles access to the actual database file on disk. 
- * Note that this class does not do input sanitization. Beware of SQL injection! */
+ * The class does some input sanitizing so you can't do SQL injection with the methods. */
 class ConfigurationDatabase
 {
     private:
