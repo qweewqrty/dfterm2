@@ -2,6 +2,7 @@
 #include <iostream>
 #include "dfterm2_configuration.hpp"
 #include <algorithm>
+#include <cstdio>
 
 using namespace dfterm;
 using namespace boost;
@@ -149,7 +150,7 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     window->addListElement("80",                          "Width:                     ", "newslot_width", true, true);
     window->addListElement("25",                          "Height:                    ", "newslot_height", true, true);
     window->addListElement("1",                           "Maximum slots:             ", "newslot_maxslots", true, true);
-    window->addListElement(                               "Create slot profile",         "newslot_create", false, true);
+    window->addListElement(                               "Create slot profile",         "newslot_create", true, false);
 
     window->modifyListSelectionIndex(slot_index);
 
@@ -178,7 +179,38 @@ void ConfigurationInterface::checkSlotProfileMenu()
         else if (data == "newslot_players_forbidden")
             ug = edit_slotprofile.getForbiddenPlayers();
         else
+        {
+            char number[50];
+            number[49] = 0;
+            if (data == "newslot_width")
+            {
+                sprintf(number, "%d", edit_slotprofile.getWidth());
+                window->modifyListElementTextUTF8(index, number);
+            }
+            else if (data == "newslot_height")
+            {
+                sprintf(number, "%d", edit_slotprofile.getHeight());
+                window->modifyListElementTextUTF8(index, number);
+            }
+            else if (data == "newslot_workingdir")
+                window->modifyListElementText(index, edit_slotprofile.getWorkingPath());
+            else if (data == "newslot_executable")
+                window->modifyListElementText(index, edit_slotprofile.getExecutable());
+            else if (data == "newslot_method")
+            {
+                SlotType st = edit_slotprofile.getSlotType();
+                if (st == DFGrab)
+                    window->modifyListElementTextUTF8(index, "Grab a running DF instance (win32)");
+                else if (st == DFLaunch)
+                    window->modifyListElementTextUTF8(index, "Launch a new DF instance (win32)");
+                else if (st == TerminalLaunch)
+                    window->modifyListElementTextUTF8(index, "Launch a new DF instance (pty+vt102)");
+                else 
+                    window->modifyListElementTextUTF8(index, "Unknown slot type");
+            }
+
             continue;
+        }
 
         if (ug.hasNobody())
             window->modifyListElementTextUTF8(index, "Nobody");
@@ -310,6 +342,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         edit_usergroup = edit_slotprofile.getForbiddenPlayers();
         edit_slotprofile_target = "forbidden_players";
         auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_create")
+    {
     }
     return false;
 };
