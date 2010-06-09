@@ -338,6 +338,7 @@ class ConfigurationInterface
         void enterAdminMainMenu();
         void enterSlotsMenu();
         void enterNewSlotProfileMenu();
+        void checkSlotProfileMenu();
 
         void auxiliaryEnterUsergroupWindow();
         void auxiliaryEnterSpecificUsersWindow();
@@ -347,11 +348,12 @@ class ConfigurationInterface
         UserGroup edit_usergroup;
         /* And this is currently edited slot profile */
         SlotProfile edit_slotprofile;
+        /* And this is where the currently edited slot profile should be copied
+         * when done with it. ("watchers", "launchers", "etc.") */
+        string edit_slotprofile_target;
+
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;
-        /* For the moment there is no convenient way to destroy a window from its callback.
-         * This is set to true when auxiliary_window should be destoyed. */
-        bool destroy_auxiliary_window;
 
         bool admin;
         SP<User> user;

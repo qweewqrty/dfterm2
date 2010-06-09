@@ -14,7 +14,6 @@ ConfigurationInterface::ConfigurationInterface()
     shutdown = false;
 
     true_if_ok = false;
-    destroy_auxiliary_window = false;
 }
 
 ConfigurationInterface::~ConfigurationInterface()
@@ -33,8 +32,6 @@ SP<ConfigurationDatabase> ConfigurationInterface::getConfigurationDatabase()
 
 void ConfigurationInterface::cycle()
 {
-    if (destroy_auxiliary_window) auxiliary_window = SP<InterfaceElementWindow>();
-    destroy_auxiliary_window = false;
 }
 
 ConfigurationInterface::ConfigurationInterface(SP<Interface> interface)
@@ -143,18 +140,57 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     window->addListElement("launch in a pty+vt102/ANSI",  "Method of screen scraping: ", "newslot_method", true, false);
     window->addListElement("",                            "Game executable path:      ", "newslot_executable", true, true);
     window->addListElement("",                            "Game working directory:    ", "newslot_workingdir", true, true);
-    window->addListElement("anyone",                      "Allowed watchers:          ", "newslot_watchers", true, false);
-    window->addListElement("anyone",                      "Allowed launchers:         ", "newslot_launchers", true, false);
-    window->addListElement("anyone",                      "Allowed players:           ", "newslot_players", true, false);
-    window->addListElement("nobody",                      "Forbidden watchers:        ", "newslot_watchers_forbidden", true, false);
-    window->addListElement("nobody",                      "Forbidden launchers:       ", "newslot_launchers_forbidden", true, false);
-    window->addListElement("nobody",                      "Forbidden players:         ", "newslot_players_forbidden", true, false);
+    window->addListElement("Anybody",                     "Allowed watchers:          ", "newslot_watchers", true, false);
+    window->addListElement("Anybody",                     "Allowed launchers:         ", "newslot_launchers", true, false);
+    window->addListElement("Anybody",                     "Allowed players:           ", "newslot_players", true, false);
+    window->addListElement("Nobody",                      "Forbidden watchers:        ", "newslot_watchers_forbidden", true, false);
+    window->addListElement("Nobody",                      "Forbidden launchers:       ", "newslot_launchers_forbidden", true, false);
+    window->addListElement("Nobody",                      "Forbidden players:         ", "newslot_players_forbidden", true, false);
     window->addListElement("80",                          "Width:                     ", "newslot_width", true, true);
     window->addListElement("25",                          "Height:                    ", "newslot_height", true, true);
     window->addListElement("1",                           "Maximum slots:             ", "newslot_maxslots", true, true);
     window->addListElement(                               "Create slot profile",         "newslot_create", false, true);
 
     window->modifyListSelectionIndex(slot_index);
+
+    checkSlotProfileMenu();
+}
+
+void ConfigurationInterface::checkSlotProfileMenu()
+{
+    if (!window) return;
+
+    ui32 index;
+    string data;
+    for (index = 0; (data = window->getListElementData(index)).size() > 0; index++)
+    {
+        UserGroup ug;
+        if (data == "newslot_watchers")
+            ug = edit_slotprofile.getAllowedWatchers();
+        else if (data == "newslot_launchers")
+            ug = edit_slotprofile.getAllowedLaunchers();
+        else if (data == "newslot_players")
+            ug = edit_slotprofile.getAllowedPlayers();
+        else if (data == "newslot_watchers_forbidden")
+            ug = edit_slotprofile.getForbiddenWatchers();
+        else if (data == "newslot_launchers_forbidden")
+            ug = edit_slotprofile.getForbiddenLaunchers();
+        else if (data == "newslot_players_forbidden")
+            ug = edit_slotprofile.getForbiddenPlayers();
+        else
+            continue;
+
+        if (ug.hasNobody())
+            window->modifyListElementTextUTF8(index, "Nobody");
+        else if (ug.hasAnybody())
+            window->modifyListElementTextUTF8(index, "Anybody");
+        else if (ug.hasAnySpecificUser())
+            window->modifyListElementTextUTF8(index, "Specific users");
+        else if (ug.hasLauncher())
+            window->modifyListElementTextUTF8(index, "Launcher");
+        else
+            window->modifyListElementTextUTF8(index, "What?"); /* should not happen. */
+    }
 }
 
 bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
@@ -177,6 +213,19 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
         true_if_ok = true;
         window->gainFocus();
         auxiliary_window = SP<InterfaceElementWindow>();
+        if (edit_slotprofile_target == "watchers")
+            edit_slotprofile.setAllowedWatchers(edit_usergroup);
+        else if (edit_slotprofile_target == "launchers")
+            edit_slotprofile.setAllowedLaunchers(edit_usergroup);
+        else if (edit_slotprofile_target == "players")
+            edit_slotprofile.setAllowedPlayers(edit_usergroup);
+        else if (edit_slotprofile_target == "forbidden_watchers")
+            edit_slotprofile.setForbiddenWatchers(edit_usergroup);
+        else if (edit_slotprofile_target == "forbidden_launchers")
+            edit_slotprofile.setForbiddenLaunchers(edit_usergroup);
+        else if (edit_slotprofile_target == "forbidden_players")
+            edit_slotprofile.setForbiddenPlayers(edit_usergroup);
+        checkSlotProfileMenu();
     }
     else if (selection == "usergroup_cancel")
     {
@@ -229,6 +278,37 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "newslot_watchers")
     {
         edit_usergroup = edit_slotprofile.getAllowedWatchers();
+        edit_slotprofile_target = "watchers";
+        auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_launchers")
+    {
+        edit_usergroup = edit_slotprofile.getAllowedLaunchers();
+        edit_slotprofile_target = "launchers";
+        auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_players")
+    {
+        edit_usergroup = edit_slotprofile.getAllowedPlayers();
+        edit_slotprofile_target = "players";
+        auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_watchers_forbidden")
+    {
+        edit_usergroup = edit_slotprofile.getForbiddenWatchers();
+        edit_slotprofile_target = "forbidden_watchers";
+        auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_launchers_forbidden")
+    {
+        edit_usergroup = edit_slotprofile.getForbiddenLaunchers();
+        edit_slotprofile_target = "forbidden_launchers";
+        auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_players_forbidden")
+    {
+        edit_usergroup = edit_slotprofile.getForbiddenPlayers();
+        edit_slotprofile_target = "forbidden_players";
         auxiliaryEnterUsergroupWindow();
     }
     return false;
