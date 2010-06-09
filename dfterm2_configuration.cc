@@ -184,18 +184,32 @@ void ConfigurationInterface::checkSlotProfileMenu()
             number[49] = 0;
             if (data == "newslot_width")
             {
+                edit_slotprofile.setWidth(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
+                if (edit_slotprofile.getWidth() < 1) edit_slotprofile.setWidth(1);
+                if (edit_slotprofile.getWidth() > 300) edit_slotprofile.setWidth(300);
+
                 sprintf(number, "%d", edit_slotprofile.getWidth());
                 window->modifyListElementTextUTF8(index, number);
             }
             else if (data == "newslot_height")
             {
+                edit_slotprofile.setHeight(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
+                if (edit_slotprofile.getHeight() < 1) edit_slotprofile.setHeight(1);
+                if (edit_slotprofile.getHeight() > 300) edit_slotprofile.setHeight(300);
+
                 sprintf(number, "%d", edit_slotprofile.getHeight());
                 window->modifyListElementTextUTF8(index, number);
             }
             else if (data == "newslot_workingdir")
+            {
+                edit_slotprofile.setWorkingPath(window->getListElement(index));
                 window->modifyListElementText(index, edit_slotprofile.getWorkingPath());
+            }
             else if (data == "newslot_executable")
+            {
+                edit_slotprofile.setExecutable(window->getListElement(index));
                 window->modifyListElementText(index, edit_slotprofile.getExecutable());
+            }
             else if (data == "newslot_method")
             {
                 SlotType st = edit_slotprofile.getSlotType();
@@ -345,7 +359,12 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (selection == "newslot_create")
     {
+        checkSlotProfileMenu();
+        enterMainMenu();
+        return false;
     }
+
+    checkSlotProfileMenu();
     return false;
 };
 
