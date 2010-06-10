@@ -155,16 +155,6 @@ int main(int argc, char* argv[])
     /* A list of local slots. */
     vector<SP<Slot> > slots;
 
-    #ifdef __WIN32
-    SP<Slot> default_slot = Slot::createSlot("Grab a running DF instance.");
-    #else
-    SP<Slot> default_slot = Slot::createSlot("Launch a new terminal program instance.");
-    default_slot->setParameter("w", "80");
-    default_slot->setParameter("h", "24");
-    default_slot->setParameter("path", "/bin/bash");
-    default_slot->setParameter("work", "/");
-    #endif
-
     /* The global chat logger */
     SP<Logger> global_chat(new Logger);
 
@@ -203,7 +193,6 @@ int main(int argc, char* argv[])
             SP<Client> new_client = Client::createClient(new_connection);
             new_client->setConfigurationDatabase(cdb);
             new_client->setGlobalChatLogger(global_chat);
-            new_client->setSlot(default_slot);
             clients.push_back(new_client);
             clients_weak.push_back(new_client);
             new_client->setClientVector(&clients_weak);
