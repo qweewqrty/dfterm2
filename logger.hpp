@@ -2,6 +2,7 @@
 #define logger_hpp
 
 #include <string>
+#include <sstream>
 #include "types.hpp"
 #include <boost/thread/recursive_mutex.hpp>
 #include <vector>
@@ -31,6 +32,8 @@ class Logger
         void logMessage(const UnicodeString &message);
         /* Logs a UTF-8 encoded message. (standard string) */
         void logMessageUTF8(string message);
+        /* Logs a UTF-8 encoded message. (string stream) */
+        void logMessageUTF8(const stringstream &message);
         /* Logs a UTF-8 encoded message. (C-string) */
         void logMessageUTF8(const char* message, size_t len);
         /* logs a UTF-8 encoded message. (C-string, null terminated) */

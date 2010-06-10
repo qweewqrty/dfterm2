@@ -6,11 +6,34 @@
 #include <iostream>
 #include "nanoclock.hpp"
 #include "cp437_to_unicode.hpp"
+#include "logger.hpp"
+#include "state.hpp"
 
 using namespace dfterm;
 using namespace trankesbel;
 using namespace boost;
 using namespace std;
+
+/* Every message goes here. */
+namespace dfterm {
+SP<Logger> admin_logger;
+SP<LoggerReader> admin_messages_reader;
+};
+
+/* Flush admin messages */
+void dfterm::flush_messages()
+{
+    bool msg;
+    do
+    {
+        UnicodeString us = admin_messages_reader->getLogMessage(&msg);
+        if (!msg) break;
+
+        string utf8_str;
+        us.toUTF8String(utf8_str);
+        cout << utf8_str << endl;
+    } while(msg);
+}
 
 void resolve_success(bool *success_p,
                      SocketAddress *sa, 
@@ -35,6 +58,9 @@ class sockets_initialize
 
 int main(int argc, char* argv[])
 {
+    admin_logger = SP<Logger>(new Logger);
+    admin_messages_reader = admin_logger->createReader();
+
     sockets_initialize socket_initialization;
 
     string port("8000");
@@ -109,112 +135,32 @@ int main(int argc, char* argv[])
         ticks_per_second = 1;
     }
 
-    /* Configuration */
-    SP<ConfigurationDatabase> cdb(new ConfigurationDatabase);
-    OpenStatus d_result = cdb->openUTF8(database_file);
-    if (d_result == Failure)
-    {
-        cout << "Failed to open database file " << database_file << endl;
-        return -1;
-    }
-    if (d_result == OkCreatedNewDatabase)
-    {
-        cout << "Created a new database from scratch. You should add an admin account to configure dfterm2." << endl;
-        cout << "You need to use the command line tool dfterm2_configure for that. Close dfterm2 and then" << endl;
-        cout << "add an account like this: " << endl;
-        cout << "dfterm2_configure --adduser (user name) (password) admin" << endl;
-        cout << "For example:" << endl;
-        cout << "dfterm2_configure --adduser Adeon s3cr3t_p4ssw0rd admin" << endl;
-        cout << "This will create a new admin account for you." << endl;
-        cout << "If you are not using the default database (if you don't know then you are using it), use" << endl;
-        cout << "the --database switch to modify the correct database." << endl;
-    }
-
     SocketAddress::resolve(address, port, resolve_binding, true);
     if (!succeeded_resolve)
     {
+        flush_messages();
         cerr << "Resolving [" << address << "]:" << port << " failed. Check your listening address settings." << endl;
         return -1;
     }
 
-    Socket listening_socket;
-    bool result = listening_socket.listen(listen_address);
-    if (!result)
+    SP<State> state = State::createState();
+    state->setTicksPerSecond(ticks_per_second);
+
+    if (!state->setDatabaseUTF8(database_file))
     {
-        cerr << "Listening on [" << address << "]:" << port << " failed. " << listening_socket.getError() << endl;
+        cerr << "Failed to set database." << endl;
+        flush_messages();
         return -1;
     }
 
-    cout << "Now listening on [" << address << "]:" << port << endl;
-
-    /* This is the list of connected clients. */
-    vector<SP<Client> > clients;
-    /* And weak pointers to them. */
-    vector<WP<Client> > clients_weak;
-
-    /* A list of local slots. */
-    vector<SP<Slot> > slots;
-
-    /* The global chat logger */
-    SP<Logger> global_chat(new Logger);
-
-    /* Use these for timing ticks */
-    uint64_t start_time;
-    const uint64_t tick_time = 1000000000 / ticks_per_second;
-
-    bool close = false;
-
-    while(listening_socket.active() && !close)
+    if (!state->addTelnetService(listen_address))
     {
-        start_time = nanoclock();
-
-        bool update_nicklists = false;
-        /* Prune inactive clients */
-        unsigned int i2, len = clients.size();
-        for (i2 = 0; i2 < len; i2++)
-        {
-            if (!clients[i2]->isActive())
-            {
-                clients.erase(clients.begin() + i2);
-                clients_weak.erase(clients_weak.begin() + i2);
-                len--;
-                i2--;
-                cout << "Pruned an inactive connection." << endl;
-                update_nicklists = true;
-                continue;
-            }
-        }
-
-        /* Check for incoming connections. */
-        SP<Socket> new_connection(new Socket);
-        bool got_connection = listening_socket.accept(new_connection.get());
-        if (got_connection)
-        {
-            SP<Client> new_client = Client::createClient(new_connection);
-            new_client->setConfigurationDatabase(cdb);
-            new_client->setGlobalChatLogger(global_chat);
-            clients.push_back(new_client);
-            clients_weak.push_back(new_client);
-            new_client->setClientVector(&clients_weak);
-            cout << "Got new connection." << endl;
-            update_nicklists = true;
-        }
-
-        /* Read and write from and to connections */
-        len = clients.size();
-        for (i2 = 0; i2 < len; i2++)
-        {
-            if (update_nicklists) clients[i2]->updateClients();
-            clients[i2]->cycle();
-            if (clients[i2]->shouldShutdown()) close = true;
-        }
-
-        /* Ticky wait. */
-        uint64_t end_time = nanoclock();
-        if (end_time - start_time < tick_time)
-            nanowait( tick_time - (end_time - start_time) );
+        flush_messages();
+        cerr << "Could not add a telnet service. " << endl;
+        return -1;
     }
 
-    clients.clear();
+    state->loop();
+    return 0;
 }
 

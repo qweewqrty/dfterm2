@@ -27,6 +27,11 @@ void Logger::logMessageUTF8(string message)
     logMessage(UnicodeString::fromUTF8(message));
 }
 
+void Logger::logMessageUTF8(const stringstream &message)
+{
+    logMessage(UnicodeString::fromUTF8(message.str()));
+}
+
 void Logger::logMessageUTF8(const char* message, size_t len)
 {
     logMessage(UnicodeString::fromUTF8(string(message, len)));
