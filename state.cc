@@ -8,6 +8,8 @@ using namespace std;
 
 static bool state_initialized = false;
 
+static ui64 running_counter = 1;
+
 State::State()
 {
     state_initialized = true;
@@ -19,6 +21,15 @@ State::~State()
 {
     state_initialized = false;
 };
+    
+WP<Slot> State::getSlot(UnicodeString name)
+{
+    vector<SP<Slot> >::iterator i1;
+    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+        if ((*i1) && (*i1)->getName() == name)
+            return (*i1);
+    return WP<Slot>();
+}
 
 vector<WP<Slot> > State::getSlots()
 {
@@ -120,9 +131,16 @@ bool State::hasSlotProfile(UnicodeString name)
     return false;
 }
 
-bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile)
+bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
+    if (!launcher) launcher = SP<User>(new User);
+
+    stringstream rcs;
+    rcs << running_counter;
+    running_counter++;
+
     SP<Slot> slot = Slot::createSlot(slot_profile->getSlotType());
+    slot->setNameUTF8(slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str());
     if (!slot)
     {
         admin_logger->logMessageUTF8(string("Slot::createSlot() failed with slot profile ") + slot_profile->getNameUTF8());
@@ -144,7 +162,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile)
     return true;
 }
 
-bool State::launchSlot(SP<SlotProfile> slot_profile)
+bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     if (!slot_profile)
     {
@@ -155,17 +173,17 @@ bool State::launchSlot(SP<SlotProfile> slot_profile)
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
         if ((*i1) == slot_profile)
-            return launchSlotNoCheck(*i1);
+            return launchSlotNoCheck(*i1, launcher);
     admin_logger->logMessageUTF8("Attempted to launch a slot profile that does not exist in slot profile list.");
     return false;
 }
 
-bool State::launchSlot(UnicodeString slot_profile_name)
+bool State::launchSlot(UnicodeString slot_profile_name, SP<User> launcher)
 {
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
         if ((*i1) && (*i1)->getName() == slot_profile_name)
-            return launchSlotNoCheck(*i1);
+            return launchSlotNoCheck(*i1, launcher);
     string utf8_name;
     slot_profile_name.toUTF8String(utf8_name);
     admin_logger->logMessageUTF8(string("Attempted to launch a slot with name ") + utf8_name + string(" that does not exist in slot profile list."));

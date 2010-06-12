@@ -21,6 +21,17 @@ ConfigurationInterface::~ConfigurationInterface()
 {
 }
 
+void ConfigurationInterface::setClient(WP<Client> client)
+{
+    this->client = client;
+}
+
+WP<Client> ConfigurationInterface::getClient()
+{
+    return client;
+};
+
+
 void ConfigurationInterface::setConfigurationDatabase(SP<ConfigurationDatabase> c_database)
 {
     configuration_database = c_database;
@@ -112,6 +123,48 @@ void ConfigurationInterface::enterAdminMainMenu()
     slot_index = window->addListElement("Configure slots", "slots", true, false); 
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
+    window->modifyListSelectionIndex(slot_index);
+}
+
+void ConfigurationInterface::enterJoinSlotsMenu()
+{
+    window->deleteAllListElements();
+    window->setHint("default");
+    window->setTitle("Select a game to join");
+
+    current_menu = JoinSlotsMenu;
+
+    ui32 slot_index = 0;
+    SP<State> st = state.lock();
+    if (!st)
+    {
+        stringstream ss;
+        if (user)
+            ss << "Warning: ConfigurationInterface::enterJoinSlotsMenu(), null state in menu, user " << user->getNameUTF8();
+        else
+            ss << "Warning: ConfigurationInterface::enterJoinSlotsMenu(), null state in menu and user is null too";
+        admin_logger->logMessageUTF8(ss.str());
+        slot_index = window->addListElementUTF8("No slots available at the moment", "mainmenu", true, false);
+        window->modifyListSelectionIndex(slot_index);
+        return;
+    }
+
+    slot_index = window->addListElementUTF8("Back to main menu", "mainmenu", true, false);
+
+    window->addListElementUTF8("None", "join_none", true, false);
+
+    vector<WP<Slot> > slots = st->getSlots();
+    vector<WP<Slot> >::iterator i1;
+    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+    {
+        SP<Slot> sp = (*i1).lock();
+        if (!sp) continue;
+
+        data1D data_str("joinslot_");
+        data_str += sp->getNameUTF8();
+        window->addListElement(sp->getName(), data_str, true, false);
+    }
+
     window->modifyListSelectionIndex(slot_index);
 }
 
@@ -374,6 +427,10 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         enterLaunchSlotsMenu();
     }
+    else if (selection == "joingame")
+    {
+        enterJoinSlotsMenu();
+    }
     /* The new slot profile menu */
     else if (selection == "newslot_watchers")
     {
@@ -454,10 +511,37 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             admin_logger->logMessageUTF8("Slot launch requested from interface but state is null. Oops.");
         else
         {
-            if (st->launchSlotUTF8(slot_name));
+            if (st->launchSlotUTF8(slot_name, user));
                 enterMainMenu();
         }
     }
+    /* join slots */
+    else if (!selection.compare(0, min(selection.size(), (size_t) 9), "joinslot_", 9))
+    {
+        string slot_name = selection.substr(9);
+        SP<State> st = state.lock();
+        if (!st)
+            admin_logger->logMessageUTF8(string("Slot join requested from interface but state is null. Oops. ") + slot_name);
+        else
+        {
+            WP<Slot> slot = st->getSlotUTF8(slot_name);
+            SP<Slot> sp_slot = slot.lock();
+            if (!sp_slot)
+                admin_logger->logMessageUTF8(string("Slot join requested from interface but no such slot is state. ") + slot_name);
+            else
+            {
+                SP<Client> sp_client = client.lock();
+                if (!sp_client)
+                    admin_logger->logMessageUTF8(string("Slot join requested from interface but client is null. Oops. ") + slot_name);
+                else
+                {
+                    sp_client->setSlot(sp_slot);
+                    enterMainMenu();
+                }
+            }
+        }
+    }
+
     checkSlotProfileMenu();
     return false;
 };

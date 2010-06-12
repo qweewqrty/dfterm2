@@ -107,7 +107,14 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
     return true;
 }
 
-
+SP<Client> Client::createClient(SP<Socket> client_socket)
+{
+    SP<Client> c(new Client(client_socket));
+    c->setSelf(WP<Client>(c));
+    c->config_interface->setClient(c);
+    c->ts.handShake();
+    return c;
+}
 
 Client::Client(SP<Socket> client_socket)
 {

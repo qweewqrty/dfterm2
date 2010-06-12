@@ -54,7 +54,7 @@ class State
         /* Current slot profiles */
         vector<SP<SlotProfile> > slotprofiles;
 
-        bool launchSlotNoCheck(SP<SlotProfile> slot_profile);
+        bool launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher);
 
         uint64_t ticks_per_second;
 
@@ -71,14 +71,18 @@ class State
         /* Launches a slot. Returns bool if that can't be done (and logs to admin_logger) */
         /* If called with a slot profile, that slot profile must be in the list of slot profiles
          * this state knows about. */
-        bool launchSlot(SP<SlotProfile> slot_profile);
-        bool launchSlot(UnicodeString slot_profile_name);
-        bool launchSlotUTF8(string slot_profile_name) { return launchSlot(UnicodeString::fromUTF8(slot_profile_name)); };
+        bool launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher);
+        bool launchSlot(UnicodeString slot_profile_name, SP<User> launcher);
+        bool launchSlotUTF8(string slot_profile_name, SP<User> launcher) { return launchSlot(UnicodeString::fromUTF8(slot_profile_name), launcher); };
 
         /* Returns if a slot by given name exists and returns true if it does.
          * Also returns true for empty string. */
         bool hasSlotProfile(UnicodeString name);
         bool hasSlotProfileUTF8(string name) { return hasSlotProfile(UnicodeString::fromUTF8(name)); };
+
+        /* Returns a slot of given name, if there is one. */
+        WP<Slot> getSlot(UnicodeString name);
+        WP<Slot> getSlotUTF8(string name) { return getSlot(UnicodeString::fromUTF8(name)); };
 
         /* Adds a new slot profile to state */
         void addSlotProfile(SP<SlotProfile> sp);

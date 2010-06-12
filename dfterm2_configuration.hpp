@@ -328,6 +328,7 @@ class ConfigurationDatabase
 enum Menu { /* These are menus for all of us! */
             MainMenu,
             LaunchSlotsMenu,
+            JoinSlotsMenu,
 
             /* And the following are admin-only menus. */
             AdminMainMenu, 
@@ -353,6 +354,7 @@ class ConfigurationInterface
         void enterSlotsMenu();
         void enterNewSlotProfileMenu();
         void enterLaunchSlotsMenu();
+        void enterJoinSlotsMenu();
         void checkSlotProfileMenu();
 
         void auxiliaryEnterUsergroupWindow();
@@ -372,6 +374,7 @@ class ConfigurationInterface
 
         bool admin;
         SP<User> user;
+        WP<Client> client;
 
         bool menuSelectFunction(ui32 index);
         bool auxiliaryMenuSelectFunction(ui32 index);
@@ -406,6 +409,11 @@ class ConfigurationInterface
         void setUser(SP<User> user);
         /* And gets the user. */
         SP<User> getUser();
+
+        /* Sets the client for this interface. */
+        void setClient(WP<Client> client);
+        /* And gets it */
+        WP<Client> getClient();
 
         /* Returns true if shutdown of the entire server has been requested. */
         bool shouldShutdown() const;

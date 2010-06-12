@@ -33,6 +33,9 @@ class Slot
         // No copies or default constructors
         Slot(const Slot &s) { };
         Slot& operator==(const Slot &s) { return (*this); };
+
+        UnicodeString name;
+
     protected:
         Slot() { };
 
@@ -43,6 +46,12 @@ class Slot
            If it fails, returns a null pointer. */
         static SP<Slot> createSlot(string slottype);
         static SP<Slot> createSlot(SlotType st) { return createSlot(SlotNames[(size_t) st]); };
+
+        /* Gives/retrieves a name of the slot. */
+        void setName(UnicodeString name) { this->name = name; };
+        void setNameUTF8(string name) { this->name = UnicodeString::fromUTF8(name); };
+        UnicodeString getName() const { return name; };
+        string getNameUTF8() const { string r; name.toUTF8String(r); return r; };
 
         /* Sets a generic parameter for slot. (See SlotTypes enum for explanations) 
          * TODO: Maybe roll some RTTI-like system to get real methods like setWorkingDirectory()

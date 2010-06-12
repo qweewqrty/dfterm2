@@ -128,13 +128,7 @@ class Client
         void gameInputFunction(ui32 keycode, bool special_key);
 
     public:
-        static SP<Client> createClient(SP<Socket> client_socket)
-        {
-            SP<Client> c(new Client(client_socket));
-            c->setSelf(WP<Client>(c));
-            c->ts.handShake();
-            return c;
-        }
+        static SP<Client> createClient(SP<Socket> client_socket);
         /* Destructor */
         ~Client();
 
