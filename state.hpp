@@ -66,6 +66,11 @@ class State
         /* Returns currently available slot profiles. */
         vector<WP<SlotProfile> > getSlotProfiles();
 
+        /* Returns if a slot by given name exists and returns true if it does.
+         * Also returns true for empty string. */
+        bool hasSlotProfile(UnicodeString name);
+        bool hasSlotProfileUTF8(string name) { return hasSlotProfile(UnicodeString::fromUTF8(name)); };
+
         /* Adds a new slot profile to state */
         void addSlotProfile(SP<SlotProfile> sp);
 

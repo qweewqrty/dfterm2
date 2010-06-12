@@ -110,6 +110,16 @@ void State::addSlotProfile(SP<SlotProfile> sp)
     slotprofiles.push_back(sp);
 };
 
+bool State::hasSlotProfile(UnicodeString name)
+{
+    if (name.countChar32() == 0) return true;
+
+    vector<SP<SlotProfile> >::iterator i1;
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        if ((*i1)->getName() == name) return true;
+    return false;
+}
+
 void State::loop()
 {
     /* Use these for timing ticks */

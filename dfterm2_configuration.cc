@@ -414,20 +414,36 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "newslot_create")
     {
         checkSlotProfileMenu();
-
-        SP<State> st = state.lock();
-        if (!st)
-            admin_logger->logMessageUTF8("Could not save slot profile from new slot profile menu. State is null. Oopsies.");
+        if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
+        {
+            admin_logger->logMessageUTF8("Attempted to create a slot profile with an empty name.");
+            window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
+        }
         else
         {
-            SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
-            st->addSlotProfile(slotp);
+            SP<State> st = state.lock();
+            if (!st)
+                admin_logger->logMessageUTF8(string("Could not save slot profile from new slot profile menu. State is null. Oopsies. ") + string(edit_slotprofile.getNameUTF8()));
+            else
+            {
+                if (st->hasSlotProfile(edit_slotprofile.getName()))
+                {
+                    admin_logger->logMessageUTF8(string("Attempted to create a slot profile with a name that already exists. ") + string(edit_slotprofile.getNameUTF8()));
+                    window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
+                    window->modifyListElementTextUTF8(1, window->getListElementUTF8(1) + string("_"));
+                }
+                else
+                {
+                    SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
+                    st->addSlotProfile(slotp);
 
-            admin_logger->logMessageUTF8(string("New slot profile created and stored in memory with the name ") + edit_slotprofile.getNameUTF8());
+                    admin_logger->logMessageUTF8(string("New slot profile created and stored in memory with the name ") + edit_slotprofile.getNameUTF8());
+                    enterSlotsMenu();
+                }
+            }
+
+            return false;
         }
-
-        enterMainMenu();
-        return false;
     }
     checkSlotProfileMenu();
     return false;
