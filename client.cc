@@ -111,6 +111,8 @@ bool ClientTelnetSession::readRawData(void* data, size_t* size)
 
 Client::Client(SP<Socket> client_socket)
 {
+    config_interface = SP<ConfigurationInterface>(new ConfigurationInterface);
+
     this->client_socket = client_socket;
     packet_pending = false;
     packet_pending_index = 0;
@@ -132,7 +134,7 @@ Client::Client(SP<Socket> client_socket)
     }
 
     user = SP<User>(new User);
-    config_interface.setInterface(interface);
+    config_interface->setInterface(interface);
 
     identify_window = interface->createInterfaceElementWindow();
     identify_window->setHint("chat");
@@ -151,6 +153,12 @@ Client::Client(SP<Socket> client_socket)
 
 Client::~Client()
 {
+}
+
+void Client::setState(WP<State> state)
+{
+    this->state = state;
+    config_interface->setState(state);
 }
 
 bool Client::isActive() const
@@ -192,7 +200,7 @@ void Client::cycle()
     if (!user->isActive() && client_socket) { client_socket->close(); return; };
     if (identified) identify_window = SP<InterfaceElementWindow>();
 
-    config_interface.cycle();
+    config_interface->cycle();
 
     ts.cycle();
 
@@ -560,9 +568,9 @@ void Client::clientIdentified()
     chat_window->modifyListSelectionIndex(chat_window_input_index);
     chat_window->setTitle("Chat");
 
-    config_window = config_interface.getUserWindow();
+    config_window = config_interface->getUserWindow();
     user->setName(nickname);
-    config_interface.setUser(user);
+    config_interface->setUser(user);
 
     identified = true;
 
@@ -580,12 +588,12 @@ void Client::setClientVector(vector<WP<Client> >* clients)
 void Client::setConfigurationDatabase(WP<ConfigurationDatabase> configuration_database)
 {
     configuration = configuration_database;
-    config_interface.setConfigurationDatabase(configuration.lock());
+    config_interface->setConfigurationDatabase(configuration.lock());
 }
 
 bool Client::shouldShutdown() const
 {
-    if (config_interface.shouldShutdown()) return true;
+    if (config_interface->shouldShutdown()) return true;
     return false;
 }
 

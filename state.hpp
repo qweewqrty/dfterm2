@@ -1,6 +1,10 @@
 #ifndef state_hpp
 #define state_hpp
 
+namespace dfterm {
+class State;
+};
+
 #include "types.hpp"
 #include <set>
 #include "sockets.hpp"
@@ -28,6 +32,9 @@ class State
         State(const State& s) { };
         State& operator=(const State &s) { };
 
+        /* Self */
+        WP<State> self;
+
         set<SP<Socket> > listening_sockets;
 
         /* This is the list of connected clients. */
@@ -41,12 +48,26 @@ class State
         /* Database */
         SP<ConfigurationDatabase> configuration;
 
+        /* Running slots */
+        vector<SP<Slot> > slots;
+
+        /* Current slot profiles */
+        vector<SP<SlotProfile> > slotprofiles;
+
         uint64_t ticks_per_second;
 
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
         static SP<State> createState();
         ~State();
+
+        /* Returns all the slots that are running. */
+        vector<WP<Slot> > getSlots();
+        /* Returns currently available slot profiles. */
+        vector<WP<SlotProfile> > getSlotProfiles();
+
+        /* Adds a new slot profile to state */
+        void addSlotProfile(SP<SlotProfile> sp);
 
         /* Sets ticks per second. */
         void setTicksPerSecond(uint64_t ticks_per_second);

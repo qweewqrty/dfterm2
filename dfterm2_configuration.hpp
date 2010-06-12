@@ -4,11 +4,19 @@
 #ifndef dfterm2_configuration_hpp
 #define dfterm2_configuration_hpp
 
+namespace dfterm {
+class ConfigurationDatabase;
+class SlotProfile;
+class ConfigurationInterface;
+class User;
+};
+
 #include "interface.hpp"
 #include "sqlite3.h"
 #include "slot.hpp"
 #include <set>
 #include <vector>
+#include "state.hpp"
 
 using namespace trankesbel;
 using namespace std;
@@ -310,10 +318,16 @@ class ConfigurationDatabase
         SP<User> loadUserData(UnicodeString name);
         void saveUserData(User* user);
         void saveUserData(SP<User> user) { saveUserData(user.get()); };
+
+        /*void saveSlotProfileData(SlotProfile* slotprofile);
+        void saveSlotProfileData(SP<SlotProfile> slotprofile) { saveSlotProfileData(slotprofile.get()); };
+
+        SP<SlotProfile> loadSlotProfileData(*/
 };
 
 enum Menu { /* These are menus for all of us! */
             MainMenu,
+            LaunchSlotsMenu,
 
             /* And the following are admin-only menus. */
             AdminMainMenu, 
@@ -338,6 +352,7 @@ class ConfigurationInterface
         void enterAdminMainMenu();
         void enterSlotsMenu();
         void enterNewSlotProfileMenu();
+        void enterLaunchSlotsMenu();
         void checkSlotProfileMenu();
 
         void auxiliaryEnterUsergroupWindow();
@@ -363,6 +378,8 @@ class ConfigurationInterface
 
         bool shutdown;
 
+        WP<State> state;
+
     public:
         ConfigurationInterface();
         ConfigurationInterface(SP<Interface> interface);
@@ -371,6 +388,11 @@ class ConfigurationInterface
         /* Set/get the configuration database */
         void setConfigurationDatabase(SP<ConfigurationDatabase> c_database);
         SP<ConfigurationDatabase> getConfigurationDatabase();
+
+        /* Set/get dfterm2 state class */
+        void setState(WP<State> state) { this->state = state; };
+        void setState(SP<State> state) { setState(WP<State>(state)); };
+        WP<State> getState() { return state; };
 
         /* Some menus change over time, without interaction.
          * This function has to be called to fix'em. */

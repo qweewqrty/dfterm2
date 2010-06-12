@@ -91,7 +91,9 @@ void ConfigurationInterface::enterMainMenu()
     window->setTitle("Main menu");
 
     current_menu = MainMenu;
-    int slot_index = window->addListElement("Disconnect", "disconnect", true, false); 
+    ui32 slot_index = window->addListElement("Launch a new game", "launchgame", true, false);
+    window->addListElement("Join a running game", "joingame", true, false);
+    window->addListElement("Disconnect", "disconnect", true, false);
     window->modifyListSelectionIndex(slot_index);
 }
 
@@ -105,9 +107,51 @@ void ConfigurationInterface::enterAdminMainMenu()
 
     current_menu = AdminMainMenu;
 
-    ui32 slot_index = window->addListElement("Configure slots", "slots", true, false); 
+    ui32 slot_index = window->addListElement("Launch a new game", "launchgame", true, false);
+    window->addListElement("Join a running game", "joingame", true, false);
+    slot_index = window->addListElement("Configure slots", "slots", true, false); 
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
+    window->modifyListSelectionIndex(slot_index);
+}
+
+void ConfigurationInterface::enterLaunchSlotsMenu()
+{
+    window->deleteAllListElements();
+    window->setHint("default");
+    window->setTitle("Select a game to launch");
+
+    current_menu = LaunchSlotsMenu;
+
+    ui32 slot_index = 0;
+    SP<State> st = state.lock();
+    if (!st)
+    {
+        stringstream ss;
+        if (user)
+            ss << "Warning: ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu, user " << user->getNameUTF8();
+        else
+            ss << "Warning: ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu and user is null too";
+        admin_logger->logMessageUTF8(ss.str());
+        slot_index = window->addListElementUTF8("No slots available at the moment", "mainmenu", true, false);
+        window->modifyListSelectionIndex(slot_index);
+        return;
+    }
+
+    slot_index = window->addListElementUTF8("Back to main menu", "mainmenu", true, false);
+
+    vector<WP<SlotProfile> > slotprofiles = st->getSlotProfiles();
+    vector<WP<SlotProfile> >::iterator i1;
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    {
+        SP<SlotProfile> sp = (*i1).lock();
+        if (!sp) continue;
+
+        data1D data_str("launchslot_");
+        data_str += sp->getNameUTF8();
+        window->addListElement(sp->getName(), data_str, true, false);
+    }
+
     window->modifyListSelectionIndex(slot_index);
 }
 
@@ -222,6 +266,11 @@ void ConfigurationInterface::checkSlotProfileMenu()
                 else 
                     window->modifyListElementTextUTF8(index, "Unknown slot type");
             }
+            else if (data == "newslot_name")
+            {
+                edit_slotprofile.setName(window->getListElement(index));
+                window->modifyListElementText(index, edit_slotprofile.getName());
+            }
 
             continue;
         }
@@ -320,6 +369,11 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         enterSlotsMenu();
         return false;
     }
+    /* To the game menu */
+    else if (selection == "launchgame")
+    {
+        enterLaunchSlotsMenu();
+    }
     /* The new slot profile menu */
     else if (selection == "newslot_watchers")
     {
@@ -360,10 +414,21 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "newslot_create")
     {
         checkSlotProfileMenu();
+
+        SP<State> st = state.lock();
+        if (!st)
+            admin_logger->logMessageUTF8("Could not save slot profile from new slot profile menu. State is null. Oopsies.");
+        else
+        {
+            SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
+            st->addSlotProfile(slotp);
+
+            admin_logger->logMessageUTF8(string("New slot profile created and stored in memory with the name ") + edit_slotprofile.getNameUTF8());
+        }
+
         enterMainMenu();
         return false;
     }
-
     checkSlotProfileMenu();
     return false;
 };

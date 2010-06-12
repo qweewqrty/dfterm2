@@ -1,6 +1,11 @@
 #ifndef client_hpp
 #define client_hpp
 
+namespace dfterm
+{
+    class Client;
+};
+
 #include "interface_termemu.hpp"
 #include "termemu.h"
 #include "sockets.hpp"
@@ -8,6 +13,7 @@
 #include "logger.hpp"
 #include "slot.hpp"
 #include "dfterm2_configuration.hpp"
+#include "state.hpp"
 
 namespace dfterm
 {
@@ -72,7 +78,7 @@ class Client
 
         /* Configuring dfterm2 is complex enough to warrant
          * dedicated classes and files. Here's a class handle to them. */
-        ConfigurationInterface config_interface;
+        SP<ConfigurationInterface> config_interface;
 
         /* User handle. */
         SP<User> user;
@@ -101,6 +107,7 @@ class Client
         string deltas;
 
         WP<Client> self;
+        WP<State> state;
 
         /* No copies */
         Client(const Client &c) { };
@@ -144,6 +151,10 @@ class Client
 
         /* Returns true if client connection is active. */
         bool isActive() const;
+
+        /* Sets the state for the client. */
+        void setState(WP<State> state);
+        void setState(SP<State> state) { setState(WP<State>(state)); };
 
         /* Sets a slot for this client. */
         void setSlot(SP<Slot> slot)

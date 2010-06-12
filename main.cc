@@ -32,6 +32,7 @@ void dfterm::flush_messages()
         string utf8_str;
         us.toUTF8String(utf8_str);
         cout << utf8_str << endl;
+        cout.flush();
     } while(msg);
 }
 

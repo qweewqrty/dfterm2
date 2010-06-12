@@ -20,10 +20,31 @@ State::~State()
     state_initialized = false;
 };
 
+vector<WP<Slot> > State::getSlots()
+{
+    vector<WP<Slot> > wp_slots;
+    vector<SP<Slot> >::iterator i1;
+    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+        wp_slots.push_back(*i1);
+    return wp_slots;
+}
+
+vector<WP<SlotProfile> > State::getSlotProfiles()
+{
+    vector<WP<SlotProfile> > wp_slots;
+    vector<SP<SlotProfile> >::iterator i1;
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        wp_slots.push_back(*i1);
+    return wp_slots;
+}
+
 SP<State> State::createState()
 {
     if (state_initialized) return SP<State>();
-    return SP<State>(new State);
+    SP<State> newstate(new State);
+    newstate->self = newstate;
+
+    return newstate;
 };
 
 bool State::setDatabase(UnicodeString database_file)
@@ -84,6 +105,11 @@ void State::setTicksPerSecond(uint64_t ticks_per_second)
     this->ticks_per_second = ticks_per_second;
 }
 
+void State::addSlotProfile(SP<SlotProfile> sp)
+{
+    slotprofiles.push_back(sp);
+};
+
 void State::loop()
 {
     /* Use these for timing ticks */
@@ -122,6 +148,7 @@ void State::loop()
             if (got_connection)
             {
                 SP<Client> new_client = Client::createClient(new_connection);
+                new_client->setState(self);
                 new_client->setConfigurationDatabase(configuration);
                 new_client->setGlobalChatLogger(global_chat);
                 clients.push_back(new_client);
