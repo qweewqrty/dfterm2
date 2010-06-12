@@ -445,6 +445,19 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             return false;
         }
     }
+    /* launching slots */
+    else if (!selection.compare(0, min(selection.size(), (size_t) 11), "launchslot_", 11))
+    {
+        string slot_name = selection.substr(11);
+        SP<State> st = state.lock();
+        if (!st)
+            admin_logger->logMessageUTF8("Slot launch requested from interface but state is null. Oops.");
+        else
+        {
+            if (st->launchSlotUTF8(slot_name));
+                enterMainMenu();
+        }
+    }
     checkSlotProfileMenu();
     return false;
 };

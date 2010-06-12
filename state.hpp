@@ -54,6 +54,8 @@ class State
         /* Current slot profiles */
         vector<SP<SlotProfile> > slotprofiles;
 
+        bool launchSlotNoCheck(SP<SlotProfile> slot_profile);
+
         uint64_t ticks_per_second;
 
     public:
@@ -65,6 +67,13 @@ class State
         vector<WP<Slot> > getSlots();
         /* Returns currently available slot profiles. */
         vector<WP<SlotProfile> > getSlotProfiles();
+
+        /* Launches a slot. Returns bool if that can't be done (and logs to admin_logger) */
+        /* If called with a slot profile, that slot profile must be in the list of slot profiles
+         * this state knows about. */
+        bool launchSlot(SP<SlotProfile> slot_profile);
+        bool launchSlot(UnicodeString slot_profile_name);
+        bool launchSlotUTF8(string slot_profile_name) { return launchSlot(UnicodeString::fromUTF8(slot_profile_name)); };
 
         /* Returns if a slot by given name exists and returns true if it does.
          * Also returns true for empty string. */

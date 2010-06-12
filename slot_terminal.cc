@@ -85,6 +85,12 @@ void TerminalGlue::thread_function()
     while (counter > 0)
     {
         unique_lock<recursive_mutex> lock(glue_mutex);
+        if (close_thread)
+        {
+            lock.unlock();
+            return;
+        }
+
         if (parameters.find("path") != parameters.end() &&
             parameters.find("work") != parameters.end() &&
             parameters.find("w") != parameters.end() &&

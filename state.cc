@@ -120,6 +120,58 @@ bool State::hasSlotProfile(UnicodeString name)
     return false;
 }
 
+bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile)
+{
+    SP<Slot> slot = Slot::createSlot(slot_profile->getSlotType());
+    if (!slot)
+    {
+        admin_logger->logMessageUTF8(string("Slot::createSlot() failed with slot profile ") + slot_profile->getNameUTF8());
+        return false;
+    }
+    slot->setParameter("path", slot_profile->getExecutable());
+    slot->setParameter("work", slot_profile->getWorkingPath());
+
+    stringstream ss_w, ss_h;
+    ss_w << slot_profile->getWidth();
+    ss_h << slot_profile->getHeight();
+
+    slot->setParameter("w", UnicodeString::fromUTF8(ss_w.str()));
+    slot->setParameter("h", UnicodeString::fromUTF8(ss_h.str()));
+
+    admin_logger->logMessageUTF8(string("Launched a slot from slot profile ") + slot_profile->getNameUTF8());
+
+    slots.push_back(slot);
+    return true;
+}
+
+bool State::launchSlot(SP<SlotProfile> slot_profile)
+{
+    if (!slot_profile)
+    {
+        admin_logger->logMessageUTF8("Attempted to launch a null slot profile.");
+        return false;
+    }
+
+    vector<SP<SlotProfile> >::iterator i1;
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        if ((*i1) == slot_profile)
+            return launchSlotNoCheck(*i1);
+    admin_logger->logMessageUTF8("Attempted to launch a slot profile that does not exist in slot profile list.");
+    return false;
+}
+
+bool State::launchSlot(UnicodeString slot_profile_name)
+{
+    vector<SP<SlotProfile> >::iterator i1;
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        if ((*i1) && (*i1)->getName() == slot_profile_name)
+            return launchSlotNoCheck(*i1);
+    string utf8_name;
+    slot_profile_name.toUTF8String(utf8_name);
+    admin_logger->logMessageUTF8(string("Attempted to launch a slot with name ") + utf8_name + string(" that does not exist in slot profile list."));
+    return false;
+}
+
 void State::loop()
 {
     /* Use these for timing ticks */
