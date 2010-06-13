@@ -70,7 +70,7 @@ class State
 
         /* Launches a slot. Returns bool if that can't be done (and logs to admin_logger) */
         /* If called with a slot profile, that slot profile must be in the list of slot profiles
-         * this state knows about. */
+         * this state knows about. This method checks for allowed launchers and returns false if it's not allowed for this user. */
         bool launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher);
         bool launchSlot(UnicodeString slot_profile_name, SP<User> launcher);
         bool launchSlotUTF8(string slot_profile_name, SP<User> launcher) { return launchSlot(UnicodeString::fromUTF8(slot_profile_name), launcher); };

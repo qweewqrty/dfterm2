@@ -135,6 +135,20 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     if (!launcher) launcher = SP<User>(new User);
 
+    UserGroup allowed_launchers = slot_profile->getAllowedLaunchers();
+    UserGroup forbidden_launchers = slot_profile->getForbiddenLaunchers();
+    
+    if (forbidden_launchers.hasUser(launcher->getName()))
+    {
+        admin_logger->logMessageUTF8(string("User ") + launcher->getNameUTF8() + string(" tried to launch a slot but they are in forbidden list. ") + string(slot_profile->getNameUTF8()));
+        return false;
+    }
+    if (!allowed_launchers.hasUser(launcher->getName()))
+    {
+        admin_logger->logMessageUTF8(string("User ") + launcher->getNameUTF8() + string(" tried to launch a slot but they are not in allowed list. ") + string(slot_profile->getNameUTF8()));
+        return false;
+    }
+
     stringstream rcs;
     rcs << running_counter;
     running_counter++;
