@@ -116,6 +116,35 @@ void State::setTicksPerSecond(uint64_t ticks_per_second)
     this->ticks_per_second = ticks_per_second;
 }
 
+void State::destroyClient(UnicodeString nickname, SP<Client> exclude)
+{
+    bool update_nicklists = false;
+
+    size_t i1, len = clients.size();
+    for (i1 = 0; i1 < len; i1++)
+    {
+        if (clients[i1] == exclude) continue;
+
+        if (clients[i1] && clients[i1]->getUser()->getName() == nickname)
+        {
+            clients.erase(clients.begin() + i1);
+            clients_weak.erase(clients_weak.begin() + i1);
+            stringstream ss;
+            ss << "Disconnected a duplicate connection for user " << clients[i1]->getUser()->getNameUTF8();
+            admin_logger->logMessageUTF8(ss.str());
+            update_nicklists = true;
+            break;
+        }
+    }
+
+    if (!update_nicklists) return;
+
+    len = clients.size();
+    for (i1 = 0; i1 < len; i1++)
+        if (clients[i1])
+            clients[i1]->updateClients();
+}
+
 void State::addSlotProfile(SP<SlotProfile> sp)
 {
     slotprofiles.push_back(sp);

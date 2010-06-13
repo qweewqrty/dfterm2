@@ -558,6 +558,10 @@ void Client::updateNicklistWindow()
 
 void Client::clientIdentified()
 {
+    SP<State> st = state.lock();
+    if (!st) return;
+    st->destroyClient(nickname, self.lock());
+
     game_window = interface->createInterface2DWindow();
     nicklist_window = interface->createInterfaceElementWindow();
     chat_window = interface->createInterfaceElementWindow();

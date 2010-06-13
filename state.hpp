@@ -63,6 +63,10 @@ class State
         static SP<State> createState();
         ~State();
 
+        /* Disconnects a user with the given nickname. Unless it corresponds to the client 'exclude' */
+        void destroyClient(UnicodeString nickname, SP<Client> exclude = SP<Client>());
+        void destroyClientUTF8(string nickname, SP<Client> exclude = SP<Client>()) { destroyClient(UnicodeString::fromUTF8(nickname), exclude); };
+
         /* Returns all the slots that are running. */
         vector<WP<Slot> > getSlots();
         /* Returns currently available slot profiles. */
