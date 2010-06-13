@@ -200,6 +200,7 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     {
         SP<SlotProfile> sp = (*i1).lock();
         if (!sp) continue;
+        if (!st->isAllowedLauncher(user, sp)) continue;
 
         data1D data_str("launchslot_");
         data_str += sp->getNameUTF8();

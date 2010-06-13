@@ -131,6 +131,18 @@ bool State::hasSlotProfile(UnicodeString name)
     return false;
 }
 
+bool State::isAllowedLauncher(SP<User> launcher, SP<SlotProfile> slot_profile)
+{
+    UserGroup allowed_launchers = slot_profile->getAllowedLaunchers();
+    UserGroup forbidden_launchers = slot_profile->getForbiddenLaunchers();
+    
+    if (forbidden_launchers.hasUser(launcher->getName()))
+        return false;
+    if (!allowed_launchers.hasUser(launcher->getName()) && !allowed_launchers.hasLauncher())
+        return false;
+    return true;
+}
+
 bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
 {
     bool not_allowed_by_being_launcher = false;
@@ -224,17 +236,11 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     if (!launcher) launcher = SP<User>(new User);
 
-    UserGroup allowed_launchers = slot_profile->getAllowedLaunchers();
-    UserGroup forbidden_launchers = slot_profile->getForbiddenLaunchers();
-    
-    if (forbidden_launchers.hasUser(launcher->getName()))
+    if (!isAllowedLauncher(launcher, slot_profile))
     {
-        admin_logger->logMessageUTF8(string("User ") + launcher->getNameUTF8() + string(" tried to launch a slot but they are in forbidden list. ") + string(slot_profile->getNameUTF8()));
-        return false;
-    }
-    if (!allowed_launchers.hasUser(launcher->getName()) && !allowed_launchers.hasLauncher())
-    {
-        admin_logger->logMessageUTF8(string("User ") + launcher->getNameUTF8() + string(" tried to launch a slot but they are not in allowed list. ") + string(slot_profile->getNameUTF8()));
+        stringstream ss;
+        ss << "User " << launcher->getNameUTF8() << " attempted to launch a slot but they are not allowed to do that. " << slot_profile->getNameUTF8();
+        admin_logger->logMessageUTF8(ss.str());
         return false;
     }
 

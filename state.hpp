@@ -82,7 +82,8 @@ class State
 
         /* Checks if given user is allowed to watch given slot. */
         bool isAllowedWatcher(SP<User> user, SP<Slot> slot);
-
+        /* Checks if given user is allowed to launch given slot profile. */
+        bool isAllowedLauncher(SP<User> user, SP<SlotProfile> slot_profile);
 
         /* Returns if a slot by given name exists and returns true if it does.
          * Also returns true for empty string. */
