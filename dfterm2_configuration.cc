@@ -159,6 +159,7 @@ void ConfigurationInterface::enterJoinSlotsMenu()
     {
         SP<Slot> sp = (*i1).lock();
         if (!sp) continue;
+        if (!st->isAllowedWatcher(user, sp)) continue;
 
         data1D data_str("joinslot_");
         data_str += sp->getNameUTF8();

@@ -131,6 +131,35 @@ bool State::hasSlotProfile(UnicodeString name)
     return false;
 }
 
+bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
+{
+    bool not_allowed_by_being_launcher = false;
+    SP<SlotProfile> sp_slotprofile = slot->getSlotProfile().lock();
+    if (!sp_slotprofile)
+    {
+        stringstream ss;
+        ss << "State::isAllowedWatcher(), not slot profile associated with slot " << slot->getNameUTF8();
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    UserGroup allowed_watchers = sp_slotprofile->getAllowedWatchers();
+    UserGroup forbidden_watchers = sp_slotprofile->getForbiddenWatchers();
+    SP<User> launcher = slot->getLauncher().lock();
+    if (launcher && launcher == user)
+    {
+        if (forbidden_watchers.hasLauncher())
+            return false;
+        if (!allowed_watchers.hasLauncher())
+            not_allowed_by_being_launcher = true;
+    }
+    if (forbidden_watchers.hasUser(user->getName()))
+        return false;
+    if (!allowed_watchers.hasUser(user->getName()) && (not_allowed_by_being_launcher || launcher != user))
+        return false;
+    return true;
+};
+
 bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
 {
     /* Find the user from client list */
@@ -170,40 +199,16 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
     if (!sp_slotprofile)
     {
         stringstream ss;
-        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. " << slot_name_utf8 << endl;
+        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. " << slot_name_utf8;
         admin_logger->logMessageUTF8(ss.str());
         return false;
     }
 
     /* Check if this client is allowed to watch this. */
-    bool not_allowed_by_being_launcher = false;
-
-    UserGroup allowed_watchers = sp_slotprofile->getAllowedWatchers();
-    UserGroup forbidden_watchers = sp_slotprofile->getForbiddenWatchers();
-    SP<User> launcher = sp_slot->getLauncher().lock();
-    if (launcher && launcher == user)
-    {
-        if (forbidden_watchers.hasLauncher())
-        {
-            stringstream ss;
-            ss << "Slot join requested by " << user->getNameUTF8() << " from interface but as a launcher they are forbidden from watching. " << slot_name_utf8 << endl;
-            admin_logger->logMessageUTF8(ss.str());
-            return false;
-        }
-        if (!allowed_watchers.hasLauncher())
-            not_allowed_by_being_launcher = true;
-    }
-    if (forbidden_watchers.hasUser(user->getName()))
+    if (!isAllowedWatcher(user, sp_slot))
     {
         stringstream ss;
-        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but they are in forbidden list. " << slot_name_utf8;
-        admin_logger->logMessageUTF8(ss.str());
-        return false;
-    }
-    if (!allowed_watchers.hasUser(user->getName()) && (not_allowed_by_being_launcher || launcher != user))
-    {
-        stringstream ss;
-        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but they are not in allowed list. " << slot_name_utf8;
+        ss << "Slot join requested by " << user->getNameUTF8() << " but they are not allowed to do that. " << slot_name_utf8;
         admin_logger->logMessageUTF8(ss.str());
         return false;
     }

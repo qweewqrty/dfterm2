@@ -80,6 +80,9 @@ class State
         bool setUserToSlotUTF8(SP<User> user, string slot_name)
         { return setUserToSlot(user, UnicodeString::fromUTF8(slot_name)); };
 
+        /* Checks if given user is allowed to watch given slot. */
+        bool isAllowedWatcher(SP<User> user, SP<Slot> slot);
+
 
         /* Returns if a slot by given name exists and returns true if it does.
          * Also returns true for empty string. */
