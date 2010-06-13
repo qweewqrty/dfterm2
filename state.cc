@@ -294,7 +294,8 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     SP<Slot> slot = Slot::createSlot(slot_profile->getSlotType());
     slot->setSlotProfile(slot_profile);
     slot->setLauncher(launcher);
-    slot->setNameUTF8(slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str());
+    string name_utf8 = slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str();
+    slot->setNameUTF8(name_utf8);
     if (!slot)
     {
         admin_logger->logMessageUTF8(string("Slot::createSlot() failed with slot profile ") + slot_profile->getNameUTF8());
@@ -313,6 +314,10 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     admin_logger->logMessageUTF8(string("Launched a slot from slot profile ") + slot_profile->getNameUTF8());
 
     slots.push_back(slot);
+
+    /* Put the user to watch the just launched slot */
+    setUserToSlotUTF8(launcher, name_utf8);
+
     return true;
 }
 
