@@ -273,6 +273,20 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
         return false;
     }
 
+    /* Check that there are not too many slots of this slot profile */
+    ui32 num_slots = 0;
+    vector<SP<Slot> >::iterator i1;
+    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+        if ((*i1) && (*i1)->getSlotProfile().lock() == slot_profile)
+            num_slots++;
+    if (num_slots >= slot_profile->getMaxSlots())
+    {
+        stringstream ss;
+        ss << "User " << launcher->getNameUTF8() << " attempted to launch a slot but maximum number of slots of this slot profile has been reached. " << slot_profile->getNameUTF8();
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
     stringstream rcs;
     rcs << running_counter;
     running_counter++;
