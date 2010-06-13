@@ -38,6 +38,8 @@ class TerminalGlue : public Slot
 
         static void static_thread_function(TerminalGlue* self);
         void thread_function();
+
+        static void pushEscapeSequence(KeyCode special_key, string &input_buf);
     public:
         TerminalGlue();
         ~TerminalGlue();

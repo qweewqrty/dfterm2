@@ -53,6 +53,39 @@ void TerminalGlue::static_thread_function(TerminalGlue* self)
     self->thread_function();
 }
 
+void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
+{
+    switch(special_key)
+    {
+        case AUp:        input_buf.append("\x1b\x5b\x41"); break;
+        case ADown:      input_buf.append("\x1b\x5b\x42"); break;
+        case ARight:     input_buf.append("\x1b\x5b\x43"); break;
+        case ALeft:      input_buf.append("\x1b\x5b\x44"); break;
+        case CtrlUp:     input_buf.append("\x1b\x4b\x41"); break;
+        case CtrlDown:   input_buf.append("\x1b\x4b\x42"); break;
+        case CtrlRight:  input_buf.append("\x1b\x4b\x43"); break;
+        case CtrlLeft:   input_buf.append("\x1b\x4b\x44"); break;
+        case F1:         input_buf.append("\x1b\x5b\x31\x31\x7e"); break;
+        case F2:         input_buf.append("\x1b\x5b\x31\x32\x7e"); break;
+        case F3:         input_buf.append("\x1b\x5b\x31\x33\x7e"); break;
+        case F4:         input_buf.append("\x1b\x5b\x31\x34\x7e"); break;
+        case F5:         input_buf.append("\x1b\x5b\x31\x35\x7e"); break;
+        case F6:         input_buf.append("\x1b\x5b\x31\x37\x7e"); break;
+        case F7:         input_buf.append("\x1b\x5b\x31\x38\x7e"); break;
+        case F8:         input_buf.append("\x1b\x5b\x31\x39\x7e"); break;
+        case F9:         input_buf.append("\x1b\x5b\x32\x30\x7e"); break;
+        case F10:        input_buf.append("\x1b\x5b\x32\x31\x7e"); break;
+        case F11:        input_buf.append("\x1b\x5b\x32\x32\x7e"); break;
+        case F12:        input_buf.append("\x1b\x5b\x32\x33\x7e"); break;
+        case Home:       input_buf.append("\x1b\x5b\x31\x7e"); break;
+        case InsertChar: input_buf.append("\x1b\x5b\x32\x7e"); break;
+        case DeleteChar: input_buf.append("\x1b\x5b\x33\x7e"); break;
+        case End:        input_buf.append("\x1b\x5b\x34\x7e"); break;
+        case PgDown:     input_buf.append("\x1b\x5b\x36\x7e"); break;
+        case PgUp:       input_buf.append("\x1b\x5b\x35\x7e"); break;
+    }
+}
+
 void TerminalGlue::flushInput(Pty* program_pty)
 {
     lock_guard<recursive_mutex> lock(glue_mutex);
@@ -67,7 +100,7 @@ void TerminalGlue::flushInput(Pty* program_pty)
         bool special_key = input_queue.front().second;
         input_queue.pop_front();
 
-        if (special_key) continue;
+        if (special_key) { pushEscapeSequence((KeyCode) keycode, input_buf); continue; }
 
         ui8 k = (ui8) keycode;
         input_buf.push_back(k);
