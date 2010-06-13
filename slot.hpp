@@ -1,24 +1,31 @@
 #ifndef slot_hpp
 #define slot_hpp
 
+namespace dfterm
+{
+    class Slot;
+
+    /* Slot types. */
+    enum SlotType { DFGrab =   0,        /* Grab a running DF instance from local */
+                    DFLaunch = 1,        /* Launch a DF process and use that. */
+                    TerminalLaunch = 2,  /* Launch a DF (or any other terminal) process and use that. */
+                    InvalidSlotType = 3, /* Have this at the last slot. Other code use this as the last type. */ };
+    /* Slots DFLaunch and TerminalLaunch need parameters "path" and "work" to be set in the first 60 seconds
+     * they were created or slot goes dead. DFGrab needs no parameters. "path" is the path to the DF executable
+     * and "work" is the path to DF work directory (so DF can find its files. */
+
+};
+
 #include "types.hpp"
 #include <string>
 #include "interface.hpp"
+#include "dfterm2_configuration.hpp"
 
 using namespace std;
 using namespace trankesbel;
 
 namespace dfterm
 {
-
-/* Slot types. */
-enum SlotType { DFGrab =   0,        /* Grab a running DF instance from local */
-                DFLaunch = 1,        /* Launch a DF process and use that. */
-                TerminalLaunch = 2,  /* Launch a DF (or any other terminal) process and use that. */
-                InvalidSlotType = 3, /* Have this at the last slot. Other code use this as the last type. */ };
-/* Slots DFLaunch and TerminalLaunch need parameters "path" and "work" to be set in the first 60 seconds
- * they were created or slot goes dead. DFGrab needs no parameters. "path" is the path to the DF executable
- * and "work" is the path to DF work directory (so DF can find its files. */
 
 /* And their human-readable names */
 const string SlotNames[] = { "Grab a running DF instance.",
@@ -35,6 +42,8 @@ class Slot
         Slot& operator==(const Slot &s) { return (*this); };
 
         UnicodeString name;
+        WP<SlotProfile> slotprofile;
+        WP<User> user;
 
     protected:
         Slot() { };
@@ -46,6 +55,14 @@ class Slot
            If it fails, returns a null pointer. */
         static SP<Slot> createSlot(string slottype);
         static SP<Slot> createSlot(SlotType st) { return createSlot(SlotNames[(size_t) st]); };
+
+        /* Sets/gets the slot profile used to create this slot. */
+        void setSlotProfile(WP<SlotProfile> sp) { slotprofile = sp; };
+        WP<SlotProfile> getSlotProfile() { return slotprofile; };
+
+        /* Sets/gets the launcher of this slot. */
+        void setLauncher(WP<User> user) { this->user = user; };
+        WP<User> getLauncher() { return user; };
 
         /* Gives/retrieves a name of the slot. */
         void setName(UnicodeString name) { this->name = name; };

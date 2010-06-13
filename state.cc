@@ -131,6 +131,90 @@ bool State::hasSlotProfile(UnicodeString name)
     return false;
 }
 
+bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
+{
+    /* Find the user from client list */
+    SP<Client> client;
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        if ( (*i1)->getUser() == user)
+        {
+            client = (*i1);
+            break;
+        }
+
+    string slot_name_utf8;
+    slot_name.toUTF8String(slot_name_utf8);
+
+    if (!client)
+    {
+        stringstream ss;
+        ss << "User " << user->getNameUTF8() << " attempted to watch a slot " << slot_name_utf8 << " but there is no associated client connected.";
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    client->setSlot(SP<Slot>());
+
+    WP<Slot> slot = getSlot(slot_name);
+    SP<Slot> sp_slot = slot.lock();
+    if (!sp_slot)
+    {
+        stringstream ss;
+        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but no such slot is in state. " << slot_name_utf8;
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    SP<SlotProfile> sp_slotprofile = sp_slot->getSlotProfile().lock();
+    if (!sp_slotprofile)
+    {
+        stringstream ss;
+        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. " << slot_name_utf8 << endl;
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    /* Check if this client is allowed to watch this. */
+    bool not_allowed_by_being_launcher = false;
+
+    UserGroup allowed_watchers = sp_slotprofile->getAllowedWatchers();
+    UserGroup forbidden_watchers = sp_slotprofile->getForbiddenWatchers();
+    SP<User> launcher = sp_slot->getLauncher().lock();
+    if (launcher && launcher == user)
+    {
+        if (forbidden_watchers.hasLauncher())
+        {
+            stringstream ss;
+            ss << "Slot join requested by " << user->getNameUTF8() << " from interface but as a launcher they are forbidden from watching. " << slot_name_utf8 << endl;
+            admin_logger->logMessageUTF8(ss.str());
+            return false;
+        }
+        if (!allowed_watchers.hasLauncher())
+            not_allowed_by_being_launcher = true;
+    }
+    if (forbidden_watchers.hasUser(user->getName()))
+    {
+        stringstream ss;
+        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but they are in forbidden list. " << slot_name_utf8;
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+    if (!allowed_watchers.hasUser(user->getName()) && (not_allowed_by_being_launcher || launcher != user))
+    {
+        stringstream ss;
+        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but they are not in allowed list. " << slot_name_utf8;
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    client->setSlot(sp_slot);
+    stringstream ss;
+    ss << "User " << user->getNameUTF8() << " is now watching slot " << slot_name_utf8;
+    admin_logger->logMessageUTF8(ss.str());
+    return true;
+}
+
 bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     if (!launcher) launcher = SP<User>(new User);
@@ -143,7 +227,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
         admin_logger->logMessageUTF8(string("User ") + launcher->getNameUTF8() + string(" tried to launch a slot but they are in forbidden list. ") + string(slot_profile->getNameUTF8()));
         return false;
     }
-    if (!allowed_launchers.hasUser(launcher->getName()))
+    if (!allowed_launchers.hasUser(launcher->getName()) && !allowed_launchers.hasLauncher())
     {
         admin_logger->logMessageUTF8(string("User ") + launcher->getNameUTF8() + string(" tried to launch a slot but they are not in allowed list. ") + string(slot_profile->getNameUTF8()));
         return false;
@@ -154,6 +238,8 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     running_counter++;
 
     SP<Slot> slot = Slot::createSlot(slot_profile->getSlotType());
+    slot->setSlotProfile(slot_profile);
+    slot->setLauncher(launcher);
     slot->setNameUTF8(slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str());
     if (!slot)
     {

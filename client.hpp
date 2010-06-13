@@ -146,6 +146,9 @@ class Client
         /* Returns true if client connection is active. */
         bool isActive() const;
 
+        /* Returns the user object associated with the client. */
+        SP<User> getUser() { return user; };
+
         /* Sets the state for the client. */
         void setState(WP<State> state);
         void setState(SP<State> state) { setState(WP<State>(state)); };

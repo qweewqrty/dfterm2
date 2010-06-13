@@ -523,23 +523,8 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (!st)
             admin_logger->logMessageUTF8(string("Slot join requested from interface but state is null. Oops. ") + slot_name);
         else
-        {
-            WP<Slot> slot = st->getSlotUTF8(slot_name);
-            SP<Slot> sp_slot = slot.lock();
-            if (!sp_slot)
-                admin_logger->logMessageUTF8(string("Slot join requested from interface but no such slot is state. ") + slot_name);
-            else
-            {
-                SP<Client> sp_client = client.lock();
-                if (!sp_client)
-                    admin_logger->logMessageUTF8(string("Slot join requested from interface but client is null. Oops. ") + slot_name);
-                else
-                {
-                    sp_client->setSlot(sp_slot);
-                    enterMainMenu();
-                }
-            }
-        }
+            if (st->setUserToSlotUTF8(user, slot_name))
+                enterMainMenu();
     }
 
     checkSlotProfileMenu();

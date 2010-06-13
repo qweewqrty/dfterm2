@@ -75,6 +75,12 @@ class State
         bool launchSlot(UnicodeString slot_profile_name, SP<User> launcher);
         bool launchSlotUTF8(string slot_profile_name, SP<User> launcher) { return launchSlot(UnicodeString::fromUTF8(slot_profile_name), launcher); };
 
+        /* Makes given user watch a slot with the given name. */
+        bool setUserToSlot(SP<User> user, UnicodeString slot_name);
+        bool setUserToSlotUTF8(SP<User> user, string slot_name)
+        { return setUserToSlot(user, UnicodeString::fromUTF8(slot_name)); };
+
+
         /* Returns if a slot by given name exists and returns true if it does.
          * Also returns true for empty string. */
         bool hasSlotProfile(UnicodeString name);
