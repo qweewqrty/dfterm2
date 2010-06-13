@@ -255,6 +255,8 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
 
     client->setSlot(SP<Slot>());
 
+    if (slot_name.countChar32() == 0) return true;
+
     WP<Slot> slot = getSlot(slot_name);
     SP<Slot> sp_slot = slot.lock();
     if (!sp_slot)

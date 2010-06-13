@@ -528,6 +528,14 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             if (st->setUserToSlotUTF8(user, slot_name))
                 enterMainMenu();
     }
+    else if (selection == "join_none")
+    {
+        SP<State> st = state.lock();
+        if (!st)
+            admin_logger->logMessageUTF8(string("Slot join none requested from interface but state is null. Oops. "));
+        else
+            st->setUserToSlotUTF8(user, "");
+    }
 
     checkSlotProfileMenu();
     return false;
