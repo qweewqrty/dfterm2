@@ -328,6 +328,9 @@ class ConfigurationDatabase
         void saveSlotProfileData(SP<SlotProfile> slotprofile) { saveSlotProfileData(slotprofile.get()); };
 
         vector<UnicodeString> loadSlotProfileNames();
+
+        void deleteSlotProfileData(UnicodeString name);
+        void deleteSlotProfileDataUTF8(string name) { deleteSlotProfileData(UnicodeString::fromUTF8(name)); };
         SP<SlotProfile> loadSlotProfileData(UnicodeString name);
         SP<SlotProfile> loadSlotProfileDataUTF8(string name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
 };
@@ -360,9 +363,10 @@ class ConfigurationInterface
         void enterAdminMainMenu();
         void enterSlotsMenu();
         void enterNewSlotProfileMenu();
+        void enterEditSlotProfileMenu();
         void enterLaunchSlotsMenu();
         void enterJoinSlotsMenu();
-        void checkSlotProfileMenu();
+        void checkSlotProfileMenu(bool no_read = false);
 
         void auxiliaryEnterUsergroupWindow();
         void auxiliaryEnterSpecificUsersWindow();
@@ -372,7 +376,11 @@ class ConfigurationInterface
         UserGroup edit_usergroup;
         /* And this is currently edited slot profile */
         SlotProfile edit_slotprofile;
-        /* And this is where the currently edited slot profile should be copied
+        /* This is there slot profile should be saved after done with it.
+         * Used when editing an existing slot profile. */
+        SP<SlotProfile> edit_slotprofile_sp_target;
+
+        /* And this is where the currently edited user group should be copied
          * when done with it. ("watchers", "launchers", "etc.") */
         string edit_slotprofile_target;
 

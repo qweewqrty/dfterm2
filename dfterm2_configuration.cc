@@ -91,6 +91,8 @@ void ConfigurationInterface::disableAdmin()
 
 void ConfigurationInterface::enterMainMenu()
 {
+    edit_slotprofile_sp_target = SP<SlotProfile>();
+
     if (admin)
     {
         enterAdminMainMenu();
@@ -223,6 +225,51 @@ void ConfigurationInterface::enterSlotsMenu()
     int slot_index = window->addListElement("Back to main menu", "mainmenu", true, false);
     window->addListElement("Add a new slot profile", "new_slotprofile", true, false);
     window->modifyListSelectionIndex(slot_index);
+
+    SP<State> st = state.lock();
+    if (st)
+    {
+        vector<WP<SlotProfile> > slotprofiles = st->getSlotProfiles();
+        vector<WP<SlotProfile> >::iterator i1;
+        for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        {
+            SP<SlotProfile> slot_profile = (*i1).lock();
+            if (!slot_profile) continue;
+
+            window->addListElement(slot_profile->getName(), string("editslotprofile_") + slot_profile->getNameUTF8(), true, false);
+        }
+    }
+}
+
+void ConfigurationInterface::enterEditSlotProfileMenu()
+{
+    if (!admin) return;
+    
+    window->deleteAllListElements();
+    window->setHint("wide");
+    window->setTitle("Editing a new slot profile");
+
+    current_menu = SlotsMenu;
+
+    int slot_index = window->addListElement("Back to slot profile menu", "slots", true, false);
+    window->addListElement("",                            "Slot profile name:         ", "newslot_name", true, true);
+    window->addListElement("launch in a pty+vt102/ANSI",  "Method of screen scraping: ", "newslot_method", true, false);
+    window->addListElement("",                            "Game executable path:      ", "newslot_executable", true, true);
+    window->addListElement("",                            "Game working directory:    ", "newslot_workingdir", true, true);
+    window->addListElement("Anybody",                     "Allowed watchers:          ", "newslot_watchers", true, false);
+    window->addListElement("Anybody",                     "Allowed launchers:         ", "newslot_launchers", true, false);
+    window->addListElement("Anybody",                     "Allowed players:           ", "newslot_players", true, false);
+    window->addListElement("Nobody",                      "Forbidden watchers:        ", "newslot_watchers_forbidden", true, false);
+    window->addListElement("Nobody",                      "Forbidden launchers:       ", "newslot_launchers_forbidden", true, false);
+    window->addListElement("Nobody",                      "Forbidden players:         ", "newslot_players_forbidden", true, false);
+    window->addListElement("80",                          "Width:                     ", "newslot_width", true, true);
+    window->addListElement("25",                          "Height:                    ", "newslot_height", true, true);
+    window->addListElement("1",                           "Maximum slots:             ", "newslot_maxslots", true, true);
+    window->addListElement(                               "Save slot profile",        "newslot_save", true, false);
+
+    window->modifyListSelectionIndex(slot_index);
+
+    checkSlotProfileMenu(true);
 }
 
 void ConfigurationInterface::enterNewSlotProfileMenu()
@@ -256,7 +303,7 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     checkSlotProfileMenu();
 }
 
-void ConfigurationInterface::checkSlotProfileMenu()
+void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
 {
     if (!window) return;
 
@@ -283,30 +330,36 @@ void ConfigurationInterface::checkSlotProfileMenu()
             number[49] = 0;
             if (data == "newslot_width")
             {
-                edit_slotprofile.setWidth(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
-                if (edit_slotprofile.getWidth() < 1) edit_slotprofile.setWidth(1);
-                if (edit_slotprofile.getWidth() > 300) edit_slotprofile.setWidth(300);
+                if (!no_read)
+                {
+                    edit_slotprofile.setWidth(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
+                    if (edit_slotprofile.getWidth() < 1) edit_slotprofile.setWidth(1);
+                    if (edit_slotprofile.getWidth() > 300) edit_slotprofile.setWidth(300);
+                }
 
                 sprintf(number, "%d", edit_slotprofile.getWidth());
                 window->modifyListElementTextUTF8(index, number);
             }
             else if (data == "newslot_height")
             {
-                edit_slotprofile.setHeight(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
-                if (edit_slotprofile.getHeight() < 1) edit_slotprofile.setHeight(1);
-                if (edit_slotprofile.getHeight() > 300) edit_slotprofile.setHeight(300);
+                if (!no_read)
+                {
+                    edit_slotprofile.setHeight(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
+                    if (edit_slotprofile.getHeight() < 1) edit_slotprofile.setHeight(1);
+                    if (edit_slotprofile.getHeight() > 300) edit_slotprofile.setHeight(300);
+                }
 
                 sprintf(number, "%d", edit_slotprofile.getHeight());
                 window->modifyListElementTextUTF8(index, number);
             }
             else if (data == "newslot_workingdir")
             {
-                edit_slotprofile.setWorkingPath(window->getListElement(index));
+                if (!no_read) edit_slotprofile.setWorkingPath(window->getListElement(index));
                 window->modifyListElementText(index, edit_slotprofile.getWorkingPath());
             }
             else if (data == "newslot_executable")
             {
-                edit_slotprofile.setExecutable(window->getListElement(index));
+                if (!no_read) edit_slotprofile.setExecutable(window->getListElement(index));
                 window->modifyListElementText(index, edit_slotprofile.getExecutable());
             }
             else if (data == "newslot_method")
@@ -323,8 +376,19 @@ void ConfigurationInterface::checkSlotProfileMenu()
             }
             else if (data == "newslot_name")
             {
-                edit_slotprofile.setName(window->getListElement(index));
+                if (!no_read) edit_slotprofile.setName(window->getListElement(index));
                 window->modifyListElementText(index, edit_slotprofile.getName());
+            }
+            else if (data == "newslot_maxslots")
+            {
+                if (!no_read)
+                {
+                    edit_slotprofile.setMaxSlots(strtol(window->getListElementUTF8(index).c_str(), (char**) 0, 10));
+                    if (edit_slotprofile.getMaxSlots() < 1) edit_slotprofile.setMaxSlots(1);
+                }
+
+                sprintf(number, "%d", edit_slotprofile.getMaxSlots());
+                window->modifyListElementTextUTF8(index, number);
             }
 
             continue;
@@ -470,7 +534,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         edit_slotprofile_target = "forbidden_players";
         auxiliaryEnterUsergroupWindow();
     }
-    else if (selection == "newslot_create")
+    else if (selection == "newslot_create" || selection == "newslot_save")
     {
         checkSlotProfileMenu();
         if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
@@ -485,7 +549,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                 admin_logger->logMessageUTF8(string("Could not save slot profile from new slot profile menu. State is null. Oopsies. ") + string(edit_slotprofile.getNameUTF8()));
             else
             {
-                if (st->hasSlotProfile(edit_slotprofile.getName()))
+                if (selection == "newslot_create" && st->hasSlotProfile(edit_slotprofile.getName()))
                 {
                     admin_logger->logMessageUTF8(string("Attempted to create a slot profile with a name that already exists. ") + string(edit_slotprofile.getNameUTF8()));
                     window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
@@ -493,16 +557,54 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                 }
                 else
                 {
-                    SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
-                    st->addSlotProfile(slotp);
-                    configuration_database->saveSlotProfileData(slotp);
+                    if (selection == "newslot_create")
+                    {
+                        SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
+                        st->addSlotProfile(slotp);
+                        configuration_database->saveSlotProfileData(slotp);
+                        edit_slotprofile_sp_target = SP<SlotProfile>();
 
-                    admin_logger->logMessageUTF8(string("New slot profile created and stored in memory with the name ") + edit_slotprofile.getNameUTF8());
-                    enterSlotsMenu();
+                        admin_logger->logMessageUTF8(string("New slot profile created and stored in memory with the name ") + edit_slotprofile.getNameUTF8());
+                        enterSlotsMenu();
+                    }
+                    else
+                    {
+                        configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
+                        st->updateSlotProfile(edit_slotprofile_sp_target, edit_slotprofile);
+                        configuration_database->saveSlotProfileData(edit_slotprofile_sp_target);
+
+                        edit_slotprofile_sp_target = SP<SlotProfile>();
+                        admin_logger->logMessageUTF8(string("Edited and saved slot profile ") + edit_slotprofile.getNameUTF8());
+
+                        enterSlotsMenu();
+                    }
                 }
             }
 
             return false;
+        }
+    }
+    /* editing slots */
+    else if (!selection.compare(0, min(selection.size(), (size_t) 16), "editslotprofile_", 16))
+    {
+        string slot_name = selection.substr(16);
+        SP<State> st = state.lock();
+        if (!st)
+            admin_logger->logMessageUTF8("Slot profile edit requested from interface but state is null. Oops.");
+        else
+        {
+            WP<SlotProfile> wp_sp = st->getSlotProfileUTF8(slot_name);
+            SP<SlotProfile> sp = wp_sp.lock();
+            if (!sp)
+            {
+                admin_logger->logMessageUTF8(string("Slot profile edit requrested from interface with name ") + slot_name + string(" but there's no such slot profile."));
+            }
+            else
+            {
+                edit_slotprofile = (*sp);
+                edit_slotprofile_sp_target = sp;
+                enterEditSlotProfileMenu();
+            }
         }
     }
     /* launching slots */

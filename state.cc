@@ -21,6 +21,15 @@ State::~State()
 {
     state_initialized = false;
 };
+
+WP<SlotProfile> State::getSlotProfile(UnicodeString name)
+{
+    vector<SP<SlotProfile> >::iterator i1;
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        if ((*i1) && (*i1)->getName() == name)
+            return (*i1);
+    return WP<SlotProfile>();
+}
     
 WP<Slot> State::getSlot(UnicodeString name)
 {
@@ -162,6 +171,37 @@ void State::addSlotProfile(SP<SlotProfile> sp)
 {
     slotprofiles.push_back(sp);
 };
+
+void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
+{
+    if (!target) return;
+
+    (*target.get()) = source;
+
+    size_t i1, len = slots.size();
+    for (i1 = 0; i1 < len; i1++)
+    {
+        if (!slots[i1]) continue;
+
+        SP<SlotProfile> slotprofile = slots[i1]->getSlotProfile().lock();
+        if (!slotprofile) continue;
+
+        size_t i2, len2 = clients.size();
+        for (i2 = 0; i2 < len2; i2++)
+        {
+            if (!clients[i2]) continue;
+
+            if (clients[i2]->getSlot().lock() != slots[i1])
+                continue;
+
+            SP<User> user = clients[i2]->getUser();
+            if (!user) continue;
+
+            if (!isAllowedWatcher(user, slots[i1]))
+                clients[i2]->setSlot(SP<Slot>());
+        }
+    }
+}
 
 bool State::hasSlotProfile(UnicodeString name)
 {

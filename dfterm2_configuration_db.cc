@@ -202,6 +202,18 @@ vector<SP<User> > ConfigurationDatabase::loadAllUserData()
     return result_users;
 }
 
+void ConfigurationDatabase::deleteSlotProfileData(UnicodeString name)
+{
+    if (!db) return;
+
+    string name_utf8;
+    name.toUTF8String(name_utf8);
+    if (escape_sql_string(name_utf8).size() < 1) return;
+
+    string statement = string("DELETE FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';"); 
+    sqlite3_exec(db, statement.c_str(), 0, 0, 0);
+}
+
 void ConfigurationDatabase::deleteUserData(UnicodeString name)
 {
     if (!db) return;

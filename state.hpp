@@ -96,9 +96,17 @@ class State
         bool hasSlotProfile(UnicodeString name);
         bool hasSlotProfileUTF8(string name) { return hasSlotProfile(UnicodeString::fromUTF8(name)); };
 
+        /* Updates a slot profile. It checks for currently watching/playing users
+         * and kicks them out according to if something was forbidden in edit. */
+        void updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source);
+
         /* Returns a slot of given name, if there is one. */
         WP<Slot> getSlot(UnicodeString name);
         WP<Slot> getSlotUTF8(string name) { return getSlot(UnicodeString::fromUTF8(name)); };
+
+        /* Returns a slot profile of given name, if there is one. */
+        WP<SlotProfile> getSlotProfile(UnicodeString name);
+        WP<SlotProfile> getSlotProfileUTF8(string name) { return getSlotProfile(UnicodeString::fromUTF8(name)); };
 
         /* Adds a new slot profile to state */
         void addSlotProfile(SP<SlotProfile> sp);
