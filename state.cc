@@ -390,9 +390,29 @@ void State::loop()
     {
         start_time = nanoclock();
 
+        /* Prune inactive slots */
+        size_t i2, len = slots.size();
+        for (i2 = 0; i2 < len; i2++)
+        {
+            if (!slots[i2] || !slots[i2]->isAlive())
+            {
+                stringstream ss;
+                if (!slots[i2])
+                    ss << "Removed a null slot from slot list.";
+                else
+                    ss << "Removed a slot " << slots[i2]->getNameUTF8() << " from slot slot.";
+                admin_logger->logMessageUTF8(ss.str());
+
+                slots.erase(slots.begin() + i2);
+                len--;
+                i2--;
+                continue;
+            }
+        }
+
         bool update_nicklists = false;
         /* Prune inactive clients */
-        unsigned int i2, len = clients.size();
+        len = clients.size();
         for (i2 = 0; i2 < len; i2++)
         {
             if (!clients[i2]->isActive())
