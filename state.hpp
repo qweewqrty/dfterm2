@@ -100,6 +100,9 @@ class State
          * and kicks them out according to if something was forbidden in edit. */
         void updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source);
 
+        /* Deletes a slot profile. */
+        void deleteSlotProfile(SP<SlotProfile> slotprofile);
+
         /* Returns a slot of given name, if there is one. */
         WP<Slot> getSlot(UnicodeString name);
         WP<Slot> getSlotUTF8(string name) { return getSlot(UnicodeString::fromUTF8(name)); };

@@ -266,6 +266,7 @@ void ConfigurationInterface::enterEditSlotProfileMenu()
     window->addListElement("25",                          "Height:                    ", "newslot_height", true, true);
     window->addListElement("1",                           "Maximum slots:             ", "newslot_maxslots", true, true);
     window->addListElement(                               "Save slot profile",        "newslot_save", true, false);
+    window->addListElement(                               "Delete slot profile",      "newslot_delete", true, false);
 
     window->modifyListSelectionIndex(slot_index);
 
@@ -533,6 +534,28 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         edit_usergroup = edit_slotprofile.getForbiddenPlayers();
         edit_slotprofile_target = "forbidden_players";
         auxiliaryEnterUsergroupWindow();
+    }
+    else if (selection == "newslot_delete")
+    {
+        checkSlotProfileMenu();
+        if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
+        {
+            admin_logger->logMessageUTF8("Attempted to create a slot profile with an empty name.");
+            window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
+        }
+        else
+        {
+            SP<State> st = state.lock();
+            if (!st)
+                admin_logger->logMessageUTF8(string("Could not delete slot profile from new slot profile menu. State is null. Oopsies. ") + string(edit_slotprofile.getNameUTF8()));
+            else
+            {
+                configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
+                st->deleteSlotProfile(edit_slotprofile_sp_target);
+                edit_slotprofile_sp_target = SP<SlotProfile>();
+                enterSlotsMenu();
+            }
+        }
     }
     else if (selection == "newslot_create" || selection == "newslot_save")
     {

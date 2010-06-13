@@ -172,6 +172,35 @@ void State::addSlotProfile(SP<SlotProfile> sp)
     slotprofiles.push_back(sp);
 };
 
+void State::deleteSlotProfile(SP<SlotProfile> slotprofile)
+{
+    if (!slotprofile) return;
+
+    size_t i1, len = slots.size();
+    for (i1 = 0; i1 < len; i1++)
+    {
+        if (!slots[i1]) continue;
+
+        SP<SlotProfile> sp = slots[i1]->getSlotProfile().lock();
+        if (!sp || slotprofile != sp) continue;
+
+        slots.erase(slots.begin() + i1);
+        len--;
+        i1--;
+    };
+
+    len = slotprofiles.size();
+    for (i1 = 0; i1 < len; i1++)
+    {
+        if (slotprofiles[i1] == slotprofile)
+        {
+            slotprofiles.erase(slotprofiles.begin() + i1);
+            i1--;
+            len--;
+        }
+    }
+}
+
 void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
 {
     if (!target) return;
