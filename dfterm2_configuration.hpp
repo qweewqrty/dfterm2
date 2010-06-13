@@ -119,6 +119,9 @@ class UserGroup
             has_launcher = false;
         }
 
+        data1D serialize() const;
+        void unSerialize(data1D data);
+
         bool hasAnySpecificUser() const { return ((!has_user.empty()) || has_anybody); };
 
         bool hasNobody() const { return has_nobody; };
@@ -319,10 +322,11 @@ class ConfigurationDatabase
         void saveUserData(User* user);
         void saveUserData(SP<User> user) { saveUserData(user.get()); };
 
-        /*void saveSlotProfileData(SlotProfile* slotprofile);
+        void saveSlotProfileData(SlotProfile* slotprofile);
         void saveSlotProfileData(SP<SlotProfile> slotprofile) { saveSlotProfileData(slotprofile.get()); };
 
-        SP<SlotProfile> loadSlotProfileData(*/
+        SP<SlotProfile> loadSlotProfileData(UnicodeString name);
+        SP<SlotProfile> loadSlotProfileDataUTF8(string name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
 };
 
 enum Menu { /* These are menus for all of us! */

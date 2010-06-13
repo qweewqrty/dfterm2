@@ -45,6 +45,7 @@ OpenStatus ConfigurationDatabase::open(UnicodeString filename)
 
     /* Create tables. These calls fail if they already exist. */
     result = sqlite3_exec(db, "CREATE TABLE Users(Name TEXT, PasswordSHA512 TEXT, PasswordSalt TEXT, Admin TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, MaxSlots TEXT);", 0, 0, 0);
     /* Create an admin user, if database was created. */
     if (!database_exists)
         return OkCreatedNewDatabase;
@@ -196,6 +197,41 @@ void ConfigurationDatabase::saveUserData(User* user)
     statement = string("INSERT INTO Users(Name, PasswordSHA512, PasswordSalt, Admin) VALUES(\'") + escape_sql_string(name_utf8) + string("\', \'") + escape_sql_string(user->getPasswordHash()) + string("\', \'") + escape_sql_string(user->getPasswordSalt()) + string("\', \'") + admin_str + string("\');");
     result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 };
+
+void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
+{
+    if (!db) return;
+    if (!slotprofile) return;
+
+    string name = slotprofile->getNameUTF8();
+
+    string statement;
+    statement = string("DELETE FROM Slotprofiles WHERE NAME = \'") + escape_sql_string(name) + string("\';");
+    int result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
+
+    stringstream ss;
+    ss << "INSERT INTO Slotprofiles(Name, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots) VALUES(\'" << 
+    escape_sql_string(slotprofile->getNameUTF8()) << "\',\'" << 
+    slotprofile->getWidth() << "\',\'" <<
+    slotprofile->getHeight() << "\',\'" <<
+    escape_sql_string(slotprofile->getExecutableUTF8()) << "\',\'" <<
+    escape_sql_string(slotprofile->getWorkingPathUTF8()) << "\',\'" <<
+    escape_sql_string(SlotNames[(size_t) slotprofile->getSlotType()]) << "\',\'" <<
+    escape_sql_string(slotprofile->getAllowedWatchers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getAllowedLaunchers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getAllowedPlayers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getForbiddenWatchers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getForbiddenLaunchers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getForbiddenPlayers().serialize()) << "\',\'" <<
+    slotprofile->getMaxSlots() << "\');";
+
+    char* errormsg = (char*) 0;
+    result = sqlite3_exec(db, ss.str().c_str(), 0, 0, &errormsg);
+    if (result != SQLITE_OK)
+        admin_logger->logMessageUTF8(string("Error while executing SQL statement \"") + ss.str() + string("\": ") + string(errormsg));
+    if (errormsg) sqlite3_free(errormsg);
+};
+
 
 data1D dfterm::escape_sql_string(data1D str)
 {

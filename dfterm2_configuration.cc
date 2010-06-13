@@ -495,6 +495,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                 {
                     SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
                     st->addSlotProfile(slotp);
+                    configuration_database->saveSlotProfileData(slotp);
 
                     admin_logger->logMessageUTF8(string("New slot profile created and stored in memory with the name ") + edit_slotprofile.getNameUTF8());
                     enterSlotsMenu();
