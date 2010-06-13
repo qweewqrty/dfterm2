@@ -177,6 +177,7 @@ void Client::cycleChat()
 {
     if (!global_chat) return;
     if (!global_chat_reader) return;
+    if (!chat_window) return;
 
     while(1)
     {
