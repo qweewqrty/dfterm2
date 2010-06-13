@@ -143,6 +143,35 @@ bool State::isAllowedLauncher(SP<User> launcher, SP<SlotProfile> slot_profile)
     return true;
 }
 
+bool State::isAllowedPlayer(SP<User> user, SP<Slot> slot)
+{
+    bool not_allowed_by_being_launcher = false;
+    SP<SlotProfile> sp_slotprofile = slot->getSlotProfile().lock();
+    if (!sp_slotprofile)
+    {
+        stringstream ss;
+        ss << "State::isAllowedPlayer(), not slot profile associated with slot " << slot->getNameUTF8();
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    UserGroup allowed_players = sp_slotprofile->getAllowedPlayers();
+    UserGroup forbidden_players = sp_slotprofile->getForbiddenPlayers();
+    SP<User> launcher = slot->getLauncher().lock();
+    if (launcher && launcher == user)
+    {
+        if (forbidden_players.hasLauncher())
+            return false;
+        if (!allowed_players.hasLauncher())
+            not_allowed_by_being_launcher = true;
+    }
+    if (forbidden_players.hasUser(user->getName()))
+        return false;
+    if (!allowed_players.hasUser(user->getName()) && (not_allowed_by_being_launcher || launcher != user))
+        return false;
+    return true;
+};
+
 bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
 {
     bool not_allowed_by_being_launcher = false;

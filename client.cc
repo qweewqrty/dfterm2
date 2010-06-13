@@ -482,7 +482,13 @@ void Client::gameInputFunction(ui32 keycode, bool special_key)
 {
     SP<Slot> sp_slot = slot.lock();
     if (sp_slot)
+    {
+        SP<State> st = state.lock();
+        if (!st) return;
+
+        if (!st->isAllowedPlayer(user, sp_slot)) return;
         sp_slot->feedInput(keycode, special_key);
+    }
 }
 
 /* Used as a callback function for element window input. */
