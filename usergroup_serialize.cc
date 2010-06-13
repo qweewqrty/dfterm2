@@ -32,15 +32,16 @@ data1D UserGroup::serialize() const
     return ss.str();
 };
 
-void UserGroup::unSerialize(data1D data)
+UserGroup UserGroup::unSerialize(data1D data)
 {
-    if (data.size() < 3) return;
+    if (data.size() < 3) return UserGroup();
 
-    has_user.clear();
+    UserGroup ug;
+    ug.has_user.clear();
 
-    bool has_nobody = (data[0] == 'Y');
-    bool has_anybody = (data[1] == 'Y');
-    bool has_launcher = (data[2] == 'Y');
+    ug.has_nobody = (data[0] == 'Y');
+    ug.has_anybody = (data[1] == 'Y');
+    ug.has_launcher = (data[2] == 'Y');
 
     size_t i1, len = data.size();
     string name_utf8;
@@ -55,11 +56,13 @@ void UserGroup::unSerialize(data1D data)
         }
         if (c == ';')
         {
-            has_user.insert(UnicodeString::fromUTF8(name_utf8));
+            ug.has_user.insert(UnicodeString::fromUTF8(name_utf8));
             name_utf8.clear();
             continue;
         }
         name_utf8.push_back(c);
     }
+
+    return ug;
 }
 

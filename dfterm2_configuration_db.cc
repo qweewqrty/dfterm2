@@ -53,6 +53,71 @@ OpenStatus ConfigurationDatabase::open(UnicodeString filename)
     return Ok;
 }
 
+int ConfigurationDatabase::slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname)
+{
+    if (!name_list) return 0;
+
+    int i;
+    for (i = 0; i < argc; i++)
+    {
+        if (!argv[i]) continue;
+        
+        if (!strcmp(colname[i], "Name"))
+        {
+            string name_utf8 = argv[i];
+            (*name_list).push_back(UnicodeString::fromUTF8(name_utf8));
+        }
+    }
+
+    return 0;
+}
+
+int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname)
+{
+    if (!sp) return 0;
+
+    int i;
+    for (i = 0; i < argc; i++)
+    {
+        if (!argv[i]) continue;
+
+        if (!strcmp(colname[i], "Name"))
+            sp->setNameUTF8(argv[i]);
+        else if (!strcmp(colname[i], "Width"))
+            sp->setWidth(strtol(argv[i], NULL, 10));
+        else if (!strcmp(colname[i], "Height"))
+            sp->setHeight(strtol(argv[i], NULL, 10));
+        else if (!strcmp(colname[i], "Path"))
+            sp->setExecutable(argv[i]);
+        else if (!strcmp(colname[i], "WorkingPath"))
+            sp->setWorkingPath(argv[i]);
+        else if (!strcmp(colname[i], "SlotType"))
+        {
+            SlotType st = InvalidSlotType;
+            for (st = (SlotType) 0; st != InvalidSlotType; st = (SlotType) ((size_t) st + 1))
+                if (!strcmp(argv[i], SlotNames[(size_t) st].c_str()))
+                    break;
+            sp->setSlotType(st);
+        }
+        else if (!strcmp(colname[i], "AllowedWatchers"))
+            sp->setAllowedWatchers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "AllowedLaunchers"))
+            sp->setAllowedLaunchers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "AllowedPlayers"))
+            sp->setAllowedPlayers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "ForbiddenWatchers"))
+            sp->setForbiddenWatchers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "ForbiddenLaunchers"))
+            sp->setForbiddenLaunchers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "ForbiddenPlayers"))
+            sp->setForbiddenPlayers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "MaxSlots"))
+            sp->setMaxSlots(strtol(argv[i], NULL, 10));
+    }
+
+    return 0;
+};
+
 int ConfigurationDatabase::userDataCallback(string* name, string* password_hash, string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname)
 {
     (*name).clear();
@@ -232,6 +297,58 @@ void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
     if (errormsg) sqlite3_free(errormsg);
 };
 
+vector<UnicodeString> ConfigurationDatabase::loadSlotProfileNames()
+{
+    if (!db) return vector<UnicodeString>();
+
+    vector<UnicodeString> name_list;
+
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = bind(&ConfigurationDatabase::slotprofileNameListDataCallback, this, &name_list, _1, _2, _3, _4);
+
+    char* errormsg = (char*) 0;
+
+    string statement;
+    statement = string("SELECT Name FROM Slotprofiles;");
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
+    if (result != SQLITE_OK)
+    {
+        admin_logger->logMessageUTF8(string("Error while executing SQL statement \"") + statement + string("\": ") + string(errormsg));
+        if (errormsg) sqlite3_free(errormsg);
+        return name_list;
+    }
+    if (errormsg) sqlite3_free(errormsg);
+
+    return name_list;
+}
+
+SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(UnicodeString name)
+{
+    if (!db) return SP<SlotProfile>();
+
+    string name_utf8;
+    name.toUTF8String(name_utf8);
+
+    SlotProfile sp;
+
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = bind(&ConfigurationDatabase::slotprofileDataCallback, this, &sp, _1, _2, _3, _4);
+
+    char* errormsg = (char*) 0;
+
+    string statement;
+    statement = string("SELECT Name, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
+    if (result != SQLITE_OK)
+    {
+        admin_logger->logMessageUTF8(string("Error while executing SQL statement \"") + statement + string("\": ") + string(errormsg));
+        if (errormsg) sqlite3_free(errormsg);
+        return SP<SlotProfile>();
+    }
+    if (errormsg) sqlite3_free(errormsg);
+
+    return SP<SlotProfile>(new SlotProfile(sp));
+};
 
 data1D dfterm::escape_sql_string(data1D str)
 {

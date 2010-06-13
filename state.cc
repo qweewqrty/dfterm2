@@ -88,7 +88,20 @@ bool State::setDatabaseUTF8(string database_file)
         admin_logger->logMessageUTF8("This will create a new admin account for you.");
         admin_logger->logMessageUTF8("If you are not using the default database (if you don't know then you are using it), use");
         admin_logger->logMessageUTF8("the --database switch to modify the correct database.");
-        return false;
+        return true;
+    }
+
+    slotprofiles.clear();
+    slots.clear();
+
+    vector<UnicodeString> profile_list = configuration->loadSlotProfileNames();
+    vector<UnicodeString>::iterator i1;
+    for (i1 = profile_list.begin(); i1 != profile_list.end(); i1++)
+    {
+        SP<SlotProfile> sp = configuration->loadSlotProfileData(*i1);
+        if (!sp) continue;
+
+        addSlotProfile(sp);
     }
 
     return true;

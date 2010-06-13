@@ -120,7 +120,7 @@ class UserGroup
         }
 
         data1D serialize() const;
-        void unSerialize(data1D data);
+        static UserGroup unSerialize(data1D data);
 
         bool hasAnySpecificUser() const { return ((!has_user.empty()) || has_anybody); };
 
@@ -304,6 +304,8 @@ class ConfigurationDatabase
         ConfigurationDatabase& operator=(const ConfigurationDatabase &) { };
 
         sqlite3* db;
+        int slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
+        int slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname);
         int userDataCallback(string* name, string* password_hash, string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
         int userListDataCallback(vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
 
@@ -325,6 +327,7 @@ class ConfigurationDatabase
         void saveSlotProfileData(SlotProfile* slotprofile);
         void saveSlotProfileData(SP<SlotProfile> slotprofile) { saveSlotProfileData(slotprofile.get()); };
 
+        vector<UnicodeString> loadSlotProfileNames();
         SP<SlotProfile> loadSlotProfileData(UnicodeString name);
         SP<SlotProfile> loadSlotProfileDataUTF8(string name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
 };
