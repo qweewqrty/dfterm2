@@ -198,6 +198,9 @@ class DFGlue : public Slot
 
         void updateDFWindowTerminal();
 
+        /* Launches a new DF process and fills in pointers. */
+        /* Returns false if no can do. */
+        bool launchDFProcess(HANDLE* df_process, HWND* df_window);
         /* This finds a running DF process for us. */
         static bool findDFProcess(HANDLE* df_process, HWND* df_window);
         /* Find the window for DF process. Needs process id */
@@ -219,11 +222,18 @@ class DFGlue : public Slot
         /* Initialize aformentioned map */
         void initVkeyMappings();
 
+        bool dont_take_running_process;
+
+        map<string, UnicodeString> parameters;
+
     public:
         DFGlue();
+        DFGlue(bool dummy); /* Create with this constructor to
+                               not let DFGlue grab a running
+                               process. */
         ~DFGlue();
 
-        void setParameter(string str, UnicodeString str2) { };
+        void setParameter(string str, UnicodeString str2) { parameters[str] = str2; };
         void getSize(ui32* width, ui32* height);
         bool isAlive();
         void unloadToWindow(SP<Interface2DWindow> target_window);

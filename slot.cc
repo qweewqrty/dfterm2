@@ -26,7 +26,7 @@ SP<Slot> Slot::createSlot(string slottype)
             return SP<Slot>(new DFGlue);
         break;
         case DFLaunch:
-            return SP<Slot>(new DFGlue);
+            return SP<Slot>(new DFGlue(true));
         break;
         #else
         case TerminalLaunch:

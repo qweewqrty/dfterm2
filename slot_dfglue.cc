@@ -12,6 +12,7 @@
 #include "nanoclock.hpp"
 #include "interface_ncurses.hpp"
 #include "cp437_to_unicode.hpp"
+#include <algorithm>
 
 using namespace dfterm;
 using namespace boost;
@@ -45,6 +46,8 @@ DFGlue::DFGlue() : Slot()
     close_thread = false;
     data_format = Unknown;
 
+    dont_take_running_process = false;
+
     df_w = 80;
     df_h = 25;
 
@@ -60,10 +63,35 @@ DFGlue::DFGlue() : Slot()
         alive = false;
 };
 
+DFGlue::DFGlue(bool dummy) : Slot()
+{
+    df_handle = INVALID_HANDLE_VALUE;
+    df_window = (HWND) INVALID_HANDLE_VALUE;
+    close_thread = false;
+    data_format = Unknown;
+
+    dont_take_running_process = true;
+
+    df_w = 80;
+    df_h = 25;
+
+    ticks_per_second = 20;
+
+    alive = true;
+
+    initVkeyMappings();
+
+    // Create a thread that will launch or grab the DF process.
+    glue_thread = SP<thread>(new thread(static_thread_function, this));
+    if (glue_thread->get_id() == thread::id())
+        alive = false;
+}
+
 DFGlue::~DFGlue()
 {
     unique_lock<recursive_mutex> lock(glue_mutex);
     close_thread = true;
+    if (df_handle && dont_take_running_process) TerminateProcess(df_handle, 1);
     lock.unlock();
 
     if (glue_thread)
@@ -121,13 +149,24 @@ void DFGlue::thread_function()
     HANDLE df_process = INVALID_HANDLE_VALUE;
     HWND df_window = (HWND) INVALID_HANDLE_VALUE;
 
-    // This function should find the window and process for us.
-    bool found_process = findDFProcess(&df_process, &df_window);
-    if (!found_process)
+    if (!dont_take_running_process)
     {
-        lock_guard<recursive_mutex> alive_lock2(glue_mutex);
-        alive = false;
-        return;
+        // This function should find the window and process for us.
+        bool found_process = findDFProcess(&df_process, &df_window);
+        if (!found_process)
+        {
+            lock_guard<recursive_mutex> alive_lock2(glue_mutex);
+            alive = false;
+            return;
+        }
+    }
+    // Launch a new DF process
+    {
+        if (!launchDFProcess(&df_process, &df_window))
+        {
+            alive = false;
+            return;
+        }
     }
 
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
@@ -175,6 +214,8 @@ void DFGlue::thread_function()
                 }
                 else if (keycode == 27)
                     vkey = VK_ESCAPE;
+                else if (keycode == '\n')
+                    vkey = VK_RETURN;
                 else
                 {
                     SHORT keyscan = VkKeyScan(keycode);
@@ -343,6 +384,80 @@ bool DFGlue::findDFWindow(HWND* df_window, DWORD pid)
     return true;
 }
 
+bool DFGlue::launchDFProcess(HANDLE* df_process, HWND* df_window)
+{
+    /* Wait until "path" and "work" are set for 60 seconds. */
+    /* Copied the code from slot_terminal.cc */
+
+    ui8 counter = 60;
+    map<string, UnicodeString>::iterator i1;
+    while (counter > 0)
+    {
+        unique_lock<recursive_mutex> lock(glue_mutex);
+        if (close_thread)
+        {
+            lock.unlock();
+            return false;
+        }
+
+        if (parameters.find("path") != parameters.end() &&
+            parameters.find("work") != parameters.end())
+            break;
+        lock.unlock();
+        counter--;
+        Sleep(1000);
+    }
+    if (counter == 0)
+    {
+        lock_guard<recursive_mutex> lock(glue_mutex);
+        alive = false;
+        return false;
+    }
+
+    unique_lock<recursive_mutex> ulock(glue_mutex);
+    UnicodeString path = parameters["path"];
+    UnicodeString work_dir = parameters["work"];
+    ulock.unlock();
+
+    string path_utf8, work_dir_utf8;
+    path.toUTF8String(path_utf8);
+    work_dir.toUTF8String(work_dir_utf8);
+    
+    char path_cstr[MAX_PATH+1], working_path[MAX_PATH+1];
+    memset(path_cstr, 0, MAX_PATH+1);
+    memset(working_path, 0, MAX_PATH+1);
+    memcpy(path_cstr, path_utf8.c_str(), min(path_utf8.size(), (size_t) MAX_PATH));
+    memcpy(working_path, work_dir_utf8.c_str(), min(work_dir_utf8.size(), (size_t) MAX_PATH));
+    STARTUPINFO sup;
+    memset(&sup, 0, sizeof(STARTUPINFO));
+    sup.cb = sizeof(sup);
+
+    PROCESS_INFORMATION pi;
+    memset(&pi, 0, sizeof(pi));
+
+    if (!CreateProcess(NULL, path_cstr, NULL, NULL, FALSE, 0, NULL, working_path, &sup, &pi))
+    {
+        stringstream ss;
+        ss << "Slot/DFGlue: CreateProcess() failed with GetLastError() == " << GetLastError();
+        admin_logger->logMessageUTF8(ss.str());
+        return false;
+    }
+
+    /* Sleep for 20 seconds before attaching */
+    Sleep(20000);
+
+    (*df_process) = pi.hProcess;
+    if (pi.hThread != INVALID_HANDLE_VALUE) CloseHandle(pi.hThread);
+
+    findDFWindow(df_window, pi.dwProcessId);
+    if (!(*df_window))
+    {
+        CloseHandle(*df_process);
+        return false;
+    }
+
+    return true;
+};
 
 bool DFGlue::findDFProcess(HANDLE* df_process, HWND* df_window)
 {
@@ -383,7 +498,7 @@ bool DFGlue::findDFProcess(HANDLE* df_process, HWND* df_window)
         return false;
 
     findDFWindow(df_window, processes[i1]);
-    if (!df_window)
+    if (!(*df_window))
     {
         CloseHandle(df_handle);
         return false;
