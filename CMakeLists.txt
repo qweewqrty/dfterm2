@@ -16,10 +16,18 @@ ENDIF (WIN32)
 target_link_libraries(dfterm2 trankesbel)
 
 add_executable(dfterm2_configure dfterm2_configure.cc dfterm2_configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc)
+IF(NOT WIN32)
 target_link_libraries(dfterm2_configure trankesbel dl)
+ELSE(NOT WIN32)
+target_link_libraries(dfterm2_configure trankesbel)
+ENDIF(NOT WIN32)
 
 add_executable(dfterm2_sha512 dfterm2_sha512.cc dfterm2_configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc)
+IF(NOT WIN32)
 target_link_libraries(dfterm2_sha512 trankesbel dl)
+ELSE(NOT WIN32)
+target_link_libraries(dfterm2_sha512 trankesbel)
+ENDIF(NOT WIN32)
 
 FIND_PACKAGE(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})

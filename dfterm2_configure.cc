@@ -3,7 +3,7 @@
 #include "dfterm2_configuration.hpp"
 #include <string>
 #include <iostream>
-#include <unistr.h>
+#include <unicode/unistr.h>
 #include "types.hpp"
 #include <openssl/rand.h>
 #include <sys/time.h>
@@ -48,12 +48,12 @@ void seedRNG()
 
         RAND_screen();
         DWORD t = GetTickCount();
-        RAND_ADD((void*) &t, sizeof(t), sizeof(t) / 2);
-        #endif
-
+        RAND_add((void*) &t, sizeof(t), sizeof(t) / 2);
+        #else
         struct timeval tv;
         gettimeofday(&tv, NULL);
         RAND_add((void*) &tv, sizeof(tv), sizeof(tv) / 4);
+        #endif
     }
 }
 

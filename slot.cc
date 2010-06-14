@@ -21,7 +21,7 @@ SP<Slot> Slot::createSlot(string slottype)
 
     switch((SlotType) i1)
     {
-        #ifdef __win32
+        #ifdef __WIN32
         case DFGrab:
             return SP<Slot>(new DFGlue);
         break;

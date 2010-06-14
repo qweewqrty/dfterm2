@@ -223,6 +223,7 @@ class DFGlue : public Slot
         DFGlue();
         ~DFGlue();
 
+        void setParameter(string str, UnicodeString str2) { };
         void getSize(ui32* width, ui32* height);
         bool isAlive();
         void unloadToWindow(SP<Interface2DWindow> target_window);

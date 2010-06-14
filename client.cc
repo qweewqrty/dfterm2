@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "cp437_to_unicode.hpp"
 #include <openssl/rand.h>
+#include <time.h>
 #include "nanoclock.hpp"
 
 using namespace std; 
@@ -23,12 +24,12 @@ void seedRNG()
 
         RAND_screen();
         DWORD t = GetTickCount();
-        RAND_ADD((void*) &t, sizeof(t), sizeof(t) / 2);
-        #endif
-
+        RAND_add((void*) &t, sizeof(t), sizeof(t) / 2);
+        #else
         struct timeval tv;
         gettimeofday(&tv, NULL);
         RAND_add((void*) &tv, sizeof(tv), sizeof(tv) / 4);
+        #endif
     }
 }
 
