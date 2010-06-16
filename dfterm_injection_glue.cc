@@ -2,6 +2,15 @@
 #include <cstdlib>
 #include <cstdio>
 #include <windows.h>
+#include <psapi.h>
+#include <sstream>
+
+using namespace std;
+
+bool set_buffer_address = false;
+ptrdiff_t buffer_address = 0;
+
+ptrdiff_t dwarfort_base = 0;
 
 extern "C"
 {
@@ -12,6 +21,9 @@ char GetAsyncKeyState_patch[6];
 ptrdiff_t GetAsyncKeyState_addr;
 char DefWindowProc_patch[6];
 ptrdiff_t DefWindowProc_addr;
+
+char erasescreen_patch[6];
+ptrdiff_t erasescreen_addr;
 
 volatile int shift_state = 0;
 volatile int control_state = 0;
@@ -24,6 +36,22 @@ void patch_function(ptrdiff_t p1, ptrdiff_t p2, char* p3);
 void restore_old_function(ptrdiff_t patched_function_addr, char* patch)
 {
     WriteProcessMemory(me_process, (void*) patched_function_addr, patch, 6, NULL); 
+}
+
+unsigned char buffer[500*500];
+
+void fake_graphics_31_06__erasescreen()
+{
+    if (set_buffer_address)
+    {
+        ptrdiff_t final_address = 0x0141C390+dwarfort_base;
+        ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
+        ReadProcessMemory(me_process, (void*) final_address, buffer, 500*500, NULL);
+    }
+
+    restore_old_function(erasescreen_addr, erasescreen_patch);
+    ((void (*)()) erasescreen_addr)();
+    patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, NULL);
 }
 
 LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -58,6 +86,11 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
         {
             SendMessage(hwnd, WM_KEYDOWN, wparam, 0);
             SendMessage(hwnd, WM_KEYUP, wparam, 0);
+        }
+        else if (lparam == 4)
+        {
+            buffer_address = (ptrdiff_t) wparam;
+            set_buffer_address = true;
         }
     }
     return result;
@@ -118,7 +151,7 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
 
     me_process = GetCurrentProcess();
 
-    /* Hook GetAsyncKeyState */
+    /* Hook GetAsyncKeyState and friends */
     HMODULE module = GetModuleHandle("User32");
     LPCVOID gaks = (LPCVOID) GetProcAddress(module, "GetKeyState");
     HMODULE module3 = GetModuleHandle("User32");
@@ -131,6 +164,19 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     patch_function(GetKeyState_addr, (ptrdiff_t) hooked_GetKeyState, GetKeyState_patch);
     patch_function(GetAsyncKeyState_addr, (ptrdiff_t) hooked_GetAsyncKeyState, GetAsyncKeyState_patch);
     patch_function(DefWindowProc_addr, (ptrdiff_t) hooked_DefWindowProc, DefWindowProc_patch);
+
+    /* Hook what I believe is graphicst::erasescreen() */
+    HMODULE df_module = GetModuleHandle("Dwarf Fortress.exe");
+    if (df_module)
+    {
+        MODULEINFO mi;
+        if (GetModuleInformation(me_process, df_module, &mi, sizeof(mi)))
+        {
+            dwarfort_base = (ptrdiff_t) mi.lpBaseOfDll;
+            erasescreen_addr = 0x002fa600 + (ptrdiff_t) mi.lpBaseOfDll;
+            patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, erasescreen_patch);
+        };
+    }
 
     return TRUE;
 }

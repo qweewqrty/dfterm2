@@ -45,5 +45,6 @@ include_directories(${PCRE_INCLUDE_PATH})
 # The injection glue is only for Win32
 IF (WIN32)
     add_library(dfterm_injection_glue SHARED dfterm_injection_glue.cc)
+    target_link_libraries(dfterm_injection_glue psapi)
 ENDIF (WIN32)
 

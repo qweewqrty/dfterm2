@@ -14,6 +14,8 @@
 #include "cp437_to_unicode.hpp"
 #include <algorithm>
 
+#include "state.hpp"
+
 using namespace dfterm;
 using namespace boost;
 using namespace std;
@@ -91,7 +93,7 @@ DFGlue::~DFGlue()
 {
     unique_lock<recursive_mutex> lock(glue_mutex);
     close_thread = true;
-    if (df_handle && dont_take_running_process) TerminateProcess(df_handle, 1);
+    if (df_handle != INVALID_HANDLE_VALUE && dont_take_running_process) TerminateProcess(df_handle, 1);
     lock.unlock();
 
     if (glue_thread)
@@ -172,6 +174,8 @@ void DFGlue::thread_function()
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
     this->df_window = df_window;
     this->df_handle = df_process;
+    injectDLL("libdfterm_injection_glue.dll");
+
     bool version = detectDFVersion();
     if (!version)
     {
@@ -182,10 +186,9 @@ void DFGlue::thread_function()
         alive_lock.unlock();
         return;
     }
-    injectDLL("libdfterm_injection_glue.dll");
     alive_lock.unlock();
 
-    while(1)
+    while(!isDFClosed())
     {
         unique_lock<recursive_mutex> update_mutex(glue_mutex);
 
@@ -296,6 +299,33 @@ void DFGlue::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color,
 
 void DFGlue::updateDFWindowTerminal()
 {
+    if (data_format == PackedVarying && df_w < 256 && df_h < 256)
+    {
+        ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
+
+        ui32 packed_buf[256*256];
+        ReadProcessMemory(df_handle, (LPCVOID) symbol_address, packed_buf, df_w*df_h*4, NULL);
+
+        lock_guard<recursive_mutex> lock(glue_mutex);
+        if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
+            df_terminal.resize(df_w, df_h);
+        ui32 i1, i2;
+        for (i2 = 0; i2 < df_h; i2++)
+            for (i1 = 0; i1 < df_w; i1++)
+            {
+                ui32 offset = i1 * df_h + i2;
+                Color f_color, b_color;
+                bool f_bold = false;
+                bool b_bold = false;
+
+                ui8 symbol = (ui8) ((ui32) (packed_buf[i1 * df_h + i2] & 0x000000FF));
+                f_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x0000FF00) >> 8);
+                b_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x00FF0000) >> 16);
+                f_bold = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0xFF000000) >> 24);
+
+                df_terminal.setTile(i1, i2, TerminalTile(symbol, f_color, b_color, false, f_bold));
+            }
+    }
     if (data_format == DistinctFloatingPointVarying && df_w < 256 && df_h < 256)
     {
         ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
@@ -484,7 +514,8 @@ bool DFGlue::findDFProcess(HANDLE* df_process, HWND* df_window)
         {
             GetModuleBaseName(h_p, h_mod, process_name, sizeof(process_name) / sizeof(TCHAR));
 
-            if (string(process_name) == string("dwarfort.exe"))
+            if (string(process_name) == string("dwarfort.exe") ||
+                string(process_name) == string("Dwarf Fortress.exe"))
             {
                 df_handle = h_p;
                 break;
@@ -557,11 +588,23 @@ bool DFGlue::detectDFVersion()
     fclose(f);
     uint32_t csum = checksum(buf, 100000);
 
+    stringstream ss;
+    ss << "Dwarf Fortress executable checksum calculated to " << (void*) csum;
+    admin_logger->logMessageUTF8(ss.str());
+
     PointerPath af;
     PointerPath sz;
 
     switch(csum)
     {
+    case 0xf6afb6c9:  /* DF 0.31.06 */
+    /*af.pushAddress(0x0141C390, "Dwarf Fortress.exe");
+    af.pushAddress(0);*/
+    af.pushAddress(0x0000E080, "libdfterm_injection_glue.dll");
+    sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
+    data_format = PackedVarying;
+    SendMessage(df_window, WM_USER, 0, 4);
+    break;
     case 0x9404d33d:  /* DF 0.31.03 */
     af.pushAddress(0x0106FE7C, "dwarfort.exe");
     af.pushAddress(0);
@@ -641,6 +684,7 @@ bool DFGlue::detectDFVersion()
     af.pushAddress(0);
     sz.pushAddress(0x0129BF28, "dwarfort.exe");
     data_format = PackedVarying;
+
     break;
     case 0xb548e1b3: /* DF 40d19 */
     af.pushAddress(0x00F31B68, "dwarfort.exe");
@@ -711,4 +755,26 @@ void DFGlue::feedInput(ui32 keycode, bool special_key)
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     input_queue.push_back(pair<ui32, bool>(keycode, special_key));
 }
+
+bool DFGlue::isDFClosed()
+{
+    lock_guard<recursive_mutex> alive_lock(glue_mutex);
+    if (df_handle == INVALID_HANDLE_VALUE) return true;
+
+    DWORD exitcode;
+    if (GetExitCodeProcess(df_handle, &exitcode))
+    {
+        if (exitcode != STILL_ACTIVE)
+        {
+            CloseHandle(df_handle);
+            df_handle = INVALID_HANDLE_VALUE;
+            stringstream ss;
+            ss << "Game process has closed with exit code " << exitcode << endl;
+            admin_logger->logMessageUTF8(ss.str());
+            return true;
+        }
+    }
+
+    return false;
+};
 
