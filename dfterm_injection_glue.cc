@@ -17,6 +17,8 @@ extern "C"
 
 char GetKeyState_patch[6];
 ptrdiff_t GetKeyState_addr;
+char GetKeyboardState_patch[6];
+ptrdiff_t GetKeyboardState_addr;
 char GetAsyncKeyState_patch[6];
 ptrdiff_t GetAsyncKeyState_addr;
 char DefWindowProc_patch[6];
@@ -84,8 +86,8 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
         }
         else if (lparam == 3)
         {
-            SendMessage(hwnd, WM_KEYDOWN, wparam, 0);
-            SendMessage(hwnd, WM_KEYUP, wparam, 0);
+            SendMessage(hwnd, WM_KEYDOWN, wparam, 0x0);
+            SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
         }
         else if (lparam == 4)
         {
@@ -93,6 +95,21 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
             set_buffer_address = true;
         }
     }
+    return result;
+}
+
+BOOL WINAPI hooked_GetKeyboardState(PBYTE lpKeyState)
+{
+    restore_old_function(GetKeyboardState_addr, GetKeyboardState_patch);
+    BOOL result = GetKeyboardState(lpKeyState);
+    patch_function(GetKeyboardState_addr, (ptrdiff_t) hooked_GetKeyboardState, NULL);
+
+    if (shift_state)
+        lpKeyState[VK_SHIFT] = 0x80;
+    if (control_state)
+        lpKeyState[VK_CONTROL] = 0x80;
+    if (alt_state)
+        lpKeyState[VK_MENU] = 0x80;
     return result;
 }
 
@@ -154,6 +171,8 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     /* Hook GetAsyncKeyState and friends */
     HMODULE module = GetModuleHandle("User32");
     LPCVOID gaks = (LPCVOID) GetProcAddress(module, "GetKeyState");
+    HMODULE module4 = GetModuleHandle("User32");
+    LPCVOID gaks4 = (LPCVOID) GetProcAddress(module4, "GetKeyboardState");
     HMODULE module3 = GetModuleHandle("User32");
     LPCVOID gaks2 = (LPCVOID) GetProcAddress(module3, "GetAsyncKeyState");
     HMODULE module2 = GetModuleHandle("Ntdll");
@@ -161,7 +180,9 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     GetKeyState_addr = (ptrdiff_t) gaks;
     DefWindowProc_addr = (ptrdiff_t) dwp;
     GetAsyncKeyState_addr = (ptrdiff_t) gaks2;
+    GetKeyboardState_addr = (ptrdiff_t) gaks4;
     patch_function(GetKeyState_addr, (ptrdiff_t) hooked_GetKeyState, GetKeyState_patch);
+    patch_function(GetKeyboardState_addr, (ptrdiff_t) hooked_GetKeyboardState, GetKeyboardState_patch);
     patch_function(GetAsyncKeyState_addr, (ptrdiff_t) hooked_GetAsyncKeyState, GetAsyncKeyState_patch);
     patch_function(DefWindowProc_addr, (ptrdiff_t) hooked_DefWindowProc, DefWindowProc_patch);
 

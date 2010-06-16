@@ -242,14 +242,24 @@ void DFGlue::thread_function()
             }
 
             if (shift_down_now)
+            {
                 PostMessage(df_window, WM_USER, 1, 0);
+                /*PostMessage(df_window, WM_KEYDOWN, VK_RSHIFT, 0x0);
+                PostMessage(df_window, WM_KEYDOWN, VK_LSHIFT, 0x0);
+                PostMessage(df_window, WM_KEYDOWN, VK_SHIFT, 0x0);*/
+            }
             if (ctrl_down_now)
                 PostMessage(df_window, WM_USER, 1, 1);
             if (esc_down_now)
                 PostMessage(df_window, WM_USER, 1, 2);
             PostMessage(df_window, WM_USER, vkey, 3);
             if (shift_down_now)
+            {
                 PostMessage(df_window, WM_USER, 0, 0);
+                /*PostMessage(df_window, WM_KEYUP, VK_RSHIFT, 0xC0000001);
+                PostMessage(df_window, WM_KEYUP, VK_LSHIFT, 0xC0000001);
+                PostMessage(df_window, WM_KEYUP, VK_SHIFT, 0xC0000001);*/
+            }
             if (ctrl_down_now)
                 PostMessage(df_window, WM_USER, 0, 1);
             if (esc_down_now)
@@ -598,8 +608,6 @@ bool DFGlue::detectDFVersion()
     switch(csum)
     {
     case 0xf6afb6c9:  /* DF 0.31.06 */
-    /*af.pushAddress(0x0141C390, "Dwarf Fortress.exe");
-    af.pushAddress(0);*/
     af.pushAddress(0x0000E080, "libdfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
