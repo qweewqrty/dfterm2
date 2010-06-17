@@ -166,9 +166,8 @@ class DFGlue : public Slot
         /* Input deque */
         deque<pair<ui32, bool> > input_queue;
 
-        /* If these are known */
         HANDLE df_handle;
-        HWND df_window;
+        vector<HWND> df_windows;
 
         /* Terminal for DF screen. */
         Terminal df_terminal;
@@ -202,11 +201,11 @@ class DFGlue : public Slot
 
         /* Launches a new DF process and fills in pointers. */
         /* Returns false if no can do. */
-        bool launchDFProcess(HANDLE* df_process, HWND* df_window);
+        bool launchDFProcess(HANDLE* df_process, vector<HWND>* df_window);
         /* This finds a running DF process for us. */
-        static bool findDFProcess(HANDLE* df_process, HWND* df_window);
+        static bool findDFProcess(HANDLE* df_process, vector<HWND>* df_window);
         /* Find the window for DF process. Needs process id */
-        static bool findDFWindow(HWND* df_window, DWORD pid);
+        static bool findDFWindow(vector<HWND>* df_window, DWORD pid);
         /* A callback for enumerating windows */
         static BOOL enumDFWindow(HWND hwnd, LPARAM strct);
 

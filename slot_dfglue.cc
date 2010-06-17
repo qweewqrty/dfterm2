@@ -21,6 +21,20 @@ using namespace boost;
 using namespace std;
 using namespace trankesbel;
 
+void PostMessage(const vector<HWND> &windows, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    vector<HWND>::const_iterator i1;
+    for (i1 = windows.begin(); i1 != windows.end(); i1++)
+        PostMessage(*i1, msg, wparam, lparam);
+}
+
+void SendMessage(const vector<HWND> &windows, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    vector<HWND>::const_iterator i1;
+    for (i1 = windows.begin(); i1 != windows.end(); i1++)
+        SendMessage(*i1, msg, wparam, lparam);
+}
+
 /* A simple checksum function. */
 static ui32 checksum(const char* buf, size_t buflen)
 {
@@ -44,7 +58,6 @@ static ui32 checksum(string str)
 DFGlue::DFGlue() : Slot()
 {
     df_handle = INVALID_HANDLE_VALUE;
-    df_window = (HWND) INVALID_HANDLE_VALUE;
     close_thread = false;
     data_format = Unknown;
 
@@ -68,7 +81,6 @@ DFGlue::DFGlue() : Slot()
 DFGlue::DFGlue(bool dummy) : Slot()
 {
     df_handle = INVALID_HANDLE_VALUE;
-    df_window = (HWND) INVALID_HANDLE_VALUE;
     close_thread = false;
     data_format = Unknown;
 
@@ -149,12 +161,12 @@ void DFGlue::thread_function()
 {
     // Handle and window for process goes here. 
     HANDLE df_process = INVALID_HANDLE_VALUE;
-    HWND df_window = (HWND) INVALID_HANDLE_VALUE;
+    vector<HWND> df_windows;
 
     if (!dont_take_running_process)
     {
         // This function should find the window and process for us.
-        bool found_process = findDFProcess(&df_process, &df_window);
+        bool found_process = findDFProcess(&df_process, &df_windows);
         if (!found_process)
         {
             lock_guard<recursive_mutex> alive_lock2(glue_mutex);
@@ -164,7 +176,7 @@ void DFGlue::thread_function()
     }
     // Launch a new DF process
     {
-        if (!launchDFProcess(&df_process, &df_window))
+        if (!launchDFProcess(&df_process, &df_windows))
         {
             alive = false;
             return;
@@ -172,7 +184,7 @@ void DFGlue::thread_function()
     }
 
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
-    this->df_window = df_window;
+    this->df_windows = df_windows;
     this->df_handle = df_process;
     injectDLL("libdfterm_injection_glue.dll");
 
@@ -181,7 +193,7 @@ void DFGlue::thread_function()
     {
         CloseHandle(df_process);
         this->df_handle = INVALID_HANDLE_VALUE;
-        this->df_window = (HWND) INVALID_HANDLE_VALUE;
+        this->df_windows.clear();;
         alive = false;
         alive_lock.unlock();
         return;
@@ -243,27 +255,21 @@ void DFGlue::thread_function()
 
             if (shift_down_now)
             {
-                PostMessage(df_window, WM_USER, 1, 0);
-                /*PostMessage(df_window, WM_KEYDOWN, VK_RSHIFT, 0x0);
-                PostMessage(df_window, WM_KEYDOWN, VK_LSHIFT, 0x0);
-                PostMessage(df_window, WM_KEYDOWN, VK_SHIFT, 0x0);*/
+                PostMessage(df_windows, WM_USER, 1, 0);
             }
             if (ctrl_down_now)
-                PostMessage(df_window, WM_USER, 1, 1);
+                PostMessage(df_windows, WM_USER, 1, 1);
             if (esc_down_now)
-                PostMessage(df_window, WM_USER, 1, 2);
-            PostMessage(df_window, WM_USER, vkey, 3);
+                PostMessage(df_windows, WM_USER, 1, 2);
+            PostMessage(df_windows, WM_USER, vkey, 3);
             if (shift_down_now)
             {
-                PostMessage(df_window, WM_USER, 0, 0);
-                /*PostMessage(df_window, WM_KEYUP, VK_RSHIFT, 0xC0000001);
-                PostMessage(df_window, WM_KEYUP, VK_LSHIFT, 0xC0000001);
-                PostMessage(df_window, WM_KEYUP, VK_SHIFT, 0xC0000001);*/
+                PostMessage(df_windows, WM_USER, 0, 0);
             }
             if (ctrl_down_now)
-                PostMessage(df_window, WM_USER, 0, 1);
+                PostMessage(df_windows, WM_USER, 0, 1);
             if (esc_down_now)
-                PostMessage(df_window, WM_USER, 0, 2);
+                PostMessage(df_windows, WM_USER, 0, 2);
         }
 
         update_mutex.unlock();
@@ -384,11 +390,10 @@ class enumDFWindow_struct
 {
     public:
     DWORD process_id;
-    HWND window;
+    vector<HWND> window;
     enumDFWindow_struct()
     {
         process_id = 0;
-        window = (HWND) INVALID_HANDLE_VALUE;
     };
 };
 
@@ -400,31 +405,27 @@ BOOL CALLBACK DFGlue::enumDFWindow(HWND hwnd, LPARAM strct)
     DWORD window_pid;
     GetWindowThreadProcessId(hwnd, &window_pid);
     if (edw->process_id == window_pid)
-    {
-        edw->window = hwnd;
-        return FALSE;
-    }
+        edw->window.push_back(hwnd);;
 
     return TRUE;
 }
 
-bool DFGlue::findDFWindow(HWND* df_window, DWORD pid)
+bool DFGlue::findDFWindow(vector<HWND>* df_windows, DWORD pid)
 {
-    (*df_window) = (HWND) 0;
+    (*df_windows).clear();
 
     // Find the DF window
     enumDFWindow_struct edw;
-    edw.window = NULL;
     edw.process_id = pid;
     EnumWindows(enumDFWindow, (LPARAM) &edw);
-    if (!edw.window)
+    if (edw.window.empty())
         return false;
 
-    (*df_window) = edw.window;
+    (*df_windows) = edw.window;
     return true;
 }
 
-bool DFGlue::launchDFProcess(HANDLE* df_process, HWND* df_window)
+bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 {
     /* Wait until "path" and "work" are set for 60 seconds. */
     /* Copied the code from slot_terminal.cc */
@@ -487,8 +488,8 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, HWND* df_window)
     (*df_process) = pi.hProcess;
     if (pi.hThread != INVALID_HANDLE_VALUE) CloseHandle(pi.hThread);
 
-    findDFWindow(df_window, pi.dwProcessId);
-    if (!(*df_window))
+    findDFWindow(df_windows, pi.dwProcessId);
+    if ((*df_windows).empty())
     {
         CloseHandle(*df_process);
         return false;
@@ -497,7 +498,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, HWND* df_window)
     return true;
 };
 
-bool DFGlue::findDFProcess(HANDLE* df_process, HWND* df_window)
+bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 {
     DWORD processes[1000], num_processes;
     EnumProcesses(processes, sizeof(DWORD)*1000, &num_processes);
@@ -536,8 +537,8 @@ bool DFGlue::findDFProcess(HANDLE* df_process, HWND* df_window)
     if (!df_handle)
         return false;
 
-    findDFWindow(df_window, processes[i1]);
-    if (!(*df_window))
+    findDFWindow(df_windows, processes[i1]);
+    if ((*df_windows).empty())
     {
         CloseHandle(df_handle);
         return false;
@@ -607,7 +608,7 @@ bool DFGlue::detectDFVersion()
     af.pushAddress(0x0000E080, "libdfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
-    SendMessage(df_window, WM_USER, 0, 4);
+    SendMessage(df_windows, WM_USER, 0, 4);
     break;
     case 0x9404d33d:  /* DF 0.31.03 */
     af.pushAddress(0x0106FE7C, "dwarfort.exe");
