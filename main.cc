@@ -14,28 +14,6 @@ using namespace trankesbel;
 using namespace boost;
 using namespace std;
 
-/* Every message goes here. */
-namespace dfterm {
-SP<Logger> admin_logger;
-SP<LoggerReader> admin_messages_reader;
-};
-
-/* Flush admin messages */
-void dfterm::flush_messages()
-{
-    bool msg;
-    do
-    {
-        UnicodeString us = admin_messages_reader->getLogMessage(&msg);
-        if (!msg) break;
-
-        string utf8_str;
-        us.toUTF8String(utf8_str);
-        cout << utf8_str << endl;
-        cout.flush();
-    } while(msg);
-}
-
 void resolve_success(bool *success_p,
                      SocketAddress *sa, 
                      string* error_message_p, 
@@ -59,9 +37,6 @@ class sockets_initialize
 
 int main(int argc, char* argv[])
 {
-    admin_logger = SP<Logger>(new Logger);
-    admin_messages_reader = admin_logger->createReader();
-
     LOG(Note, "Starting up dfterm2.");
 
     sockets_initialize socket_initialization;

@@ -48,3 +48,5 @@ IF (WIN32)
     target_link_libraries(dfterm_injection_glue psapi)
 ENDIF (WIN32)
 
+ADD_DEFINITIONS("-Wall -D_UNICODE")
+

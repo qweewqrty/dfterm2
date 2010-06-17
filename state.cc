@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include "nanoclock.hpp"
+#include "logger.hpp"
 
 using namespace dfterm;
 using namespace std;
@@ -81,22 +82,20 @@ bool State::setDatabaseUTF8(string database_file)
     OpenStatus d_result = configuration->openUTF8(database_file);
     if (d_result == Failure)
     {
-        stringstream ss;
-        ss << "Failed to open database file " << database_file;
-        admin_logger->logMessageUTF8(ss);
+        LOG(Error, "Failed to open database file " << database_file);
         return false;
     }
     if (d_result == OkCreatedNewDatabase)
     {
-        admin_logger->logMessageUTF8("Created a new database from scratch. You should add an admin account to configure dfterm2.");
-        admin_logger->logMessageUTF8("You need to use the command line tool dfterm2_configure for that. Close dfterm2 and then");
-        admin_logger->logMessageUTF8("add an account like this: ");
-        admin_logger->logMessageUTF8("dfterm2_configure --adduser (user name) (password) admin");
-        admin_logger->logMessageUTF8("For example:");
-        admin_logger->logMessageUTF8("dfterm2_configure --adduser Adeon s3cr3t_p4ssw0rd admin");
-        admin_logger->logMessageUTF8("This will create a new admin account for you.");
-        admin_logger->logMessageUTF8("If you are not using the default database (if you don't know then you are using it), use");
-        admin_logger->logMessageUTF8("the --database switch to modify the correct database.");
+        LOG(Note, "Created a new database from scratch. You should add an admin account to configure dfterm2.");
+        LOG(Note, "You need to use the command line tool dfterm2_configure for that. Close dfterm2 and then");
+        LOG(Note, "add an account like this: ");
+        LOG(Note, "dfterm2_configure --adduser (user name) (password) admin");
+        LOG(Note, "For example:");
+        LOG(Note, "dfterm2_configure --adduser Adeon s3cr3t_p4ssw0rd admin");
+        LOG(Note, "This will create a new admin account for you.");
+        LOG(Note, "If you are not using the default database (if you don't know then you are using it), use");
+        LOG(Note, "the --database switch to modify the correct database.");
         return true;
     }
 
@@ -123,11 +122,10 @@ bool State::addTelnetService(SocketAddress address)
     bool result = s->listen(address);
     if (!result)
     {
-        ss << "Listening failed. " << s->getError();
-        admin_logger->logMessageUTF8(ss);
+        LOG(Error, "Listening on telnet service " << address.getHumanReadablePlainUTF8() << " failed.");
         return false;
     }
-    admin_logger->logMessageUTF8("Telnet service started. ");
+    LOG(Note, "Telnet service started on address " << address.getHumanReadablePlainUTF8());
     listening_sockets.insert(s);
 
     return true;
@@ -151,9 +149,7 @@ void State::destroyClient(UnicodeString nickname, SP<Client> exclude)
         {
             clients.erase(clients.begin() + i1);
             clients_weak.erase(clients_weak.begin() + i1);
-            stringstream ss;
-            ss << "Disconnected a duplicate connection for user " << clients[i1]->getUser()->getNameUTF8();
-            admin_logger->logMessageUTF8(ss.str());
+            LOG(Note, "Disconnected a duplicate connection for user " << clients[i1]->getUser()->getNameUTF8());
             update_nicklists = true;
             break;
         }
@@ -260,9 +256,7 @@ bool State::isAllowedPlayer(SP<User> user, SP<Slot> slot)
     SP<SlotProfile> sp_slotprofile = slot->getSlotProfile().lock();
     if (!sp_slotprofile)
     {
-        stringstream ss;
-        ss << "State::isAllowedPlayer(), not slot profile associated with slot " << slot->getNameUTF8();
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "State::isAllowedPlayer(), no slot profile associated with slot " << slot->getNameUTF8());
         return false;
     }
 
@@ -289,9 +283,7 @@ bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
     SP<SlotProfile> sp_slotprofile = slot->getSlotProfile().lock();
     if (!sp_slotprofile)
     {
-        stringstream ss;
-        ss << "State::isAllowedWatcher(), not slot profile associated with slot " << slot->getNameUTF8();
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "State::isAllowedWatcher(), no slot profile associated with slot " << slot->getNameUTF8());
         return false;
     }
 
@@ -329,9 +321,7 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
 
     if (!client)
     {
-        stringstream ss;
-        ss << "User " << user->getNameUTF8() << " attempted to watch a slot " << slot_name_utf8 << " but there is no associated client connected.";
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "User " << user->getNameUTF8() << " attempted to watch slot " << slot_name_utf8 << " but there is no associated client connected.");
         return false;
     }
 
@@ -343,34 +333,26 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
     SP<Slot> sp_slot = slot.lock();
     if (!sp_slot)
     {
-        stringstream ss;
-        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but no such slot is in state. " << slot_name_utf8;
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " from interface but no such slot is in state. Slot name " << slot_name_utf8);
         return false;
     }
 
     SP<SlotProfile> sp_slotprofile = sp_slot->getSlotProfile().lock();
     if (!sp_slotprofile)
     {
-        stringstream ss;
-        ss << "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. " << slot_name_utf8;
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. Slot name " << slot_name_utf8);
         return false;
     }
 
     /* Check if this client is allowed to watch this. */
     if (!isAllowedWatcher(user, sp_slot))
     {
-        stringstream ss;
-        ss << "Slot join requested by " << user->getNameUTF8() << " but they are not allowed to do that. " << slot_name_utf8;
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " but they are not allowed to do that. Slot name " << slot_name_utf8);
         return false;
     }
 
     client->setSlot(sp_slot);
-    stringstream ss;
-    ss << "User " << user->getNameUTF8() << " is now watching slot " << slot_name_utf8;
-    admin_logger->logMessageUTF8(ss.str());
+    LOG(Note, "User " << user->getNameUTF8() << " is now watching slot " << slot_name_utf8);
     return true;
 }
 
@@ -380,9 +362,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 
     if (!isAllowedLauncher(launcher, slot_profile))
     {
-        stringstream ss;
-        ss << "User " << launcher->getNameUTF8() << " attempted to launch a slot but they are not allowed to do that. " << slot_profile->getNameUTF8();
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but they are not allowed to do that.");
         return false;
     }
 
@@ -394,9 +374,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
             num_slots++;
     if (num_slots >= slot_profile->getMaxSlots())
     {
-        stringstream ss;
-        ss << "User " << launcher->getNameUTF8() << " attempted to launch a slot but maximum number of slots of this slot profile has been reached. " << slot_profile->getNameUTF8();
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot but maximum number of slots of this slot profile has been reached. Slot profile name " << slot_profile->getNameUTF8());
         return false;
     }
 
@@ -411,7 +389,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     slot->setNameUTF8(name_utf8);
     if (!slot)
     {
-        admin_logger->logMessageUTF8(string("Slot::createSlot() failed with slot profile ") + slot_profile->getNameUTF8());
+        LOG(Error, "Slot::createSlot() failed with slot profile " << slot_profile->getNameUTF8());
         return false;
     }
     slot->setParameter("path", slot_profile->getExecutable());
@@ -424,7 +402,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     slot->setParameter("w", UnicodeString::fromUTF8(ss_w.str()));
     slot->setParameter("h", UnicodeString::fromUTF8(ss_h.str()));
 
-    admin_logger->logMessageUTF8(string("Launched a slot from slot profile ") + slot_profile->getNameUTF8());
+    LOG(Note, "Launched a slot from slot profile " << slot_profile->getNameUTF8());
 
     slots.push_back(slot);
 
@@ -438,7 +416,10 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     if (!slot_profile)
     {
-        admin_logger->logMessageUTF8("Attempted to launch a null slot profile.");
+        if (launcher)
+            LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a null slot profile.");
+        else
+            LOG(Error, "Null user attempted to launch a null slot profile.");
         return false;
     }
 
@@ -446,7 +427,10 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
         if ((*i1) == slot_profile)
             return launchSlotNoCheck(*i1, launcher);
-    admin_logger->logMessageUTF8("Attempted to launch a slot profile that does not exist in slot profile list.");
+    if (launcher)
+        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile that does not exist in slot profile list.");
+    else
+        LOG(Error, "Null user attempted to launch a slot profile that does not exist in slot profile list.");
     return false;
 }
 
@@ -458,7 +442,10 @@ bool State::launchSlot(UnicodeString slot_profile_name, SP<User> launcher)
             return launchSlotNoCheck(*i1, launcher);
     string utf8_name;
     slot_profile_name.toUTF8String(utf8_name);
-    admin_logger->logMessageUTF8(string("Attempted to launch a slot with name ") + utf8_name + string(" that does not exist in slot profile list."));
+    if (launcher)
+        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list.");
+    else
+        LOG(Error, "Null user attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list.");
     return false;
 }
 
@@ -480,12 +467,10 @@ void State::loop()
         {
             if (!slots[i2] || !slots[i2]->isAlive())
             {
-                stringstream ss;
                 if (!slots[i2])
-                    ss << "Removed a null slot from slot list.";
+                    LOG(Note, "Removed a null slot from slot list.");
                 else
-                    ss << "Removed a slot " << slots[i2]->getNameUTF8() << " from slot slot.";
-                admin_logger->logMessageUTF8(ss.str());
+                    LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list.");
 
                 slots.erase(slots.begin() + i2);
                 len--;
@@ -505,7 +490,7 @@ void State::loop()
                 clients_weak.erase(clients_weak.begin() + i2);
                 len--;
                 i2--;
-                admin_logger->logMessageUTF8("Pruned an inactive connection.");
+                LOG(Note, "Pruned an inactive connection.");
                 update_nicklists = true;
                 continue;
             }
@@ -526,7 +511,7 @@ void State::loop()
                 clients.push_back(new_client);
                 clients_weak.push_back(new_client);
                 new_client->setClientVector(&clients_weak);
-                admin_logger->logMessageUTF8("Got new connection.");
+                LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
                 update_nicklists = true;
             }
         }

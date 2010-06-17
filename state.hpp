@@ -18,9 +18,6 @@ using namespace trankesbel;
 
 namespace dfterm {
 
-extern SP<Logger> admin_logger; 
-extern void flush_messages();
-
 /* Holds the state of the dfterm2 process.
  * All clients, slots etc. */
 class State

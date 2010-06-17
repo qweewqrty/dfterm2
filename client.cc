@@ -476,6 +476,11 @@ bool Client::chatSelectFunction(ui32 index)
              nickname +
              UnicodeString::fromUTF8("> ");
     global_chat->logMessage(prefix + chat_message);
+
+    string prefix_utf8, chat_message_utf8;
+    prefix.toUTF8String(prefix_utf8);
+    chat_message.toUTF8String(chat_message_utf8);
+    LOG(Note, "Global chat: " << prefix_utf8 << chat_message_utf8);
     return false;
 };
 

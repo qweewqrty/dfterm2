@@ -84,10 +84,15 @@ class LoggerReader
    Have all your messages in UTF-8. Timestamp will be added to every log message.
 */
 
+extern SP<Logger> admin_logger; 
+extern void flush_messages();
+extern void initialize_logger();
+
 enum Notability { Note, Error, Fatal };
 
 #ifdef __WIN32
-#define LOG(notability, stringstream_msg) { std::stringstream ss; \
+#define LOG(notability, stringstream_msg) ({ std::stringstream ss; \
+                                        dfterm::initialize_logger(); \
                                         wchar_t msg[1000]; \
                                         UChar msg_uchar[1000]; \
                                         msg_uchar[999] = 0; \
@@ -118,7 +123,7 @@ enum Notability { Note, Error, Fatal };
                                         ss << stringstream_msg; \
                                         admin_logger->logMessageUTF8(ss.str()); \
                                         } } \
-                                       }
+                                       })
 #else
 /* TODO: implement this for linux. */
 #define LOG(dummy1, dummy2)

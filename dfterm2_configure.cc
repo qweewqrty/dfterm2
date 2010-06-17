@@ -11,27 +11,6 @@
 using namespace std;
 using namespace dfterm;
 
-namespace dfterm {
-SP<Logger> admin_logger;
-SP<LoggerReader> admin_messages_reader;
-};
-
-/* Flush admin messages */
-void dfterm::flush_messages()
-{
-    bool msg;
-    do
-    {
-        UnicodeString us = admin_messages_reader->getLogMessage(&msg);
-        if (!msg) break;
-
-        string utf8_str;
-        us.toUTF8String(utf8_str);
-        cout << utf8_str << endl;
-        cout.flush();
-    } while(msg);
-}
-
 enum Action { Nothing, ListUsers, AddUser, RemoveUser, UserInfo };
 
 void seedRNG()
@@ -69,9 +48,6 @@ void makeRandomBytes(unsigned char* output, int output_size)
 
 int main(int argc, char* argv[])
 {
-    admin_logger = SP<Logger>(new Logger);
-    admin_messages_reader = admin_logger->createReader();
-
     seedRNG();
     if (RAND_status() == 0)
     {

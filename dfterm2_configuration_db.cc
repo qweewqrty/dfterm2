@@ -305,7 +305,7 @@ void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
     char* errormsg = (char*) 0;
     result = sqlite3_exec(db, ss.str().c_str(), 0, 0, &errormsg);
     if (result != SQLITE_OK)
-        admin_logger->logMessageUTF8(string("Error while executing SQL statement \"") + ss.str() + string("\": ") + string(errormsg));
+        LOG(Error, "Error while executing SQL statement \"" << ss.str() << "\": " << errormsg);
     if (errormsg) sqlite3_free(errormsg);
 };
 
@@ -325,7 +325,7 @@ vector<UnicodeString> ConfigurationDatabase::loadSlotProfileNames()
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
     if (result != SQLITE_OK)
     {
-        admin_logger->logMessageUTF8(string("Error while executing SQL statement \"") + statement + string("\": ") + string(errormsg));
+        LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg);
         if (errormsg) sqlite3_free(errormsg);
         return name_list;
     }
@@ -353,7 +353,7 @@ SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(UnicodeString name)
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
     if (result != SQLITE_OK)
     {
-        admin_logger->logMessageUTF8(string("Error while executing SQL statement \"") + statement + string("\": ") + string(errormsg));
+        LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg);
         if (errormsg) sqlite3_free(errormsg);
         return SP<SlotProfile>();
     }

@@ -477,9 +477,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, HWND* df_window)
 
     if (!CreateProcess(NULL, path_cstr, NULL, NULL, FALSE, 0, NULL, working_path, &sup, &pi))
     {
-        stringstream ss;
-        ss << "Slot/DFGlue: CreateProcess() failed with GetLastError() == " << GetLastError();
-        admin_logger->logMessageUTF8(ss.str());
+        LOG(Error, "SLOT/DFGlue: CreateProcess() failed with GetLastError() == " << GetLastError());
         return false;
     }
 
@@ -598,9 +596,7 @@ bool DFGlue::detectDFVersion()
     fclose(f);
     uint32_t csum = checksum(buf, 100000);
 
-    stringstream ss;
-    ss << "Dwarf Fortress executable checksum calculated to " << (void*) csum;
-    admin_logger->logMessageUTF8(ss.str());
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum);
 
     PointerPath af;
     PointerPath sz;
@@ -776,9 +772,7 @@ bool DFGlue::isDFClosed()
         {
             CloseHandle(df_handle);
             df_handle = INVALID_HANDLE_VALUE;
-            stringstream ss;
-            ss << "Game process has closed with exit code " << exitcode << endl;
-            admin_logger->logMessageUTF8(ss.str());
+            LOG(Note, "Game process has closed with exit code " << exitcode << " in slot " << getNameUTF8());
             return true;
         }
     }
