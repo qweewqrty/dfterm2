@@ -8,6 +8,7 @@
 #include <vector>
 #include <queue>
 #include <unicode/unistr.h>
+#include <time.h>
 
 using namespace std;
 using namespace boost;
@@ -61,7 +62,69 @@ class LoggerReader
         UnicodeString getLogMessage(bool* got_message);
 };
 
-}
+/* This is a generic logger macro.
+   When you need to log something, write this:
+
+   LOG( notability, stringstream )
+
+   where notability is one of these:
+   NOTE        - Just some note, normal operation log.
+                 E.g. something like "User Gabriel logged out.".
+   ERROR       - When it's possible there's a malfunction or
+                 something.
+                 E.g. "Could not save slot profile to database."
+   FATAL       - Error that's grave enough that dfterm2 has to close.
+                 E.g. "Out of memory."
+
+   Stringstream can be used a bit like C++ streams.
+   E.g.
+
+   LOG(NOTE, "This is a logger test string number " << 1234 << " and there is " << str_animal << " in my pants.")
+
+   Have all your messages in UTF-8. Timestamp will be added to every log message.
+*/
+
+enum Notability { Note, Error, Fatal };
+
+#ifdef __WIN32
+#define LOG(notability, stringstream_msg) { std::stringstream ss; \
+                                        wchar_t msg[1000]; \
+                                        UChar msg_uchar[1000]; \
+                                        msg_uchar[999] = 0; \
+                                        msg[999] = 0; \
+                                        time_t timet = time(0); \
+                                        struct tm* timem = localtime(&timet); /* on windows localtime() is thread-safe */ \
+                                        if (wcsftime(msg, 999, L"%Y-%m-%d %H:%M:%S", timem) == 0) \
+                                        { \
+                                            admin_logger->logMessageUTF8("Error while trying to make a log message. wcsftime() returned 0."); \
+                                        } else { \
+                                        int32_t msg_len = 0; \
+                                        UErrorCode uerror = U_ZERO_ERROR; \
+                                        u_strFromWCS(msg_uchar, 999, &msg_len, msg, -1, &uerror); \
+                                        if (U_FAILURE(uerror)) \
+                                        { \
+                                            admin_logger->logMessageUTF8("Error while trying to make a log message."); \
+                                        } else { \
+                                        UnicodeString msg_us(msg_uchar, msg_len); \
+                                        string msg_utf8; \
+                                        msg_us.toUTF8String(msg_utf8); \
+                                        ss << msg_utf8 << " "; \
+                                        if (notability == dfterm::Note) \
+                                            ss << "Note: "; \
+                                        else if (notability == dfterm::Error) \
+                                            ss << "Error: "; \
+                                        else if (notability == dfterm::Fatal) \
+                                            ss << "FATAL: "; \
+                                        ss << stringstream_msg; \
+                                        admin_logger->logMessageUTF8(ss.str()); \
+                                        } } \
+                                       }
+#else
+/* TODO: implement this for linux. */
+#define LOG(dummy1, dummy2)
+#endif
+
+} /* namespace dfterm */
 
 #endif
 

@@ -62,6 +62,8 @@ int main(int argc, char* argv[])
     admin_logger = SP<Logger>(new Logger);
     admin_messages_reader = admin_logger->createReader();
 
+    LOG(Note, "Starting up dfterm2.");
+
     sockets_initialize socket_initialization;
 
     string port("8000");
