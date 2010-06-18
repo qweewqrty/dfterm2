@@ -77,12 +77,19 @@ void Logger::logMessage(const UnicodeString &message)
     {
         SP<LoggerReader> reader = (*i1).lock();
         if (!reader)
+            continue;
+        reader->logMessage(message);
+    }
+    /* Remove null readers */
+    for (i1 = readers.begin(); i1 != readers.end(); i1++)
+    {
+        SP<LoggerReader> reader = (*i1).lock();
+        if (!reader)
         {
             readers.erase(i1);
             i1 = readers.begin() - 1;
             continue;
         }
-        reader->logMessage(message);
     }
 }
 
