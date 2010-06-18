@@ -83,6 +83,7 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
         case End:        input_buf.append("\x1b\x5b\x34\x7e"); break;
         case PgDown:     input_buf.append("\x1b\x5b\x36\x7e"); break;
         case PgUp:       input_buf.append("\x1b\x5b\x35\x7e"); break;
+        default: break;
     }
 }
 

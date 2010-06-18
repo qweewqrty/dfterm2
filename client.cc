@@ -218,7 +218,7 @@ void Client::cycle()
     do_full_redraw = false;
     ui32 w, h;
     ts.getTerminalSize(&w, &h);
-    if (w != buffer_terminal.getWidth() || h != buffer_terminal.getHeight())
+    if (w != (ui32) buffer_terminal.getWidth() || h != (ui32) buffer_terminal.getHeight())
     {
         /* Do not allow larger than 300x300 terminals. */
         w = (w > 300) ? 300 : w;
@@ -282,7 +282,7 @@ void Client::cycle()
     size_t buf_size = 500;
     do
     {
-        bool active = ts.receive((void*) buf, &buf_size);
+        ts.receive((void*) buf, &buf_size);
         if (buf_size == 0) break;
 
         size_t i1;
@@ -556,7 +556,7 @@ void Client::updateNicklistWindow()
     for (i2 = nicks.begin(); i2 != nicks.end(); i2++)
     {
         index = nicklist_window->addListElement((*i2), "", true);
-        if (index == nicklist_window_index) found_index = true;
+        if ((ui32) index == nicklist_window_index) found_index = true;
     }
     if (!found_index)
         nicklist_window->modifyListSelectionIndex(index);

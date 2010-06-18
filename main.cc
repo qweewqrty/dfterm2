@@ -58,11 +58,11 @@ int main(int argc, char* argv[])
     int i1;
     for (i1 = 1; i1 < argc; i1++)
     {
-        if (!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p") && i1 < argc-1)
+        if ((!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p")) && i1 < argc-1)
             port = argv[++i1];
-        else if (!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "-db") && i1 < argc-1)
+        else if ((!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "-db")) && i1 < argc-1)
             database_file = argv[++i1];
-        else if (!strcmp(argv[i1], "--address") || !strcmp(argv[i1], "-l") && i1 < argc-1)
+        else if ((!strcmp(argv[i1], "--address") || !strcmp(argv[i1], "-a")) && i1 < argc-1)
             address = argv[++i1];
         else if (!strcmp(argv[i1], "--version") || !strcmp(argv[i1], "-v"))
         {
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
             cout << "This dfterm2 version supports IPv4 and IPv6." << endl;
             return 0;
         }
-        else if (!strcmp(argv[i1], "--tickspersecond") || !strcmp(argv[i1], "-t") && i1 < argc-1)
+        else if ((!strcmp(argv[i1], "--tickspersecond") || !strcmp(argv[i1], "-t")) && i1 < argc-1)
         {
             ticks_per_second = (unsigned int) strtol(argv[++i1], NULL, 10);
         }
