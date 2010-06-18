@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     int i1;
     for (i1 = 1; i1 < argc; i1++)
     {
-        if (!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "--db") && i1 < argc-1)
+        if ((!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "--db")) && i1 < argc-1)
             database_file = argv[++i1];
         else if (!strcmp(argv[i1], "--adduser") && i1 < argc - 2)
         {

@@ -387,7 +387,7 @@ data1D dfterm::bytes_to_hex(data1D bytes)
     data1D result;
     result.reserve(bytes.size() * 2);
 
-    int i1;
+    unsigned int i1;
     for (i1 = 0; i1 < bytes.size(); i1++)
     {
         unsigned char c1 = ((bytes[i1] & 0xf0) >> 4) + '0';
