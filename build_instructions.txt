@@ -1,16 +1,15 @@
 Some simple build instructions for dfterm2.
 
-Last updated 2010/5/21.
+Last updated 2010/6/18.
 
 I have compiled and ran dfterm2 on Windows and Fedora 13.
-As of writing of this, it doesn't work properly on Linux but it runs
-and you'll be able to connect to it.
 
 To compile dfterm2 you need (at least):
 
 ICU libraries (often libicu or libicu-dev, libicu-devel)
 PCRE
 CMake  (version 2.8)
+OpenSSL
 Gcc or MinGW's version of gcc
 
 On Windows I found that getting the dependencies to compile
@@ -22,7 +21,7 @@ Remember to check out Trankesbel roguelike support library before trying
 to compile dfterm2. On Linux (or git/MSys):
 
 $ git submodule init
-$Â git submodule update
+$ git submodule update
 
 On Linux, this hopefully works then for compiling dfterm2:
 
