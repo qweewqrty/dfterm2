@@ -1,5 +1,7 @@
 #include <wchar.h>
 #include <iostream>
+#include <cstdio>
+#include <cstring>
 #include "logger.hpp"
 #include "unicode/unistr.h"
 #include "unicode/ustring.h"
