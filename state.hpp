@@ -27,7 +27,7 @@ class State
 
         /* No copies */
         State(const State& s) { };
-        State& operator=(const State &s) { };
+        State& operator=(const State &s) { return (*this); };
 
         /* Self */
         WP<State> self;

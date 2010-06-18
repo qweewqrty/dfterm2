@@ -301,7 +301,7 @@ class ConfigurationDatabase
 {
     private:
         ConfigurationDatabase(const ConfigurationDatabase &) { };
-        ConfigurationDatabase& operator=(const ConfigurationDatabase &) { };
+        ConfigurationDatabase& operator=(const ConfigurationDatabase &) { return (*this); };
 
         sqlite3* db;
         int slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
@@ -350,7 +350,7 @@ class ConfigurationInterface
     private:
         /* No copies */
         ConfigurationInterface(const ConfigurationInterface &ci) { };
-        ConfigurationInterface& operator=(const ConfigurationInterface &ci) { };
+        ConfigurationInterface& operator=(const ConfigurationInterface &ci) { return (*this); };
 
         SP<Interface> interface;
         SP<InterfaceElementWindow> window;

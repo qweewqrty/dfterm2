@@ -715,12 +715,12 @@ void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
     auxiliary_window->deleteAllListElements();
 
     auxiliary_window->setTitle("Select user group");
-    int nobody = auxiliary_window->addListElement("Nobody", "usergroup_nobody", true, false);
-    int anybody = auxiliary_window->addListElement("Anybody", "usergroup_anybody", true, false);
-    int launcher = auxiliary_window->addListElement("Launcher", "usergroup_launcher", true, false);
-    int players = auxiliary_window->addListElement("Specific users", "usergroup_users", true, false);
+    auxiliary_window->addListElement("Nobody", "usergroup_nobody", true, false);
+    auxiliary_window->addListElement("Anybody", "usergroup_anybody", true, false);
+    auxiliary_window->addListElement("Launcher", "usergroup_launcher", true, false);
+    auxiliary_window->addListElement("Specific users", "usergroup_users", true, false);
     int ok = auxiliary_window->addListElement("Ok", "usergroup_ok", true, false);
-    int cancel = auxiliary_window->addListElement("Cancel", "usergroup_cancel", true, false);
+    auxiliary_window->addListElement("Cancel", "usergroup_cancel", true, false);
 
     auxiliary_window->modifyListSelectionIndex(ok);
     auxiliary_window->setListCallback(bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
