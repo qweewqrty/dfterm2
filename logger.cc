@@ -63,7 +63,7 @@ void dfterm::flush_messages()
         }
 
         /* wcout not supported by mingw, so we use wprintf */
-        wprintf(L"%s\n", dest_str);
+        wprintf(L"%ls\n", dest_str);
         fflush(stdout);
         delete[] dest_str;
     } while(msg);

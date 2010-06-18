@@ -90,6 +90,8 @@ extern void initialize_logger();
 
 enum Notability { Note, Error, Fatal };
 
+
+/* This is the most monstrous macro I have ever written. Please don't send me to hell. */
 #ifdef __WIN32
 #define LOG(notability, stringstream_msg) ({ std::stringstream ss; \
                                         dfterm::initialize_logger(); \
@@ -125,8 +127,40 @@ enum Notability { Note, Error, Fatal };
                                         } } \
                                        })
 #else
-/* TODO: implement this for linux. */
-#define LOG(dummy1, dummy2)
+#define LOG(notability, stringstream_msg) ({ std::stringstream ss; \
+                                        dfterm::initialize_logger(); \
+                                        wchar_t msg[1000]; \
+                                        UChar msg_uchar[1000]; \
+                                        msg_uchar[999] = 0; \
+                                        msg[999] = 0; \
+                                        time_t timet = time(0); \
+                                        struct tm timem; \
+                                        localtime_r(&timet, &timem); /* assuming call always succeeds */ \
+                                        if (wcsftime(msg, 999, L"%Y-%m-%d %H:%M:%S", &timem) == 0) \
+                                        { \
+                                            admin_logger->logMessageUTF8("Error while trying to make a log message. wcsftime() returned 0."); \
+                                        } else { \
+                                        int32_t msg_len = 0; \
+                                        UErrorCode uerror = U_ZERO_ERROR; \
+                                        u_strFromWCS(msg_uchar, 999, &msg_len, msg, -1, &uerror); \
+                                        if (U_FAILURE(uerror)) \
+                                        { \
+                                            admin_logger->logMessageUTF8("Error while trying to make a log message."); \
+                                        } else { \
+                                        UnicodeString msg_us(msg_uchar, msg_len); \
+                                        string msg_utf8; \
+                                        msg_us.toUTF8String(msg_utf8); \
+                                        ss << msg_utf8 << " "; \
+                                        if (notability == dfterm::Note) \
+                                            ss << "Note: "; \
+                                        else if (notability == dfterm::Error) \
+                                            ss << "Error: "; \
+                                        else if (notability == dfterm::Fatal) \
+                                            ss << "FATAL: "; \
+                                        ss << stringstream_msg; \
+                                        admin_logger->logMessageUTF8(ss.str()); \
+                                        } } \
+                                       })
 #endif
 
 } /* namespace dfterm */
