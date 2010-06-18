@@ -234,7 +234,7 @@ class DFGlue : public Slot
                                process. */
         ~DFGlue();
 
-        void setParameter(string str, UnicodeString str2) { parameters[str] = str2; };
+        void setParameter(string str, UnicodeString str2) { lock_guard<recursive_mutex> lock(glue_mutex); parameters[str] = str2; };
         void getSize(ui32* width, ui32* height);
         bool isAlive();
         void unloadToWindow(SP<Interface2DWindow> target_window);
