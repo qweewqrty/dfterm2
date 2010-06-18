@@ -47,6 +47,8 @@ class Client
         Terminal buffer_terminal;
         Terminal last_client_terminal;
 
+        bool slot_active_in_last_cycle;
+
         /* Slot for game. */
         WP<Slot> slot;
         /* Database access. */

@@ -44,6 +44,7 @@ class Slot
         UnicodeString name;
         WP<SlotProfile> slotprofile;
         WP<User> user;
+        WP<User> last_player;
 
     protected:
         Slot() { };
@@ -59,6 +60,10 @@ class Slot
         /* Sets/gets the slot profile used to create this slot. */
         void setSlotProfile(WP<SlotProfile> sp) { slotprofile = sp; };
         WP<SlotProfile> getSlotProfile() { return slotprofile; };
+
+        /* Sets who last fed input to this slot. */
+        void setLastUser(WP<User> user) { this->last_player = user; };
+        WP<User> getLastUser() { return last_player; };
 
         /* Sets/gets the launcher of this slot. */
         void setLauncher(WP<User> user) { this->user = user; };

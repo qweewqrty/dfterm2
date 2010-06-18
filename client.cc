@@ -126,6 +126,8 @@ Client::Client(SP<Socket> client_socket)
     packet_pending_index = 0;
     do_full_redraw = false;
 
+    slot_active_in_last_cycle = true;
+
     identified = false;
     clients = (vector<WP<Client> >*) 0;
 
@@ -234,8 +236,30 @@ void Client::cycle()
     }
 
     SP<Slot> sp_slot = slot.lock();
-    if (sp_slot)
+    if (sp_slot && game_window)
+    {
+        string title_utf8 = game_window->getTitleUTF8();
+        string new_title_utf8("Game");
+
+        SP<User> last_user = sp_slot->getLastUser().lock();
+        if (last_user)
+            new_title_utf8 += string(" (") + last_user->getNameUTF8() + string(")");
+            
+        if (!slot_active_in_last_cycle || title_utf8 != new_title_utf8)
+            game_window->setTitleUTF8(new_title_utf8);
+
         sp_slot->unloadToWindow(game_window);
+        slot_active_in_last_cycle = true;
+    }
+    else if (slot_active_in_last_cycle)
+    {
+        if (game_window)
+        {
+            game_window->setMinimumSize(10, 10);
+            game_window->setTitle("Game (inactive)");
+            slot_active_in_last_cycle = false;
+        }
+    }
 
     interface->refresh();
     interface->cycle();
@@ -495,6 +519,7 @@ void Client::gameInputFunction(ui32 keycode, bool special_key)
 
         if (!st->isAllowedPlayer(user, sp_slot)) return;
         sp_slot->feedInput(keycode, special_key);
+        sp_slot->setLastUser(user);
     }
 }
 
