@@ -46,9 +46,13 @@ void fake_graphics_31_06__erasescreen()
 {
     if (set_buffer_address)
     {
+        unsigned int w, h;
+        ReadProcessMemory(me_process, (void*) (0x140B11C+dwarfort_base), &w, sizeof(int), NULL);
+        ReadProcessMemory(me_process, (void*) (0x140B11C+dwarfort_base+sizeof(int)), &h, sizeof(int), NULL);
+
         ptrdiff_t final_address = 0x0141C390+dwarfort_base;
         ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
-        ReadProcessMemory(me_process, (void*) final_address, buffer, 500*500, NULL);
+        ReadProcessMemory(me_process, (void*) final_address, buffer, w*h*sizeof(int), NULL);
     }
 
     restore_old_function(erasescreen_addr, erasescreen_patch);
