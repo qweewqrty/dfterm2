@@ -457,6 +457,11 @@ void State::loop()
 
     bool close = false;
 
+    SocketEvents se;
+    vector<SP<Socket> >::iterator i1;
+    for (i1 = listening_sockets.begin(); i1 != listening_sockets.end(); i1++)
+        se.addSocket(*i1);
+
     while(listening_sockets.size() > 0 && !close)
     {
         start_time = nanoclock();
