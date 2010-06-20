@@ -537,7 +537,7 @@ void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
     if (!sp_cli || !from_where || !from_where->active()) return;
 
     sp_cli->cycle();
-    if (sp_cli->shouldShutdown()) close = true;
+    if (sp_cli->shouldShutdown()) socketevents.cancelGetEvent();
 }
 
 void State::new_connection(SP<Socket> listening_socket)
