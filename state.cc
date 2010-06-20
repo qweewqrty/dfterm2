@@ -16,6 +16,7 @@ State::State()
     state_initialized = true;
     global_chat = SP<Logger>(new Logger);
     ticks_per_second = 20;
+    close = false;
 };
 
 State::~State()
@@ -25,6 +26,8 @@ State::~State()
 
 WP<SlotProfile> State::getSlotProfile(UnicodeString name)
 {
+    lock_guard<recursive_mutex> lock(slotprofiles_mutex);
+
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
         if ((*i1) && (*i1)->getName() == name)
@@ -34,6 +37,8 @@ WP<SlotProfile> State::getSlotProfile(UnicodeString name)
     
 WP<Slot> State::getSlot(UnicodeString name)
 {
+    lock_guard<recursive_mutex> lock(slots_mutex);
+
     vector<SP<Slot> >::iterator i1;
     for (i1 = slots.begin(); i1 != slots.end(); i1++)
         if ((*i1) && (*i1)->getName() == name)
@@ -43,6 +48,8 @@ WP<Slot> State::getSlot(UnicodeString name)
 
 vector<WP<Slot> > State::getSlots()
 {
+    lock_guard<recursive_mutex> lock(slots_mutex);
+
     vector<WP<Slot> > wp_slots;
     vector<SP<Slot> >::iterator i1;
     for (i1 = slots.begin(); i1 != slots.end(); i1++)
@@ -52,6 +59,8 @@ vector<WP<Slot> > State::getSlots()
 
 vector<WP<SlotProfile> > State::getSlotProfiles()
 {
+    lock_guard<recursive_mutex> lock(slotprofiles_mutex);
+
     vector<WP<SlotProfile> > wp_slots;
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
@@ -77,6 +86,8 @@ bool State::setDatabase(UnicodeString database_file)
 
 bool State::setDatabaseUTF8(string database_file)
 {
+    unique_lock<recursive_mutex> clock(configuration_mutex);
+
     /* Configuration */
     configuration = SP<ConfigurationDatabase>(new ConfigurationDatabase);
     OpenStatus d_result = configuration->openUTF8(database_file);
@@ -98,9 +109,14 @@ bool State::setDatabaseUTF8(string database_file)
         LOG(Note, "the --database switch to modify the correct database.");
         return true;
     }
+    clock.unlock();
 
-    slotprofiles.clear();
+    unique_lock<recursive_mutex> lock(slots_mutex);
     slots.clear();
+    lock.unlock();
+
+    lock_guard<recursive_mutex> lock2(slotprofiles_mutex);
+    slotprofiles.clear();
 
     vector<UnicodeString> profile_list = configuration->loadSlotProfileNames();
     vector<UnicodeString>::iterator i1;
@@ -138,6 +154,8 @@ void State::setTicksPerSecond(uint64_t ticks_per_second)
 
 void State::destroyClient(UnicodeString nickname, SP<Client> exclude)
 {
+    lock_guard<recursive_mutex> lock(clients_mutex);
+
     bool update_nicklists = false;
 
     size_t i1, len = clients.size();
@@ -358,6 +376,9 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
 
 bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
+    lock_guard<recursive_mutex> lock(slotprofiles_mutex);
+    lock_guard<recursive_mutex> lock2(slots_mutex);
+
     if (!launcher) launcher = SP<User>(new User);
 
     if (!isAllowedLauncher(launcher, slot_profile))
@@ -414,6 +435,8 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 
 bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
+    lock_guard<recursive_mutex> lock(slotprofiles_mutex);
+
     if (!slot_profile)
     {
         if (launcher)
@@ -449,6 +472,101 @@ bool State::launchSlot(UnicodeString slot_profile_name, SP<User> launcher)
     return false;
 }
 
+void State::pruneInactiveSlots()
+{
+    lock_guard<recursive_mutex> lock(slots_mutex);
+
+    /* Prune inactive slots */
+    size_t i2, len = slots.size();
+    for (i2 = 0; i2 < len; i2++)
+    {
+        if (!slots[i2] || !slots[i2]->isAlive())
+        {
+            if (!slots[i2])
+                LOG(Note, "Removed a null slot from slot list.");
+            else
+                LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list.");
+
+            slots.erase(slots.begin() + i2);
+            len--;
+            i2--;
+            continue;
+        }
+    }
+}
+
+void State::pruneInactiveClients()
+{
+    lock_guard<recursive_mutex> lock(clients_mutex);
+
+    /* Prune inactive clients */
+    size_t i2, len = clients.size();
+    for (i2 = 0; i2 < len; i2++)
+    {
+        if (!clients[i2]->isActive())
+        {
+            clients.erase(clients.begin() + i2);
+            clients_weak.erase(clients_weak.begin() + i2);
+            len--;
+            i2--;
+            LOG(Note, "Pruned an inactive connection.");
+            continue;
+        }
+    }
+
+    len = clients.size();
+    for (i2 = 0; i2 < len; i2++)
+        clients[i2]->updateClients();
+}
+
+/*void State::cycleClients()
+{
+    /*lock_guard<recursive_mutex> lock(clients_mutex);
+    size_t i2, len = clients.size();
+    for (i2 = 0; i2 < len; i2++)
+    {
+        clients[i2]->updateClients();
+        clients[i2]->cycle();
+        if (clients[i2]->shouldShutdown()) close = true;
+    }
+}*/
+
+void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
+{
+    SP<Client> sp_cli = client.lock();
+    if (!sp_cli || !from_where || !from_where->active()) return;
+
+    sp_cli->cycle();
+    if (sp_cli->shouldShutdown()) close = true;
+}
+
+void State::new_connection(SP<Socket> listening_socket)
+{
+    /* Check for incoming connections. */
+    SP<Socket> new_connection(new Socket);
+    bool got_connection = listening_socket->accept(new_connection.get());
+    if (got_connection)
+    {
+        SP<Client> new_client = Client::createClient(new_connection);
+        new_client->setState(self);
+        new_client->setConfigurationDatabase(configuration);
+        new_client->setGlobalChatLogger(global_chat);
+
+        lock_guard<recursive_mutex> lock(clients_mutex);
+
+        clients.push_back(new_client);
+        clients_weak.push_back(new_client);
+        new_client->setClientVector(&clients_weak);
+        LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
+
+        socketevents.addSocket(new_connection, bind(&State::client_signal_function, this, new_client, _1));
+        size_t i1, len = clients.size();
+        for (i1 = 0; i1 < len; i1++)
+            if (clients[i1])
+                clients[i1]->updateClients();
+    }
+}
+
 void State::loop()
 {
     /* Use these for timing ticks */
@@ -457,85 +575,13 @@ void State::loop()
 
     bool close = false;
 
-    SocketEvents se;
-    vector<SP<Socket> >::iterator i1;
+    set<SP<Socket> >::iterator i1;
     for (i1 = listening_sockets.begin(); i1 != listening_sockets.end(); i1++)
-        se.addSocket(*i1);
-
-    while(listening_sockets.size() > 0 && !close)
     {
-        start_time = nanoclock();
-
-        /* Prune inactive slots */
-        size_t i2, len = slots.size();
-        for (i2 = 0; i2 < len; i2++)
-        {
-            if (!slots[i2] || !slots[i2]->isAlive())
-            {
-                if (!slots[i2])
-                    LOG(Note, "Removed a null slot from slot list.");
-                else
-                    LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list.");
-
-                slots.erase(slots.begin() + i2);
-                len--;
-                i2--;
-                continue;
-            }
-        }
-
-        bool update_nicklists = false;
-        /* Prune inactive clients */
-        len = clients.size();
-        for (i2 = 0; i2 < len; i2++)
-        {
-            if (!clients[i2]->isActive())
-            {
-                clients.erase(clients.begin() + i2);
-                clients_weak.erase(clients_weak.begin() + i2);
-                len--;
-                i2--;
-                LOG(Note, "Pruned an inactive connection.");
-                update_nicklists = true;
-                continue;
-            }
-        }
-
-        /* Check for incoming connections. */
-        SP<Socket> new_connection(new Socket);
-        set<SP<Socket> >::iterator listener;
-        for (listener = listening_sockets.begin(); listener != listening_sockets.end(); listener++)
-        {
-            bool got_connection = (*listener)->accept(new_connection.get());
-            if (got_connection)
-            {
-                SP<Client> new_client = Client::createClient(new_connection);
-                new_client->setState(self);
-                new_client->setConfigurationDatabase(configuration);
-                new_client->setGlobalChatLogger(global_chat);
-                clients.push_back(new_client);
-                clients_weak.push_back(new_client);
-                new_client->setClientVector(&clients_weak);
-                LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
-                update_nicklists = true;
-            }
-        }
-
-        /* Read and write from and to connections */
-        len = clients.size();
-        for (i2 = 0; i2 < len; i2++)
-        {
-            if (update_nicklists) clients[i2]->updateClients();
-            clients[i2]->cycle();
-            if (clients[i2]->shouldShutdown()) close = true;
-        }
-
-        /* Ticky wait. */
-        uint64_t end_time = nanoclock();
-        if (end_time - start_time < tick_time)
-            nanowait( tick_time - (end_time - start_time) );
-        flush_messages();
+        function1<void, SP<Socket> > signal_function = bind(&State::new_connection, this, _1);
+        socketevents.addSocket(*i1, signal_function);
     }
-    flush_messages();
+
+    socketevents.getEvent(true);
 }
 
