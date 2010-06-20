@@ -604,11 +604,17 @@ bool DFGlue::detectDFVersion()
 
     switch(csum)
     {
-    case 0xf6afb6c9:  /* DF 0.31.06 */
-    af.pushAddress(0x0000E080, "libdfterm_injection_glue.dll");
+    case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
+    af.pushAddress(0x0000F080, "libdfterm_injection_glue.dll");
+    sz.pushAddress(0x140C11C, "Dwarf Fortress.exe");
+    data_format = PackedVarying;
+    SendMessage(df_windows, WM_USER, 3108, 4);
+    break;
+    case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
+    af.pushAddress(0x0000F080, "libdfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 0, 4);
+    SendMessage(df_windows, WM_USER, 3106, 4);
     break;
     case 0x9404d33d:  /* DF 0.31.03 */
     af.pushAddress(0x0106FE7C, "dwarfort.exe");

@@ -10,6 +10,8 @@ using namespace std;
 bool set_buffer_address = false;
 ptrdiff_t buffer_address = 0;
 
+bool hooked_erase = false;
+
 ptrdiff_t dwarfort_base = 0;
 
 extern "C"
@@ -44,7 +46,17 @@ unsigned char buffer[500*500];
 
 void fake_graphics_31_06__erasescreen()
 {
-    if (set_buffer_address)
+    if (set_buffer_address && buffer_address == 3108)
+    {
+        unsigned int w, h;
+        ReadProcessMemory(me_process, (void*) (0x140C11C+dwarfort_base), &w, sizeof(int), NULL);
+        ReadProcessMemory(me_process, (void*) (0x140C11C+dwarfort_base+sizeof(int)), &h, sizeof(int), NULL);
+
+        ptrdiff_t final_address = 0x0141D390+dwarfort_base;
+        ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
+        ReadProcessMemory(me_process, (void*) final_address, buffer, w*h*sizeof(int), NULL);
+    }
+    else if (set_buffer_address && buffer_address == 3106)
     {
         unsigned int w, h;
         ReadProcessMemory(me_process, (void*) (0x140B11C+dwarfort_base), &w, sizeof(int), NULL);
@@ -97,6 +109,26 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
         {
             buffer_address = (ptrdiff_t) wparam;
             set_buffer_address = true;
+            if (!hooked_erase)
+            {
+                HMODULE df_module = GetModuleHandle("Dwarf Fortress.exe");
+                if (df_module)
+                {
+                    MODULEINFO mi;
+                    if (GetModuleInformation(me_process, df_module, &mi, sizeof(mi)))
+                    {
+                        dwarfort_base = (ptrdiff_t) mi.lpBaseOfDll;
+                        if (wparam == 3106)
+                            erasescreen_addr = 0x002fa600 + (ptrdiff_t) mi.lpBaseOfDll;
+                        else if (wparam == 3108)
+                            erasescreen_addr = 0x0015DE50 + (ptrdiff_t) mi.lpBaseOfDll;
+                        else
+                            return result;
+                        patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, erasescreen_patch);
+                        hooked_erase = true;
+                    };
+                }
+            }
         }
     }
     return result;
@@ -190,18 +222,6 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     patch_function(GetAsyncKeyState_addr, (ptrdiff_t) hooked_GetAsyncKeyState, GetAsyncKeyState_patch);
     patch_function(DefWindowProc_addr, (ptrdiff_t) hooked_DefWindowProc, DefWindowProc_patch);
 
-    /* Hook what I believe is graphicst::erasescreen() */
-    HMODULE df_module = GetModuleHandle("Dwarf Fortress.exe");
-    if (df_module)
-    {
-        MODULEINFO mi;
-        if (GetModuleInformation(me_process, df_module, &mi, sizeof(mi)))
-        {
-            dwarfort_base = (ptrdiff_t) mi.lpBaseOfDll;
-            erasescreen_addr = 0x002fa600 + (ptrdiff_t) mi.lpBaseOfDll;
-            patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, erasescreen_patch);
-        };
-    }
 
     return TRUE;
 }
