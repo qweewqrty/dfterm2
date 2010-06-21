@@ -297,6 +297,11 @@ void Client::cycle()
             game_window->setMinimumSize(10, 10);
             game_window->setTitle("Game (inactive)");
             slot_active_in_last_cycle = false;
+
+            CursesElement ce('X', White, Black, false);
+            ui32 w, h;
+            game_window->getSize(&w, &h);
+            game_window->setScreenDisplayFillNewElement(&ce, sizeof(ce), w, h);
         }
     }
 
