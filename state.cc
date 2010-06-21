@@ -532,6 +532,20 @@ void State::pruneInactiveSlots()
                 LOG(Note, "Removed a null slot from slot list.");
             else
                 LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list.");
+                
+            unique_lock<recursive_mutex> lock2(clients_mutex);
+            vector<SP<Client> >::iterator i1;
+            for (i1 = clients.begin(); i1 != clients.end(); i1++)
+            {
+                if (!(*i1)) continue;
+
+                if ((*i1)->getSlot().lock() == slots[i2])
+                {
+                    (*i1)->setSlot(SP<Slot>());
+                    notifyClient((*i1)->getSocket());
+                }
+            }
+            lock2.unlock();
 
             slots.erase(slots.begin() + i2);
             len--;
@@ -629,6 +643,7 @@ void State::loop()
     while(!close)
     {
         pruneInactiveClients();
+        pruneInactiveSlots();
         flush_messages();
         SP<Socket> s = socketevents.getEvent(500000000);
         if (!s) continue;

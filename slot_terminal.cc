@@ -245,6 +245,7 @@ void TerminalGlue::thread_function()
         nanowait(1000000000LL / 30);
     }
 
+    unique_lock<recursive_mutex> ulock2(glue_mutex);
     alive = false;
 }
 
