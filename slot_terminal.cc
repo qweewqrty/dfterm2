@@ -109,6 +109,23 @@ void TerminalGlue::flushInput(Pty* program_pty)
             continue;
         }
 
+        if (keycode > 127)
+        {
+            UChar32 uni32 = (UChar32) keycode;
+            UChar uni16[] = { 0, 0, 0 };
+            UErrorCode uerror = U_ZERO_ERROR;
+            u_strFromUTF32(uni16, 2, NULL, &uni32, 1, &uerror);
+            if (U_FAILURE(uerror)) continue;
+
+            char uni8[] = { 0, 0, 0, 0, 0 };
+
+            u_strToUTF8(uni8, 4, NULL, uni16, -1, &uerror);
+            if (U_FAILURE(uerror)) continue;
+
+            input_buf.append(uni8);
+            continue;
+        }
+
         ui8 k = (ui8) keycode;
         input_buf.push_back(k);
     }
