@@ -274,14 +274,16 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     if (!target_window) return;
 
     lock_guard<recursive_mutex> lock(game_terminal_mutex);
+    ui32 t_w = min(terminal_w, (ui32) game_terminal.getWidth());
+    ui32 t_h = min(terminal_h, (ui32) game_terminal.getHeight());
 
-    target_window->setMinimumSize(terminal_w, terminal_h);
-    CursesElement* elements = new CursesElement[terminal_w * terminal_h];
+    target_window->setMinimumSize(t_w, t_h);
+    CursesElement* elements = new CursesElement[t_w * t_h];
     ui32 i1, i2;
     ui32 cursor_x = game_terminal.getCursorX();
     ui32 cursor_y = game_terminal.getCursorY();
-    for (i1 = 0; i1 < terminal_w; i1++)
-        for (i2 = 0; i2 < terminal_h; i2++)
+    for (i1 = 0; i1 < t_w; i1++)
+        for (i2 = 0; i2 < t_h; i2++)
         {
             const TerminalTile &t = game_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();
@@ -296,9 +298,9 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
                 fore_c = back_c;
                 back_c = temp;
             }
-            elements[i1 + i2 * terminal_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
+            elements[i1 + i2 * t_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
         }
-    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), terminal_w, terminal_w, terminal_h, 0, 0);
+    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), t_w, t_w, t_h, 0, 0);
     delete[] elements;
 }
 
