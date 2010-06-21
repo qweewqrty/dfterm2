@@ -57,14 +57,14 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
 {
     switch(special_key)
     {
-        case AUp:        input_buf.append("\x1b\x5b\x41"); break;
-        case ADown:      input_buf.append("\x1b\x5b\x42"); break;
-        case ARight:     input_buf.append("\x1b\x5b\x43"); break;
-        case ALeft:      input_buf.append("\x1b\x5b\x44"); break;
-        case CtrlUp:     input_buf.append("\x1b\x4b\x41"); break;
-        case CtrlDown:   input_buf.append("\x1b\x4b\x42"); break;
-        case CtrlRight:  input_buf.append("\x1b\x4b\x43"); break;
-        case CtrlLeft:   input_buf.append("\x1b\x4b\x44"); break;
+        case AUp:        input_buf.append("\x1b\x4f\x41"); break;
+        case ADown:      input_buf.append("\x1b\x4f\x42"); break;
+        case ARight:     input_buf.append("\x1b\x4f\x43"); break;
+        case ALeft:      input_buf.append("\x1b\x4f\x44"); break;
+        case CtrlUp:     input_buf.append("\x1b\x4f\x41"); break;
+        case CtrlDown:   input_buf.append("\x1b\x4f\x42"); break;
+        case CtrlRight:  input_buf.append("\x1b\x4f\x43"); break;
+        case CtrlLeft:   input_buf.append("\x1b\x4f\x44"); break;
         case F1:         input_buf.append("\x1b\x5b\x31\x31\x7e"); break;
         case F2:         input_buf.append("\x1b\x5b\x31\x32\x7e"); break;
         case F3:         input_buf.append("\x1b\x5b\x31\x33\x7e"); break;
