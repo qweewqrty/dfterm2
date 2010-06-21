@@ -103,6 +103,12 @@ void TerminalGlue::flushInput(Pty* program_pty)
 
         if (special_key) { pushEscapeSequence((KeyCode) keycode, input_buf); continue; }
 
+        if (keycode == '\n')
+        {
+            input_buf.append("\r");
+            continue;
+        }
+
         ui8 k = (ui8) keycode;
         input_buf.push_back(k);
     }
