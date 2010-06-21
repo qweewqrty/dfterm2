@@ -277,12 +277,25 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     target_window->setMinimumSize(terminal_w, terminal_h);
     CursesElement* elements = new CursesElement[terminal_w * terminal_h];
     ui32 i1, i2;
+    ui32 cursor_x = game_terminal.getCursorX();
+    ui32 cursor_y = game_terminal.getCursorY();
     for (i1 = 0; i1 < terminal_w; i1++)
         for (i2 = 0; i2 < terminal_h; i2++)
         {
             const TerminalTile &t = game_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();
-            elements[i1 + i2 * terminal_w] = CursesElement(symbol, (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
+            ui32 fore_c = t.getForegroundColor();
+            ui32 back_c = t.getBackgroundColor();
+            if (fore_c == 9) fore_c = 7;
+            if (back_c == 9) back_c = 0;
+            ui32 temp;
+            if (cursor_x == i1 && cursor_y == i2)
+            {
+                temp = fore_c;
+                fore_c = back_c;
+                back_c = temp;
+            }
+            elements[i1 + i2 * terminal_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
         }
     target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), terminal_w, terminal_w, terminal_h, 0, 0);
     delete[] elements;

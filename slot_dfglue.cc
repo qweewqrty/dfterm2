@@ -57,6 +57,8 @@ static ui32 checksum(string str)
 
 DFGlue::DFGlue() : Slot()
 {
+    df_terminal.setCursorVisibility(false);
+
     df_handle = INVALID_HANDLE_VALUE;
     close_thread = false;
     data_format = Unknown;
@@ -80,6 +82,8 @@ DFGlue::DFGlue() : Slot()
 
 DFGlue::DFGlue(bool dummy) : Slot()
 {
+    df_terminal.setCursorVisibility(false);
+
     df_handle = INVALID_HANDLE_VALUE;
     close_thread = false;
     data_format = Unknown;
