@@ -585,18 +585,6 @@ void State::pruneInactiveClients()
     notifyAllClients();
 }
 
-/*void State::cycleClients()
-{
-    /*lock_guard<recursive_mutex> lock(clients_mutex);
-    size_t i2, len = clients.size();
-    for (i2 = 0; i2 < len; i2++)
-    {
-        clients[i2]->updateClients();
-        clients[i2]->cycle();
-        if (clients[i2]->shouldShutdown()) close = true;
-    }
-}*/
-
 void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
 {
     SP<Client> sp_cli = client.lock();
