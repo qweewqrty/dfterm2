@@ -72,13 +72,18 @@ bool ClientTelnetSession::writeRawData(const void* data, size_t* size)
     if (!s->active()) return false;
     if (max_size == 0) return true;
 
-    size_t result = s->send(data, max_size);
-    if (result > 0)
+    size_t result = 0;
+    size_t sent = 0;
+    do
     {
-        (*size) = result;
-        return true;
-    }
-    if (!s->active()) return false;
+        result = s->send(&((char*) data)[sent], max_size - sent);
+        if (result > 0)
+        {
+            (*size) += result;
+            sent += result;
+        }
+        if (!s->active()) return false;
+    } while(result && sent < max_size);
 
     return true;
 }
@@ -165,6 +170,12 @@ Client::~Client()
 {
 }
 
+void Client::setSlot(SP<Slot> slot)
+{ 
+    this->slot = slot; 
+    state.lock()->notifyClient(self.lock()); 
+};
+
 void Client::setState(WP<State> state)
 {
     this->state = state;
@@ -206,14 +217,42 @@ void Client::cycleChat()
 
 void Client::cycle()
 {
+    lock_guard<recursive_mutex> cycle_lock(cycle_mutex);
+
     if (!isActive()) return;
-    if (!user) { client_socket->close(); return; };
-    if (!user->isActive() && client_socket) { client_socket->close(); return; };
+    if (!user)
+    { 
+        client_socket->close(); 
+        state.lock()->notifyClient(self.lock());
+        return; 
+    };
+    if (!user->isActive() && client_socket) 
+    { 
+        client_socket->close(); 
+        state.lock()->notifyClient(self.lock());
+        return; 
+    };
     if (identified) identify_window = SP<InterfaceElementWindow>();
 
     config_interface->cycle();
 
     ts.cycle();
+
+    char buf[500];
+    size_t buf_size = 500;
+    do
+    {
+        buf_size = 500;
+        ts.receive((void*) buf, &buf_size);
+        if (buf_size == 0) break;
+
+        size_t i1;
+        for (i1 = 0; i1 < buf_size; i1++)
+            interface->pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
+    }
+    while(buf_size > 0);
+
+    cycleChat();
 
     /* Check if client has resized their terminal, adjust
        if necessary. */
@@ -261,8 +300,8 @@ void Client::cycle()
         }
     }
 
-    interface->refresh();
     interface->cycle();
+    interface->refresh();
 
     const Terminal& client_t = interface->getTerminal();
 
@@ -300,22 +339,19 @@ void Client::cycle()
         }
     }
 
+    if (!isActive()) return;
+    if (!user)
+    { 
+        client_socket->close(); 
+        state.lock()->notifyClient(self.lock());
+    };
+    if (!user->isActive() && client_socket) 
+    { 
+        client_socket->close(); 
+        state.lock()->notifyClient(self.lock());
+    };
+
     ts.cycle();
-
-    char buf[500];
-    size_t buf_size = 500;
-    do
-    {
-        ts.receive((void*) buf, &buf_size);
-        if (buf_size == 0) break;
-
-        size_t i1;
-        for (i1 = 0; i1 < buf_size; i1++)
-            interface->pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
-    }
-    while(buf_size == 500);
-
-    cycleChat();
 }
 
 void Client::setGlobalChatLogger(SP<Logger> global_chat)
@@ -505,6 +541,7 @@ bool Client::chatSelectFunction(ui32 index)
     prefix.toUTF8String(prefix_utf8);
     chat_message.toUTF8String(chat_message_utf8);
     LOG(Note, "Global chat: " << prefix_utf8 << chat_message_utf8);
+    state.lock()->notifyAllClients();
     return false;
 };
 
@@ -585,6 +622,7 @@ void Client::updateNicklistWindow()
     }
     if (!found_index)
         nicklist_window->modifyListSelectionIndex(index);
+    state.lock()->notifyClient(self.lock());
 }
 
 void Client::clientIdentified()
@@ -627,6 +665,9 @@ void Client::clientIdentified()
     nicklist_window->setHint("nicklist");
 
     updateNicklistWindowForAll();
+    identify_window = SP<InterfaceElementWindow>();
+
+    state.lock()->notifyClient(self.lock());
 }
 
 void Client::setClientVector(vector<WP<Client> >* clients)

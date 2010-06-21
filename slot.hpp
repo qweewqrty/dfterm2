@@ -20,6 +20,7 @@ namespace dfterm
 #include <string>
 #include "interface.hpp"
 #include "dfterm2_configuration.hpp"
+#include "state.hpp"
 
 using namespace std;
 using namespace trankesbel;
@@ -46,8 +47,13 @@ class Slot
         WP<User> user;
         WP<User> last_player;
 
+        void setSelf(WP<Slot> s) { self = s; };
+
     protected:
         Slot() { };
+
+        WP<State> state;
+        WP<Slot> self;
 
     public:
         virtual ~Slot() { };
@@ -68,6 +74,10 @@ class Slot
         /* Sets/gets the launcher of this slot. */
         void setLauncher(WP<User> user) { this->user = user; };
         WP<User> getLauncher() { return user; };
+
+        /* Sets/gets the state this slot belongs to. */
+        void setState(WP<State> state) { this->state = state; };
+        WP<State> getState() { return state; };
 
         /* Gives/retrieves a name of the slot. */
         void setName(UnicodeString name) { this->name = name; };

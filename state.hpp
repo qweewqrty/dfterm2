@@ -66,7 +66,7 @@ class State
 
         bool close;
 
-        SocketEventsGenericPoller socketevents;
+        SocketEvents socketevents;
 
         void new_connection(SP<Socket> listening_socket);
         void client_signal_function(WP<Client> client, SP<Socket> from_where);
@@ -79,6 +79,15 @@ class State
         /* Disconnects a user with the given nickname. Unless it corresponds to the client 'exclude' */
         void destroyClient(UnicodeString nickname, SP<Client> exclude = SP<Client>());
         void destroyClientUTF8(string nickname, SP<Client> exclude = SP<Client>()) { destroyClient(UnicodeString::fromUTF8(nickname), exclude); };
+
+        /* Notify client or user to do I/O */
+        void notifyClient(SP<Client> client);
+        void notifyClient(SP<User> user);
+        void notifyClient(SP<Socket> socket);
+        void notifyAllClients();
+
+        /* Called by slots to inform the state that slot has new data on it. */
+        void signalSlotData(SP<Slot> who);
 
         /* Returns all the slots that are running. */
         vector<WP<Slot> > getSlots();

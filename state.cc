@@ -144,6 +144,8 @@ bool State::addTelnetService(SocketAddress address)
     LOG(Note, "Telnet service started on address " << address.getHumanReadablePlainUTF8());
     listening_sockets.insert(s);
 
+    socketevents.addSocket(s);
+
     return true;
 }
 
@@ -404,6 +406,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     running_counter++;
 
     SP<Slot> slot = Slot::createSlot(slot_profile->getSlotType());
+    slot->setState(self);
     slot->setSlotProfile(slot_profile);
     slot->setLauncher(launcher);
     string name_utf8 = slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str();
@@ -472,6 +475,49 @@ bool State::launchSlot(UnicodeString slot_profile_name, SP<User> launcher)
     return false;
 }
 
+void State::notifyAllClients()
+{
+    lock_guard<recursive_mutex> lock(clients_mutex);
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        if (*i1 && (*i1)->getSocket())
+            socketevents.forceEvent((*i1)->getSocket());
+}
+
+void State::notifyClient(SP<Client> client)
+{
+    if (!client) return;
+
+    lock_guard<recursive_mutex> lock(clients_mutex);
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        if ((*i1) == client)
+        {
+            socketevents.forceEvent(client->getSocket());
+            return;
+        }
+
+}
+
+void State::notifyClient(SP<User> user)
+{
+    if (!user) return;
+
+    lock_guard<recursive_mutex> lock(clients_mutex);
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        if ((*i1) && (*i1)->getUser()->getNameUTF8() == user->getNameUTF8())
+        {
+            socketevents.forceEvent((*i1)->getSocket());
+            return;
+        }
+}
+
+void State::notifyClient(SP<Socket> socket)
+{
+    socketevents.forceEvent(socket);
+}
+
 void State::pruneInactiveSlots()
 {
     lock_guard<recursive_mutex> lock(slots_mutex);
@@ -499,6 +545,8 @@ void State::pruneInactiveClients()
 {
     lock_guard<recursive_mutex> lock(clients_mutex);
 
+    bool changes = false;
+
     /* Prune inactive clients */
     size_t i2, len = clients.size();
     for (i2 = 0; i2 < len; i2++)
@@ -510,13 +558,17 @@ void State::pruneInactiveClients()
             len--;
             i2--;
             LOG(Note, "Pruned an inactive connection.");
+            changes = true;
             continue;
         }
     }
 
+    if (!changes) return;
+
     len = clients.size();
     for (i2 = 0; i2 < len; i2++)
         clients[i2]->updateClients();
+    notifyAllClients();
 }
 
 /*void State::cycleClients()
@@ -537,7 +589,7 @@ void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
     if (!sp_cli || !from_where || !from_where->active()) return;
 
     sp_cli->cycle();
-    if (sp_cli->shouldShutdown()) socketevents.cancelGetEvent();
+    if (sp_cli->shouldShutdown()) close = true;
 }
 
 void State::new_connection(SP<Socket> listening_socket)
@@ -559,7 +611,7 @@ void State::new_connection(SP<Socket> listening_socket)
         new_client->setClientVector(&clients_weak);
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
 
-        socketevents.addSocket(new_connection, bind(&State::client_signal_function, this, new_client, _1));
+        socketevents.addSocket(new_connection);
         size_t i1, len = clients.size();
         for (i1 = 0; i1 < len; i1++)
             if (clients[i1])
@@ -573,15 +625,47 @@ void State::loop()
     uint64_t start_time;
     const uint64_t tick_time = 1000000000 / ticks_per_second;
 
-    bool close = false;
-
-    set<SP<Socket> >::iterator i1;
-    for (i1 = listening_sockets.begin(); i1 != listening_sockets.end(); i1++)
+    close = false;
+    while(!close)
     {
-        function1<void, SP<Socket> > signal_function = bind(&State::new_connection, this, _1);
-        socketevents.addSocket(*i1, signal_function);
-    }
+        pruneInactiveClients();
+        flush_messages();
+        SP<Socket> s = socketevents.getEvent(500000000);
+        if (!s) continue;
 
-    socketevents.getEvent(true);
+        /* Test if it's a listening socket */
+        set<SP<Socket> >::iterator i2 = listening_sockets.find(s);
+        if (i2 != listening_sockets.end())
+        {
+            new_connection(s);
+            continue;
+        }
+
+        lock_guard<recursive_mutex> lock(clients_mutex);
+        vector<SP<Client> >::iterator i1;
+        for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        {
+            if (!(*i1)) continue;
+            if ((*i1)->getSocket() == s)
+            {
+                (*i1)->cycle();
+                if ((*i1)->shouldShutdown()) close = true;
+                break;
+            }
+        }
+    }
+}
+
+void State::signalSlotData(SP<Slot> who)
+{
+    lock_guard<recursive_mutex> lock(clients_mutex);
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    {
+        if (!(*i1)) continue;
+
+        if ((*i1)->getSlot().lock() == who)
+            (*i1)->cycle();
+    }
 }
 

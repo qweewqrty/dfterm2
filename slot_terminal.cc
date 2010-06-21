@@ -205,8 +205,17 @@ void TerminalGlue::thread_function()
                 break;
             }
 
-            lock_guard<recursive_mutex> lock2(game_terminal_mutex);
+            unique_lock<recursive_mutex> lock2(game_terminal_mutex);
             game_terminal.feedString(buf, data);
+            lock2.unlock();
+            SP<State> s = state.lock();
+            if (s)
+            {
+                SP<Slot> self_sp = self.lock();
+                ulock.unlock();
+                s->signalSlotData(self_sp);
+                ulock.lock();
+            }
         }
 
         ulock.unlock();
