@@ -536,8 +536,24 @@ bool Client::chatSelectFunction(ui32 index)
     chat_window->modifyListElementText(chat_window_input_index, "");
     chat_window->modifyListSelectionIndex(chat_window_input_index);
 
+    char time_c[51];
+    time_c[50] = 0;
+
+    time_t timet = time(0);
+    #ifdef __WIN32
+    struct tm* timem = localtime(&timet);;
+    strftime(time_c, 50, "%H:%M:%S ", timem);
+    #else
+    struct tm timem;
+    localtime_r(&timet, &timem);
+    strftime(time_c, 50, "%H:%M:%S ", &timem);
+    #endif
+
+    UnicodeString prefix_first = UnicodeString::fromUTF8(time_c);
+
     UnicodeString prefix;
-    prefix = UnicodeString::fromUTF8("<") +
+    prefix = prefix_first +
+             UnicodeString::fromUTF8("<") +
              nickname +
              UnicodeString::fromUTF8("> ");
     global_chat->logMessage(prefix + chat_message);
