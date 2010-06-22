@@ -57,6 +57,8 @@ static ui32 checksum(string str)
 
 DFGlue::DFGlue() : Slot()
 {
+    df_terminal.setCursorVisibility(false);
+
     df_handle = INVALID_HANDLE_VALUE;
     close_thread = false;
     data_format = Unknown;
@@ -66,7 +68,7 @@ DFGlue::DFGlue() : Slot()
     df_w = 80;
     df_h = 25;
 
-    ticks_per_second = 20;
+    ticks_per_second = 30;
 
     alive = true;
 
@@ -80,6 +82,8 @@ DFGlue::DFGlue() : Slot()
 
 DFGlue::DFGlue(bool dummy) : Slot()
 {
+    df_terminal.setCursorVisibility(false);
+
     df_handle = INVALID_HANDLE_VALUE;
     close_thread = false;
     data_format = Unknown;
@@ -274,6 +278,11 @@ void DFGlue::thread_function()
 
         update_mutex.unlock();
         updateDFWindowTerminal();
+
+        SP<State> s = state.lock();
+        SP<Slot> self_sp = self.lock();
+        if (s && self_sp)
+            s->signalSlotData(self_sp);
 
         nanowait(1000000000LL / ticks_per_second);
     }
@@ -481,6 +490,10 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
         LOG(Error, "SLOT/DFGlue: CreateProcess() failed with GetLastError() == " << GetLastError());
         return false;
     }
+
+    unique_lock<recursive_mutex> lock(glue_mutex);
+    df_terminal.printString("Take it easy!! Game is being launched and attached in 20 seconds.", 1, 1, 7, 0, false, false);
+    lock.unlock();
 
     /* Sleep for 20 seconds before attaching */
     Sleep(20000);
@@ -724,19 +737,24 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     if (!alive) return;
 
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    target_window->setMinimumSize(df_w, df_h);
+    ui32 t_w, t_h;
+    t_w = min(df_w, (ui32) df_terminal.getWidth());
+    t_h = min(df_h, (ui32) df_terminal.getHeight());
+    t_w = min(t_w, (ui32) 256);
+    t_h = min(t_h, (ui32) 256);
+    target_window->setMinimumSize(t_w, t_h);
 
     CursesElement elements[256*256];
     ui32 i1, i2;
-    for (i1 = 0; i1 < df_w; i1++)
-        for (i2 = 0; i2 < df_h; i2++)
+    for (i1 = 0; i1 < t_w; i1++)
+        for (i2 = 0; i2 < t_h; i2++)
         {
             const TerminalTile &t = df_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();
             if (symbol > 255) symbol = symbol % 256;
             elements[i1 + i2 * 256] = CursesElement(mapCharacter(symbol), (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
         }
-    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), 256, df_w, df_h, 0, 0);
+    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), 256, t_w, t_h, 0, 0);
 }
 
 bool DFGlue::injectDLL(string dllname)

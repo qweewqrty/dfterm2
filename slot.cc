@@ -18,24 +18,28 @@ SP<Slot> Slot::createSlot(string slottype)
             break;
     if (i1 >= num_slots) return SP<Slot>();
 
+    SP<Slot> result;
+
     switch((SlotType) i1)
     {
         #ifdef __WIN32
         case DFGrab:
-            return SP<Slot>(new DFGlue);
+            result = SP<Slot>(new DFGlue);
         break;
         case DFLaunch:
-            return SP<Slot>(new DFGlue(true));
+            result = SP<Slot>(new DFGlue(true));
         break;
         #else
         case TerminalLaunch:
-            return SP<Slot>(new TerminalGlue);
+            result = SP<Slot>(new TerminalGlue);
         break;
         #endif
 
         default:
             return SP<Slot>();
     };
-    return SP<Slot>();
+
+    result->setSelf(result);
+    return result;
 }
 

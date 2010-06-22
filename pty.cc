@@ -3,6 +3,7 @@
 #include <pty.h>
 #include <sys/wait.h>
 #include <iostream>
+#include <errno.h>
 #include "pty.h"
 
 Pty::Pty()
@@ -93,9 +94,20 @@ bool Pty::poll()
     FD_ZERO(&ptyset);
     FD_SET(MasterPty, &ptyset);
     
-    int result = select(FD_SETSIZE, &ptyset, NULL, NULL, &tv);
-    if (result < 0)
-        return true;
+    int result = 0;
+    do
+    {
+        result = select(FD_SETSIZE, &ptyset, NULL, NULL, &tv);
+        if (result < 0 && errno != EINTR)
+        {
+            terminate();
+            return true;
+        }
+        else if (result < 0 && errno == EINTR)
+            continue;
+        break;
+    } while(true);
+
     if (result == 0)
         return false;
     

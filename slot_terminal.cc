@@ -57,14 +57,14 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
 {
     switch(special_key)
     {
-        case AUp:        input_buf.append("\x1b\x5b\x41"); break;
-        case ADown:      input_buf.append("\x1b\x5b\x42"); break;
-        case ARight:     input_buf.append("\x1b\x5b\x43"); break;
-        case ALeft:      input_buf.append("\x1b\x5b\x44"); break;
-        case CtrlUp:     input_buf.append("\x1b\x4b\x41"); break;
-        case CtrlDown:   input_buf.append("\x1b\x4b\x42"); break;
-        case CtrlRight:  input_buf.append("\x1b\x4b\x43"); break;
-        case CtrlLeft:   input_buf.append("\x1b\x4b\x44"); break;
+        case AUp:        input_buf.append("\x1b\x4f\x41"); break;
+        case ADown:      input_buf.append("\x1b\x4f\x42"); break;
+        case ARight:     input_buf.append("\x1b\x4f\x43"); break;
+        case ALeft:      input_buf.append("\x1b\x4f\x44"); break;
+        case CtrlUp:     input_buf.append("\x1b\x4f\x41"); break;
+        case CtrlDown:   input_buf.append("\x1b\x4f\x42"); break;
+        case CtrlRight:  input_buf.append("\x1b\x4f\x43"); break;
+        case CtrlLeft:   input_buf.append("\x1b\x4f\x44"); break;
         case F1:         input_buf.append("\x1b\x5b\x31\x31\x7e"); break;
         case F2:         input_buf.append("\x1b\x5b\x31\x32\x7e"); break;
         case F3:         input_buf.append("\x1b\x5b\x31\x33\x7e"); break;
@@ -102,6 +102,29 @@ void TerminalGlue::flushInput(Pty* program_pty)
         input_queue.pop_front();
 
         if (special_key) { pushEscapeSequence((KeyCode) keycode, input_buf); continue; }
+
+        if (keycode == '\n')
+        {
+            input_buf.append("\r");
+            continue;
+        }
+
+        if (keycode > 127)
+        {
+            UChar32 uni32 = (UChar32) keycode;
+            UChar uni16[] = { 0, 0, 0 };
+            UErrorCode uerror = U_ZERO_ERROR;
+            u_strFromUTF32(uni16, 2, NULL, &uni32, 1, &uerror);
+            if (U_FAILURE(uerror)) continue;
+
+            char uni8[] = { 0, 0, 0, 0, 0 };
+
+            u_strToUTF8(uni8, 4, NULL, uni16, -1, &uerror);
+            if (U_FAILURE(uerror)) continue;
+
+            input_buf.append(uni8);
+            continue;
+        }
 
         ui8 k = (ui8) keycode;
         input_buf.push_back(k);
@@ -205,14 +228,24 @@ void TerminalGlue::thread_function()
                 break;
             }
 
-            lock_guard<recursive_mutex> lock2(game_terminal_mutex);
+            unique_lock<recursive_mutex> lock2(game_terminal_mutex);
             game_terminal.feedString(buf, data);
+            lock2.unlock();
+            SP<State> s = state.lock();
+            if (s)
+            {
+                SP<Slot> self_sp = self.lock();
+                ulock.unlock();
+                s->signalSlotData(self_sp);
+                ulock.lock();
+            }
         }
 
         ulock.unlock();
         nanowait(1000000000LL / 30);
     }
 
+    unique_lock<recursive_mutex> ulock2(glue_mutex);
     alive = false;
 }
 
@@ -241,18 +274,33 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     if (!target_window) return;
 
     lock_guard<recursive_mutex> lock(game_terminal_mutex);
+    ui32 t_w = min(terminal_w, (ui32) game_terminal.getWidth());
+    ui32 t_h = min(terminal_h, (ui32) game_terminal.getHeight());
 
-    target_window->setMinimumSize(terminal_w, terminal_h);
-    CursesElement* elements = new CursesElement[terminal_w * terminal_h];
+    target_window->setMinimumSize(t_w, t_h);
+    CursesElement* elements = new CursesElement[t_w * t_h];
     ui32 i1, i2;
-    for (i1 = 0; i1 < terminal_w; i1++)
-        for (i2 = 0; i2 < terminal_h; i2++)
+    ui32 cursor_x = game_terminal.getCursorX();
+    ui32 cursor_y = game_terminal.getCursorY();
+    for (i1 = 0; i1 < t_w; i1++)
+        for (i2 = 0; i2 < t_h; i2++)
         {
             const TerminalTile &t = game_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();
-            elements[i1 + i2 * terminal_w] = CursesElement(symbol, (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
+            ui32 fore_c = t.getForegroundColor();
+            ui32 back_c = t.getBackgroundColor();
+            if (fore_c == 9) fore_c = 7;
+            if (back_c == 9) back_c = 0;
+            ui32 temp;
+            if (cursor_x == i1 && cursor_y == i2)
+            {
+                temp = fore_c;
+                fore_c = back_c;
+                back_c = temp;
+            }
+            elements[i1 + i2 * t_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
         }
-    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), terminal_w, terminal_w, terminal_h, 0, 0);
+    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), t_w, t_w, t_h, 0, 0);
     delete[] elements;
 }
 

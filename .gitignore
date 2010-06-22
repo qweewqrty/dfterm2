@@ -5,4 +5,13 @@ CMakeCache.txt
 CMakeFiles
 cmake_install.cmake
 Makefile
+# Binaries
+dfterm2
+dfterm2_configure
+dfterm2_sha512
+dfterm2.exe
+dfterm2_configure.exe
+dfterm2_sha512.exe
+# Databases
+*.sqlite3
 

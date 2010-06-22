@@ -38,22 +38,38 @@ class State
         vector<SP<Client> > clients;
         /* And weak pointers to them. */
         vector<WP<Client> > clients_weak;
+        /* And a mutex to those lists */
+        recursive_mutex clients_mutex;
         
         /* The global chat logger */
         SP<Logger> global_chat;
 
         /* Database */
         SP<ConfigurationDatabase> configuration;
+        recursive_mutex configuration_mutex; /* configuration itself is thread-safe, but setting it is not */
 
         /* Running slots */
         vector<SP<Slot> > slots;
+        /* And a mutex to them */
+        recursive_mutex slots_mutex;
 
         /* Current slot profiles */
         vector<SP<SlotProfile> > slotprofiles;
+        recursive_mutex slotprofiles_mutex;
 
         bool launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher);
 
+        void pruneInactiveSlots();
+        void pruneInactiveClients();
+
         uint64_t ticks_per_second;
+
+        bool close;
+
+        SocketEvents socketevents;
+
+        void new_connection(SP<Socket> listening_socket);
+        void client_signal_function(WP<Client> client, SP<Socket> from_where);
 
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
@@ -63,6 +79,15 @@ class State
         /* Disconnects a user with the given nickname. Unless it corresponds to the client 'exclude' */
         void destroyClient(UnicodeString nickname, SP<Client> exclude = SP<Client>());
         void destroyClientUTF8(string nickname, SP<Client> exclude = SP<Client>()) { destroyClient(UnicodeString::fromUTF8(nickname), exclude); };
+
+        /* Notify client or user to do I/O */
+        void notifyClient(SP<Client> client);
+        void notifyClient(SP<User> user);
+        void notifyClient(SP<Socket> socket);
+        void notifyAllClients();
+
+        /* Called by slots to inform the state that slot has new data on it. */
+        void signalSlotData(SP<Slot> who);
 
         /* Returns all the slots that are running. */
         vector<WP<Slot> > getSlots();

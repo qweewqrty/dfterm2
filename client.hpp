@@ -47,6 +47,8 @@ class Client
         Terminal buffer_terminal;
         Terminal last_client_terminal;
 
+        recursive_mutex cycle_mutex;
+
         bool slot_active_in_last_cycle;
 
         /* Slot for game. */
@@ -156,8 +158,7 @@ class Client
         void setState(SP<State> state) { setState(WP<State>(state)); };
 
         /* Sets a slot for this client. */
-        void setSlot(SP<Slot> slot)
-        { this->slot = slot; };
+        void setSlot(SP<Slot> slot);
 
         /* Gets the slot this client is seeing. */
         WP<Slot> getSlot() const { return slot; };
