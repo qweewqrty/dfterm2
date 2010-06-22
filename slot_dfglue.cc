@@ -68,7 +68,7 @@ DFGlue::DFGlue() : Slot()
     df_w = 80;
     df_h = 25;
 
-    ticks_per_second = 20;
+    ticks_per_second = 30;
 
     alive = true;
 
@@ -278,6 +278,11 @@ void DFGlue::thread_function()
 
         update_mutex.unlock();
         updateDFWindowTerminal();
+
+        SP<State> s = state.lock();
+        SP<Slot> self_sp = self.lock();
+        if (s && self_sp)
+            s->signalSlotData(self_sp);
 
         nanowait(1000000000LL / ticks_per_second);
     }
