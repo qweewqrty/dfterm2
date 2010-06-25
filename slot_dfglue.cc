@@ -190,7 +190,7 @@ void DFGlue::thread_function()
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
     this->df_windows = df_windows;
     this->df_handle = df_process;
-    injectDLL("libdfterm_injection_glue.dll");
+    injectDLL("dfterm_injection_glue.dll");
 
     bool version = detectDFVersion();
     if (!version)
@@ -347,6 +347,15 @@ void DFGlue::updateDFWindowTerminal()
                 f_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x0000FF00) >> 8);
                 b_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x00FF0000) >> 16);
                 f_bold = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0xFF000000) >> 24);
+
+				if (f_color == Red) f_color = Blue;
+				else if (f_color == Blue) f_color = Red;
+				else if (f_color == Yellow) f_color = Cyan;
+				else if (f_color == Cyan) f_color = Yellow;
+				if (b_color == Red) b_color = Blue;
+				else if (b_color == Blue) b_color = Red;
+				else if (b_color == Yellow) b_color = Cyan;
+				else if (b_color == Cyan) b_color = Yellow;
 
                 df_terminal.setTile(i1, i2, TerminalTile(symbol, f_color, b_color, false, f_bold));
             }
@@ -618,13 +627,13 @@ bool DFGlue::detectDFVersion()
     switch(csum)
     {
     case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
-    af.pushAddress(0x0000F080, "libdfterm_injection_glue.dll");
+    af.pushAddress(0x00004050, "dfterm_injection_glue.dll");
     sz.pushAddress(0x140C11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3108, 4);
     break;
     case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
-    af.pushAddress(0x0000F080, "libdfterm_injection_glue.dll");
+    af.pushAddress(0x00004050, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3106, 4);

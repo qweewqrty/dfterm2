@@ -44,6 +44,8 @@ void restore_old_function(ptrdiff_t patched_function_addr, char* patch)
 
 unsigned char buffer[500*500];
 
+ptrdiff_t last_read_address = 0;
+
 void fake_graphics_31_06__erasescreen()
 {
     if (set_buffer_address && buffer_address == 3108)
@@ -54,7 +56,8 @@ void fake_graphics_31_06__erasescreen()
 
         ptrdiff_t final_address = 0x0141D390+dwarfort_base;
         ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
-        ReadProcessMemory(me_process, (void*) final_address, buffer, w*h*sizeof(int), NULL);
+        ReadProcessMemory(me_process, (void*) last_read_address, buffer, w*h*sizeof(int), NULL);
+		last_read_address = final_address;
     }
     else if (set_buffer_address && buffer_address == 3106)
     {
@@ -64,7 +67,8 @@ void fake_graphics_31_06__erasescreen()
 
         ptrdiff_t final_address = 0x0141C390+dwarfort_base;
         ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
-        ReadProcessMemory(me_process, (void*) final_address, buffer, w*h*sizeof(int), NULL);
+        ReadProcessMemory(me_process, (void*) last_read_address, buffer, w*h*sizeof(int), NULL);
+		last_read_address = final_address;
     }
 
     restore_old_function(erasescreen_addr, erasescreen_patch);
