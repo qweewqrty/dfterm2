@@ -15,3 +15,16 @@ dfterm2_sha512.exe
 # Databases
 *.sqlite3
 
+*~
+
+
+# MSVC/CMake files
+Release
+Debug
+*\.dir
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.a
+*.dll
