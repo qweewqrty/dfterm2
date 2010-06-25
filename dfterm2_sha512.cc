@@ -13,7 +13,6 @@ int main(int argc, char* argv[])
 
     data1D result = hash_data(argv[1]);
     cout << result << endl;
-    LOG(Note, "unicode test: הצהצהצהו");
     
     return 0;
 }

@@ -37,9 +37,9 @@ void dfterm::flush_messages()
         UnicodeString us = admin_messages_reader->getLogMessage(&msg);
         if (!msg) break;
 
-        int32_t src_len = us.length();
+        ::int32_t src_len = us.length();
         UChar* us_str = us.getBuffer(src_len);
-        int32_t dest_len = 0;
+        ::int32_t dest_len = 0;
         UErrorCode uerror = U_ZERO_ERROR;
         u_strToWCS(NULL, 0, &dest_len, us_str, src_len, &uerror);
         if (U_FAILURE(uerror) && uerror != U_BUFFER_OVERFLOW_ERROR)
@@ -93,7 +93,7 @@ void Logger::logMessage(const UnicodeString &message)
     }
 }
 
-void Logger::logMessageUTF8(string message)
+void Logger::logMessageUTF8(const string &message)
 {
     logMessage(UnicodeString::fromUTF8(message));
 }

@@ -8,6 +8,7 @@
 using namespace dfterm;
 using namespace boost;
 using namespace std;
+using namespace trankesbel;
 
 ConfigurationInterface::ConfigurationInterface()
 {
@@ -63,7 +64,7 @@ SP<InterfaceElementWindow> ConfigurationInterface::getUserWindow()
     if (!window && interface) 
     {
         window = interface->createInterfaceElementWindow();
-        window->setListCallback(bind(&ConfigurationInterface::menuSelectFunction, this, _1));
+        window->setListCallback(boost::bind(&ConfigurationInterface::menuSelectFunction, this, _1));
         enterMainMenu();
     }
     if (!window) return SP<InterfaceElementWindow>();
@@ -142,9 +143,9 @@ void ConfigurationInterface::enterJoinSlotsMenu()
     if (!st)
     {
         if (user)
-            LOG(Error, "ConfigurationInterface::enterJoinSlotsMenu(), null state in menu, user " << user->getNameUTF8());
+		    { LOG(Error, "ConfigurationInterface::enterJoinSlotsMenu(), null state in menu, user " << user->getNameUTF8()); }
         else
-            LOG(Error, "ConfigurationInterface::enterJoinSlotsMenu(), null state in menu and user is null too.");
+		    { LOG(Error, "ConfigurationInterface::enterJoinSlotsMenu(), null state in menu and user is null too."); }
 
         slot_index = window->addListElementUTF8("No slots available at the moment", "mainmenu", true, false);
         window->modifyListSelectionIndex(slot_index);
@@ -184,9 +185,9 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     if (!st)
     {
         if (user)
-            LOG(Error, "ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu, user " << user->getNameUTF8());
+		    { LOG(Error, "ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu, user " << user->getNameUTF8()); }
         else
-            LOG(Error, "ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu and the user is null too.");
+		    { LOG(Error, "ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu and the user is null too."); }
         slot_index = window->addListElementUTF8("No slots available at the moment", "mainmenu", true, false);
         window->modifyListSelectionIndex(slot_index);
         return;
@@ -539,16 +540,16 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
         {
             if (user)
-                LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name.");
+			    { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name."); }
             else
-                LOG(Note, "Null user attempted to create a slot profile with an empty name.");
+			    { LOG(Note, "Null user attempted to create a slot profile with an empty name."); }
             window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
         }
         else
         {
             SP<State> st = state.lock();
             if (!st)
-                LOG(Error, "Could not delete slot profile from slot profile menu, because state is null. Oopsies. Profile name " << edit_slotprofile.getNameUTF8());
+			    { LOG(Error, "Could not delete slot profile from slot profile menu, because state is null. Oopsies. Profile name " << edit_slotprofile.getNameUTF8()); }
             else
             {
                 configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
@@ -564,9 +565,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
         {
             if (user)
-                LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name.");
+			    { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name."); }
             else
-                LOG(Note, "Null user attempted to create a slot profile with an empty name.");
+			    { LOG(Note, "Null user attempted to create a slot profile with an empty name."); }
 
             window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
         }
@@ -576,18 +577,18 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             if (!st)
             {
                 if (user)
-                    LOG(Error, "User " << user->getNameUTF8() << " could not save slot profile from slot profile menu. State is null. Oopsies. Slot profile name " << edit_slotprofile.getNameUTF8());
+				    { LOG(Error, "User " << user->getNameUTF8() << " could not save slot profile from slot profile menu. State is null. Oopsies. Slot profile name " << edit_slotprofile.getNameUTF8()); }
                 else
-                    LOG(Error, "Null user could not save slot profile from slot profile menu. State is null. Oopsies. Slot profile name " << edit_slotprofile.getNameUTF8());
+				    { LOG(Error, "Null user could not save slot profile from slot profile menu. State is null. Oopsies. Slot profile name " << edit_slotprofile.getNameUTF8()); }
             }
             else
             {
                 if (selection == "newslot_create" && st->hasSlotProfile(edit_slotprofile.getName()))
                 {
                     if (user)
-                        LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with a name that already exists. Slot profile name " << edit_slotprofile.getNameUTF8());
+					    { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with a name that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
                     else
-                        LOG(Note, "Null user attempted to create a slot profile with a name that already exists. Slot profile name " << edit_slotprofile.getNameUTF8());
+					    { LOG(Note, "Null user attempted to create a slot profile with a name that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
                     window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
                     window->modifyListElementTextUTF8(1, window->getListElementUTF8(1) + string("_"));
                 }
@@ -601,9 +602,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                         edit_slotprofile_sp_target = SP<SlotProfile>();
 
                         if (user)
-                            LOG(Note, "User " << user->getNameUTF8() << " created a new slot profile with the name " << edit_slotprofile.getNameUTF8());
+						    { LOG(Note, "User " << user->getNameUTF8() << " created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
                         else
-                            LOG(Note, "Null user created a new slot profile with the name " << edit_slotprofile.getNameUTF8());
+						    { LOG(Note, "Null user created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
                         enterSlotsMenu();
                     }
                     else
@@ -615,7 +616,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                         edit_slotprofile_sp_target = SP<SlotProfile>();
 
                         if (user)
-                            LOG(Note, "User " << user->getNameUTF8() << " edited and saved slotprofile " << edit_slotprofile.getNameUTF8());
+						    { LOG(Note, "User " << user->getNameUTF8() << " edited and saved slotprofile " << edit_slotprofile.getNameUTF8()); }
 
                         enterSlotsMenu();
                     }
@@ -633,9 +634,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (!st)
         {
             if (user)
-                LOG(Error, "User " << user->getNameUTF8() << " requested slot profile edit but state is null. Oopsies.");
+			    { LOG(Error, "User " << user->getNameUTF8() << " requested slot profile edit but state is null. Oopsies."); }
             else
-                LOG(Error, "Null user requested slot profile edit but state is null. Oopsies.");
+			    { LOG(Error, "Null user requested slot profile edit but state is null. Oopsies."); }
         }
         else
         {
@@ -644,9 +645,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             if (!sp)
             {
                 if (user)
-                    LOG(Error, "User " << user->getNameUTF8() << " requested edit from interface with name " << slot_name << " but there's no such slot profile.");
+				    { LOG(Error, "User " << user->getNameUTF8() << " requested edit from interface with name " << slot_name << " but there's no such slot profile."); }
                 else
-                    LOG(Error, "Null user requested edit from interface with name " << slot_name << " but there's no such slot profile.");
+				    { LOG(Error, "Null user requested edit from interface with name " << slot_name << " but there's no such slot profile."); }
             }
             else
             {
@@ -664,9 +665,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (!st)
         {
             if (user)
-                LOG(Error, "User " << user->getNameUTF8() << " requested slot launch from interface but state is null. Oops. Slot profile name " << slot_name);
+			    { LOG(Error, "User " << user->getNameUTF8() << " requested slot launch from interface but state is null. Oops. Slot profile name " << slot_name); }
             else
-                LOG(Error, "Null user requested slot launch from interface but state is null. Oops. Slot profile name " << slot_name);
+			    { LOG(Error, "Null user requested slot launch from interface but state is null. Oops. Slot profile name " << slot_name); }
         }
         else
         {
@@ -682,9 +683,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (!st)
         {
             if (user)
-                LOG(Error, "User " << user->getNameUTF8() << " requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_name);
+			    { LOG(Error, "User " << user->getNameUTF8() << " requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_name); }
             else
-                LOG(Error, "Null user requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_name);
+			    { LOG(Error, "Null user requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_name); }
         }
         else
             if (st->setUserToSlotUTF8(user, slot_name))
@@ -696,9 +697,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (!st)
         {
             if (user)
-                LOG(Error, "User " << user->getNameUTF8() << " requested slot join none from interface but state is null. Oopsies.");
+			    { LOG(Error, "User " << user->getNameUTF8() << " requested slot join none from interface but state is null. Oopsies."); }
             else
-                LOG(Error, "Null user requested slot join none from interface but state is null. Oopsies.");
+			    { LOG(Error, "Null user requested slot join none from interface but state is null. Oopsies."); }
         }
         else
             st->setUserToSlotUTF8(user, "");
@@ -723,7 +724,7 @@ void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
     auxiliary_window->addListElement("Cancel", "usergroup_cancel", true, false);
 
     auxiliary_window->modifyListSelectionIndex(ok);
-    auxiliary_window->setListCallback(bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
+    auxiliary_window->setListCallback(boost::bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
 
     checkAuxiliaryWindowUsergroupSelections();
 
@@ -754,7 +755,7 @@ void ConfigurationInterface::auxiliaryEnterSpecificUsersWindow()
     }
 
     auxiliary_window->modifyListSelectionIndex(ok);
-    auxiliary_window->setListCallback(bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
+    auxiliary_window->setListCallback(boost::bind(&ConfigurationInterface::auxiliaryMenuSelectFunction, this, _1));
 
     checkAuxiliaryWindowUsergroupSelections();
 

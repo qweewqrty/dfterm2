@@ -9,6 +9,7 @@
 using namespace std; 
 using namespace trankesbel;
 using namespace dfterm;
+using namespace boost;
 
 void seedRNG()
 {
@@ -156,7 +157,7 @@ Client::Client(SP<Socket> client_socket)
     identify_window->setTitleUTF8("Enter your nickname for this session");
     ui32 index = identify_window->addListElementUTF8("", "nickname", true, true);
     identify_window->modifyListSelectionIndex(index);
-    identify_window->setListCallback(bind(&Client::identifySelectFunction, this, _1));
+    identify_window->setListCallback(boost::bind(&Client::identifySelectFunction, this, _1));
 
     max_chat_history = 500;
 
@@ -559,8 +560,9 @@ bool Client::chatSelectFunction(ui32 index)
     global_chat->logMessage(prefix + chat_message);
 
     string prefix_utf8, chat_message_utf8;
-    prefix.toUTF8String(prefix_utf8);
-    chat_message.toUTF8String(chat_message_utf8);
+	prefix_utf8 = TO_UTF8(prefix);
+    chat_message_utf8 = TO_UTF8(chat_message);
+    
     LOG(Note, "Global chat: " << prefix_utf8 << chat_message_utf8);
     state.lock()->notifyAllClients();
     return false;
@@ -659,13 +661,13 @@ void Client::clientIdentified()
     chat_window->setHint("chat");
 
     /* Set callbacks for chat window */
-    function2<bool, ui32*, ui32*> bound_function = bind(&Client::chatRestrictFunction, this, _1, _2);
+    function2<bool, ui32*, ui32*> bound_function = boost::bind(&Client::chatRestrictFunction, this, _1, _2);
     chat_window->setInputCallback(bound_function);
-    function1<bool, ui32> bound_select_callback = bind(&Client::chatSelectFunction, this, _1);
+    function1<bool, ui32> bound_select_callback = boost::bind(&Client::chatSelectFunction, this, _1);
     chat_window->setListCallback(bound_select_callback);
 
     /* And for game window */
-    function2<void, ui32, bool> bound_function2 = bind(&Client::gameInputFunction, this, _1, _2);
+    function2<void, ui32, bool> bound_function2 = boost::bind(&Client::gameInputFunction, this, _1, _2);
     game_window->setInputCallback(bound_function2);
 
     /* 10x10 is small, and a good default. */

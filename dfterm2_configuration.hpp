@@ -18,21 +18,18 @@ class User;
 #include <vector>
 #include "state.hpp"
 
-using namespace trankesbel;
-using namespace std;
-
 namespace dfterm {
 
 /* Hash function (SHA512). This uses OpenSSL as backend. */
 
 /* This one hashes the given data chunk and returns an ASCII data chunk
  * containing the hash in hex. */
-data1D hash_data(data1D chunk);
+data1D hash_data(const data1D &chunk);
 /* Turns a byte chunk into an ASCII hex-encoded chunk */
-data1D bytes_to_hex(data1D bytes);
+data1D bytes_to_hex(const data1D &bytes);
 /* Escapes a string so that it can be used as an SQL string in its statements. */
 /* Used internally. Throws null characters away. */
-data1D escape_sql_string(data1D str);
+data1D escape_sql_string(const data1D &str);
 
 class UserGroup;
 class User;
@@ -49,7 +46,7 @@ class User
     public:
         User() { active = true; admin = false; };
         User(UnicodeString us) { name = us; active = true; admin = false; };
-        User(string us) { name = UnicodeString::fromUTF8(us); };
+        User(const std::string &us) { name = UnicodeString::fromUTF8(us); };
 
         data1D getPasswordHash() const { return password_hash_sha512; };
         void setPasswordHash(data1D hash) { password_hash_sha512 = hash; };
@@ -60,38 +57,32 @@ class User
         /* This one hashes the password and then calls setPasswordHash. */
         /* UnicodeString will be first converted to UTF-8 */
         /* If you use salt, set it before calling this function. */
-        void setPassword(UnicodeString password)
+        void setPassword(const UnicodeString &password)
         {
-            data1D password_utf8;
-            password.toUTF8String(password_utf8);
-            setPassword(password_utf8);
+            setPassword(TO_UTF8(password));
         }
-        void setPassword(data1D password)
+        void setPassword(const data1D &password)
         {
             setPasswordHash(hash_data(password + password_salt));
         }
         /* Returns true if password is correct. */
-        bool verifyPassword(UnicodeString password)
+        bool verifyPassword(const UnicodeString &password)
         {
-            data1D password_utf8;
-            password.toUTF8String(password_utf8);
-            return verifyPassword(password_utf8);
+            return verifyPassword(TO_UTF8(password));
         }
-        bool verifyPassword(data1D password)
+        bool verifyPassword(const data1D &password)
         {
             return (hash_data(password + password_salt) == password_hash_sha512);
         }
 
         UnicodeString getName() const { return name; };
-        string getNameUTF8() const
+        std::string getNameUTF8() const
         {
-            string r;
-            name.toUTF8String(r);
-            return r;
+			return TO_UTF8(name);
         }
 
-        void setName(UnicodeString us) { name = us; };
-        void setNameUTF8(string us)
+        void setName(const UnicodeString &us) { name = us; };
+        void setNameUTF8(const std::string &us)
         {
             setName(UnicodeString::fromUTF8(us));
         }
@@ -109,7 +100,7 @@ class UserGroup
         bool has_nobody;
         bool has_anybody;
         bool has_launcher;
-        set<UnicodeString> has_user;
+        std::set<UnicodeString> has_user;
 
     public:
         UserGroup()
@@ -127,13 +118,13 @@ class UserGroup
         bool hasNobody() const { return has_nobody; };
         bool hasAnybody() const { return has_anybody; };
         bool hasLauncher() const { return has_launcher; };
-        bool hasUser(UnicodeString username) const 
+        bool hasUser(const UnicodeString &username) const 
         { 
             if (has_nobody) return false;
             if (has_anybody) return true;
             return has_user.find(username) != has_user.end(); 
         };
-        bool hasUserUTF8(string username) const
+        bool hasUserUTF8(const std::string &username) const
         {
             return hasUser(UnicodeString::fromUTF8(username));
         }
@@ -152,9 +143,9 @@ class UserGroup
             else setLauncher();
             return hasLauncher();
         }
-        bool toggleUser(UnicodeString username)
+        bool toggleUser(const UnicodeString &username)
         {
-            set<UnicodeString>::iterator i1 = has_user.find(username);
+            std::set<UnicodeString>::iterator i1 = has_user.find(username);
             if (i1 != has_user.end())
             {
                 has_user.erase(i1);
@@ -168,7 +159,7 @@ class UserGroup
                 return true;
             }
         }
-        bool toggleUserUTF8(string username)
+        bool toggleUserUTF8(const std::string &username)
         {
             return toggleUser(UnicodeString::fromUTF8(username));
         }
@@ -203,11 +194,11 @@ class UserGroup
                     has_nobody = true;
             }
         }
-        void setUser(UnicodeString username)
+        void setUser(const UnicodeString &username)
         {
             has_user.insert(username);
         }
-        void unsetUser(UnicodeString username)
+        void unsetUser(const UnicodeString &username)
         {
             has_user.erase(username);
         }
@@ -217,7 +208,7 @@ class SlotProfile
 {
     private:
         UnicodeString name;              /* name of the slot profile */
-        ui32 w, h;                       /* width and height of the game inside slot */
+        trankesbel::ui32 w, h;                       /* width and height of the game inside slot */
         UnicodeString path;              /* path to game executable */
         UnicodeString working_path;      /* working directory for the game. */
         SlotType slot_type;              /* slot type */
@@ -227,7 +218,7 @@ class SlotProfile
         UserGroup forbidden_watchers;    /* who may not watch */
         UserGroup forbidden_launchers;   /* who may not launch */
         UserGroup forbidden_players;     /* who may not play */
-        ui32 max_slots;                  /* maximum number of slots to create */
+        trankesbel::ui32 max_slots;                  /* maximum number of slots to create */
 
     public:
         SlotProfile()
@@ -248,35 +239,35 @@ class SlotProfile
         }
 
         /* All these functions are just simple getter/setter pairs */
-        void setName(UnicodeString name) { this->name = name; };
-        void setNameUTF8(string name) { this->name = UnicodeString::fromUTF8(name); };
+        void setName(const UnicodeString &name) { this->name = name; };
+        void setNameUTF8(const std::string &name) { this->name = UnicodeString::fromUTF8(name); };
         UnicodeString getName() const { return name; };
-        string getNameUTF8() const { string r; name.toUTF8String(r); return r; };
+        std::string getNameUTF8() const { return TO_UTF8(name); };
 
-        void setWidth(ui32 w) { this->w = w; };
-        ui32 getWidth() const { return w; };
-        void setHeight(ui32 h) { this->h = h; };
-        ui32 getHeight() const { return h; };
-        void setSize(ui32 w, ui32 h)
+        void setWidth(trankesbel::ui32 w) { this->w = w; };
+        trankesbel::ui32 getWidth() const { return w; };
+        void setHeight(trankesbel::ui32 h) { this->h = h; };
+        trankesbel::ui32 getHeight() const { return h; };
+        void setSize(trankesbel::ui32 w, trankesbel::ui32 h)
         { setWidth(w); setHeight(h); };
-        void getSize(ui32* w, ui32* h)
+        void getSize(trankesbel::ui32* w, trankesbel::ui32* h)
         { (*w) = getWidth(); (*h) = getHeight(); };
 
-        void setExecutable(UnicodeString executable) { path = executable; };
-        void setExecutableUTF8(string executable) { path = UnicodeString::fromUTF8(executable); };
+        void setExecutable(const UnicodeString &executable) { path = executable; };
+        void setExecutableUTF8(const std::string &executable) { path = UnicodeString::fromUTF8(executable); };
         UnicodeString getExecutable() const { return path; };
-        string getExecutableUTF8() const { string r; path.toUTF8String(r); return r; };
+        std::string getExecutableUTF8() const { return TO_UTF8(path); };
 
-        void setWorkingPath(UnicodeString executable_path) { working_path = executable_path; };
-        void setWorkingPathUTF8(string executable_path) { working_path = UnicodeString::fromUTF8(executable_path); };
+        void setWorkingPath(const UnicodeString &executable_path) { working_path = executable_path; };
+        void setWorkingPathUTF8(const std::string &executable_path) { working_path = UnicodeString::fromUTF8(executable_path); };
         UnicodeString getWorkingPath() const { return working_path; };
-        string getWorkingPathUTF8() const { string r; working_path.toUTF8String(r); return r; };
+        std::string getWorkingPathUTF8() const { return TO_UTF8(working_path); };
 
         void setSlotType(SlotType t) { slot_type = t; };
         SlotType getSlotType() const { return slot_type; };
 
-        void setMaxSlots(ui32 slots) { max_slots = slots; };
-        ui32 getMaxSlots() const { return max_slots; };
+        void setMaxSlots(trankesbel::ui32 slots) { max_slots = slots; };
+        trankesbel::ui32 getMaxSlots() const { return max_slots; };
 
         UserGroup getAllowedWatchers() const { return allowed_watchers; };
         UserGroup getAllowedLaunchers() const { return allowed_launchers; };
@@ -304,35 +295,39 @@ class ConfigurationDatabase
         ConfigurationDatabase& operator=(const ConfigurationDatabase &) { return (*this); };
 
         sqlite3* db;
-        int slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
+        int slotprofileNameListDataCallback(std::vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
         int slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname);
-        int userDataCallback(string* name, string* password_hash, string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
-        int userListDataCallback(vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
+        int userDataCallback(std::string* name, std::string* password_hash, std::string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
+        int userListDataCallback(std::vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
 
     public:
         ConfigurationDatabase();
         ~ConfigurationDatabase();
 
-        OpenStatus open(UnicodeString filename);
-        OpenStatus openUTF8(string filename)
-        { return open(UnicodeString::fromUTF8(filename)); };
+        OpenStatus open(const UnicodeString &filename);
+        OpenStatus openUTF8(const std::string &filename)
+        { 
+			UnicodeString us = UnicodeString::fromUTF8(filename);
+			OpenStatus os = open(us);
+			return os;
+		};
 
-        void deleteUserData(UnicodeString name);
+        void deleteUserData(const UnicodeString &name);
 
-        vector<SP<User> > loadAllUserData();
-        SP<User> loadUserData(UnicodeString name);
+        std::vector<SP<User> > loadAllUserData();
+        SP<User> loadUserData(const UnicodeString &name);
         void saveUserData(User* user);
         void saveUserData(SP<User> user) { saveUserData(user.get()); };
 
         void saveSlotProfileData(SlotProfile* slotprofile);
         void saveSlotProfileData(SP<SlotProfile> slotprofile) { saveSlotProfileData(slotprofile.get()); };
 
-        vector<UnicodeString> loadSlotProfileNames();
+        std::vector<UnicodeString> loadSlotProfileNames();
 
-        void deleteSlotProfileData(UnicodeString name);
-        void deleteSlotProfileDataUTF8(string name) { deleteSlotProfileData(UnicodeString::fromUTF8(name)); };
-        SP<SlotProfile> loadSlotProfileData(UnicodeString name);
-        SP<SlotProfile> loadSlotProfileDataUTF8(string name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
+        void deleteSlotProfileData(const UnicodeString &name);
+        void deleteSlotProfileDataUTF8(const std::string &name) { deleteSlotProfileData(UnicodeString::fromUTF8(name)); };
+        SP<SlotProfile> loadSlotProfileData(const UnicodeString &name);
+        SP<SlotProfile> loadSlotProfileDataUTF8(const std::string &name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
 };
 
 enum Menu { /* These are menus for all of us! */
@@ -352,9 +347,9 @@ class ConfigurationInterface
         ConfigurationInterface(const ConfigurationInterface &ci) { };
         ConfigurationInterface& operator=(const ConfigurationInterface &ci) { return (*this); };
 
-        SP<Interface> interface;
-        SP<InterfaceElementWindow> window;
-        SP<InterfaceElementWindow> auxiliary_window;
+        SP<trankesbel::Interface> interface;
+        SP<trankesbel::InterfaceElementWindow> window;
+        SP<trankesbel::InterfaceElementWindow> auxiliary_window;
 
         SP<ConfigurationDatabase> configuration_database;
 
@@ -382,7 +377,7 @@ class ConfigurationInterface
 
         /* And this is where the currently edited user group should be copied
          * when done with it. ("watchers", "launchers", "etc.") */
-        string edit_slotprofile_target;
+        std::string edit_slotprofile_target;
 
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;
@@ -391,8 +386,8 @@ class ConfigurationInterface
         SP<User> user;
         WP<Client> client;
 
-        bool menuSelectFunction(ui32 index);
-        bool auxiliaryMenuSelectFunction(ui32 index);
+        bool menuSelectFunction(trankesbel::ui32 index);
+        bool auxiliaryMenuSelectFunction(trankesbel::ui32 index);
 
         bool shutdown;
 
@@ -400,7 +395,7 @@ class ConfigurationInterface
 
     public:
         ConfigurationInterface();
-        ConfigurationInterface(SP<Interface> interface);
+        ConfigurationInterface(SP<trankesbel::Interface> interface);
         ~ConfigurationInterface();
 
         /* Set/get the configuration database */
@@ -417,7 +412,7 @@ class ConfigurationInterface
         void cycle();
 
         /* Set interface to use from this */
-        void setInterface(SP<Interface> interface);
+        void setInterface(SP<trankesbel::Interface> interface);
 
         /* Sets the user for this interface. Calling this will also
          * call enableAdmin/disableAdmin according to user admin status. */
@@ -441,7 +436,7 @@ class ConfigurationInterface
         void disableAdmin();
 
         /* Generic user window, configuration and stuff is handled through this. */
-        SP<InterfaceElementWindow> getUserWindow();
+        SP<trankesbel::InterfaceElementWindow> getUserWindow();
 };
 
 

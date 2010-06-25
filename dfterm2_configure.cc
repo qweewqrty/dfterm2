@@ -6,7 +6,8 @@
 #include <unicode/unistr.h>
 #include "types.hpp"
 #include <openssl/rand.h>
-#include <sys/time.h>
+#include <time.h>
+#include <unicode/uclean.h>
 
 using namespace std;
 using namespace dfterm;
@@ -121,11 +122,14 @@ int main(int argc, char* argv[])
     cout << "Selecting database file " << database_file << endl;
 
     SP<ConfigurationDatabase> cdb(new ConfigurationDatabase);
-    if (cdb->openUTF8(database_file) == Failure)
+	OpenStatus os = cdb->openUTF8(database_file);
+    if (os == Failure)
     {
         cout << "Failed." << endl;
         return -1;
     }
+	if (os == OkCreatedNewDatabase)
+		cout << "Created a new database." << endl;
 
     User user;
     SP<User> user_sp;

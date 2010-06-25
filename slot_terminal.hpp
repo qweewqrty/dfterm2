@@ -11,9 +11,6 @@
 #include "termemu.h"
 #include "pty.h"
 
-using namespace boost;
-using namespace std;
-
 namespace dfterm
 {
 
@@ -21,15 +18,15 @@ class TerminalGlue : public Slot
 {
     private:
         bool alive;
-        recursive_mutex glue_mutex;
-        SP<thread> glue_thread;
+        boost::recursive_mutex glue_mutex;
+        SP<boost::thread> glue_thread;
 
         Terminal game_terminal;
         recursive_mutex game_terminal_mutex;
 
-        map<string, UnicodeString> parameters;
+        std::map<string, UnicodeString> parameters;
 
-        deque<pair<ui32, bool> > input_queue;
+        std::deque<pair<ui32, bool> > input_queue;
         void flushInput(Pty* program_pty);
 
         ui32 terminal_w, terminal_h;
@@ -44,7 +41,7 @@ class TerminalGlue : public Slot
         TerminalGlue();
         ~TerminalGlue();
 
-        void setParameter(string key, UnicodeString value);
+        void setParameter(std::string key, UnicodeString value);
 
         void getSize(ui32* width, ui32* height);
         bool isAlive();

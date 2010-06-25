@@ -111,7 +111,7 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
             set_buffer_address = true;
             if (!hooked_erase)
             {
-                HMODULE df_module = GetModuleHandle("Dwarf Fortress.exe");
+                HMODULE df_module = GetModuleHandleW(L"Dwarf Fortress.exe");
                 if (df_module)
                 {
                     MODULEINFO mi;
@@ -183,7 +183,7 @@ void patch_function(ptrdiff_t patched_function_addr, ptrdiff_t inject_function_a
     if (old_patch)
         memcpy(old_patch, (void*) patched_function_addr, 6);
 
-    char buf[6];
+    unsigned char buf[6];
 
     buf[0] = 0x68; /* push (32-bit) */
     buf[1] = (char) ((ptrdiff_t) inject_function_addr & 0x000000ff);
@@ -205,13 +205,13 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     me_process = GetCurrentProcess();
 
     /* Hook GetAsyncKeyState and friends */
-    HMODULE module = GetModuleHandle("User32");
+    HMODULE module = GetModuleHandleW(L"User32");
     LPCVOID gaks = (LPCVOID) GetProcAddress(module, "GetKeyState");
-    HMODULE module4 = GetModuleHandle("User32");
+    HMODULE module4 = GetModuleHandleW(L"User32");
     LPCVOID gaks4 = (LPCVOID) GetProcAddress(module4, "GetKeyboardState");
-    HMODULE module3 = GetModuleHandle("User32");
+    HMODULE module3 = GetModuleHandleW(L"User32");
     LPCVOID gaks2 = (LPCVOID) GetProcAddress(module3, "GetAsyncKeyState");
-    HMODULE module2 = GetModuleHandle("Ntdll");
+    HMODULE module2 = GetModuleHandleW(L"Ntdll");
     LPCVOID dwp = (LPCVOID) GetProcAddress(module, "DefWindowProcA");
     GetKeyState_addr = (ptrdiff_t) gaks;
     DefWindowProc_addr = (ptrdiff_t) dwp;

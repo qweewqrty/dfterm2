@@ -22,13 +22,12 @@ ConfigurationDatabase::~ConfigurationDatabase()
     db = (sqlite3*) 0;
 }
 
-OpenStatus ConfigurationDatabase::open(UnicodeString filename)
+OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
 {
     if (db) sqlite3_close(db);
     db = (sqlite3*) 0;
 
-    string filename_utf8;
-    filename.toUTF8String(filename_utf8);
+    string filename_utf8 = TO_UTF8(filename);
 
     /* Test if the database exists on the disk. */
     bool database_exists = true;
@@ -192,7 +191,7 @@ vector<SP<User> > ConfigurationDatabase::loadAllUserData()
     vector<SP<User> > result_users;
 
     function4<int, void*, int, char**, char**> sql_callback_function;
-    sql_callback_function = bind(&ConfigurationDatabase::userListDataCallback, this, &result_users, _1, _2, _3, _4);
+    sql_callback_function = boost::bind(&ConfigurationDatabase::userListDataCallback, this, &result_users, _1, _2, _3, _4);
 
     string statement;
     statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users;");
@@ -202,43 +201,40 @@ vector<SP<User> > ConfigurationDatabase::loadAllUserData()
     return result_users;
 }
 
-void ConfigurationDatabase::deleteSlotProfileData(UnicodeString name)
+void ConfigurationDatabase::deleteSlotProfileData(const UnicodeString &name)
 {
     if (!db) return;
 
-    string name_utf8;
-    name.toUTF8String(name_utf8);
+    string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return;
 
     string statement = string("DELETE FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';"); 
     sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 }
 
-void ConfigurationDatabase::deleteUserData(UnicodeString name)
+void ConfigurationDatabase::deleteUserData(const UnicodeString &name)
 {
     if (!db) return;
 
-    string name_utf8;
-    name.toUTF8String(name_utf8);
+    string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return;
 
     string statement = string("DELETE FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';"); 
     sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 }
 
-SP<User> ConfigurationDatabase::loadUserData(UnicodeString name)
+SP<User> ConfigurationDatabase::loadUserData(const UnicodeString &name)
 {
     if (!db) return SP<User>();
 
-    string name_utf8;
-    name.toUTF8String(name_utf8);
+    string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return SP<User>();
 
     string r_name, r_password_hash, r_password_salt;
     bool r_admin = false;
 
     function4<int, void*, int, char**, char**> sql_callback_function;
-    sql_callback_function = bind(&ConfigurationDatabase::userDataCallback, this, &r_name, &r_password_hash, &r_password_salt, &r_admin, _1, _2, _3, _4);
+    sql_callback_function = boost::bind(&ConfigurationDatabase::userDataCallback, this, &r_name, &r_password_hash, &r_password_salt, &r_admin, _1, _2, _3, _4);
 
     string statement;
     statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
@@ -260,8 +256,7 @@ void ConfigurationDatabase::saveUserData(User* user)
     if (!db) return;
     if (!user) return;
 
-    string name_utf8;
-    user->getName().toUTF8String(name_utf8);
+    string name_utf8 = TO_UTF8(user->getName());
     if (escape_sql_string(name_utf8).size() < 1) return;
 
     string statement;
@@ -316,7 +311,7 @@ vector<UnicodeString> ConfigurationDatabase::loadSlotProfileNames()
     vector<UnicodeString> name_list;
 
     function4<int, void*, int, char**, char**> sql_callback_function;
-    sql_callback_function = bind(&ConfigurationDatabase::slotprofileNameListDataCallback, this, &name_list, _1, _2, _3, _4);
+    sql_callback_function = boost::bind(&ConfigurationDatabase::slotprofileNameListDataCallback, this, &name_list, _1, _2, _3, _4);
 
     char* errormsg = (char*) 0;
 
@@ -334,17 +329,16 @@ vector<UnicodeString> ConfigurationDatabase::loadSlotProfileNames()
     return name_list;
 }
 
-SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(UnicodeString name)
+SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(const UnicodeString &name)
 {
     if (!db) return SP<SlotProfile>();
 
-    string name_utf8;
-    name.toUTF8String(name_utf8);
+    string name_utf8 = TO_UTF8(name);
 
     SlotProfile sp;
 
     function4<int, void*, int, char**, char**> sql_callback_function;
-    sql_callback_function = bind(&ConfigurationDatabase::slotprofileDataCallback, this, &sp, _1, _2, _3, _4);
+    sql_callback_function = boost::bind(&ConfigurationDatabase::slotprofileDataCallback, this, &sp, _1, _2, _3, _4);
 
     char* errormsg = (char*) 0;
 
@@ -362,7 +356,7 @@ SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(UnicodeString name)
     return SP<SlotProfile>(new SlotProfile(sp));
 };
 
-data1D dfterm::escape_sql_string(data1D str)
+data1D dfterm::escape_sql_string(const data1D &str)
 {
     data1D result;
     result.reserve(str.size());
@@ -382,7 +376,7 @@ data1D dfterm::escape_sql_string(data1D str)
     return result;
 }
 
-data1D dfterm::bytes_to_hex(data1D bytes)
+data1D dfterm::bytes_to_hex(const data1D &bytes)
 {
     data1D result;
     result.reserve(bytes.size() * 2);
@@ -402,7 +396,7 @@ data1D dfterm::bytes_to_hex(data1D bytes)
     return result;
 }
 
-data1D dfterm::hash_data(data1D chunk)
+data1D dfterm::hash_data(const data1D &chunk)
 {
     SHA512_CTX c;
     SHA512_Init(&c);

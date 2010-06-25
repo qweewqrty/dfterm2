@@ -1,4 +1,4 @@
-#ifndef __WIN32
+#ifndef _WIN32
 #error "dfglue is only for Windows. For UNIX/Linux/BSD/Some other use pty instead."
 #endif
 
@@ -237,7 +237,7 @@ void DFGlue::thread_function()
                     vkey = VK_RETURN;
                 else
                 {
-                    SHORT keyscan = VkKeyScan(keycode);
+                    SHORT keyscan = VkKeyScanW((WCHAR) keycode);
                     vkey = (DWORD) (keyscan & 0xFF);
                     if ((keyscan & 0x00ff) != -1 && (keyscan & 0xff00))
                         shift_down_now = true;
@@ -469,15 +469,14 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     UnicodeString work_dir = parameters["work"];
     ulock.unlock();
 
-    string path_utf8, work_dir_utf8;
-    path.toUTF8String(path_utf8);
-    work_dir.toUTF8String(work_dir_utf8);
+    wchar_t path_cstr[MAX_PATH+1], working_path[MAX_PATH+1];
+    memset(path_cstr, 0, (MAX_PATH+1)*sizeof(wchar_t));
+    memset(working_path, 0, (MAX_PATH+1)*sizeof(wchar_t));
+	size_t path_size = MAX_PATH;
+	size_t work_size = MAX_PATH;
+	TO_WCHAR_STRING(path, path_cstr, &path_size);
+	TO_WCHAR_STRING(work_dir, working_path, &work_size);
     
-    char path_cstr[MAX_PATH+1], working_path[MAX_PATH+1];
-    memset(path_cstr, 0, MAX_PATH+1);
-    memset(working_path, 0, MAX_PATH+1);
-    memcpy(path_cstr, path_utf8.c_str(), min(path_utf8.size(), (size_t) MAX_PATH));
-    memcpy(working_path, work_dir_utf8.c_str(), min(work_dir_utf8.size(), (size_t) MAX_PATH));
     STARTUPINFO sup;
     memset(&sup, 0, sizeof(STARTUPINFO));
     sup.cb = sizeof(sup);
@@ -485,7 +484,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(pi));
 
-    if (!CreateProcess(NULL, path_cstr, NULL, NULL, FALSE, 0, NULL, working_path, &sup, &pi))
+    if (!CreateProcessW(NULL, path_cstr, NULL, NULL, FALSE, 0, NULL, working_path, &sup, &pi))
     {
         LOG(Error, "SLOT/DFGlue: CreateProcess() failed with GetLastError() == " << GetLastError());
         return false;
@@ -530,14 +529,15 @@ bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 
         HMODULE h_mod;
         DWORD cb_needed;
-        TCHAR process_name[MAX_PATH];
+        WCHAR process_name[MAX_PATH+1];
+		process_name[MAX_PATH] = 0;
 
         if (EnumProcessModules(h_p, &h_mod, sizeof(h_mod), &cb_needed))
         {
-            GetModuleBaseName(h_p, h_mod, process_name, sizeof(process_name) / sizeof(TCHAR));
+            GetModuleBaseNameW(h_p, h_mod, process_name, sizeof(process_name) / sizeof(TCHAR));
 
-            if (string(process_name) == string("dwarfort.exe") ||
-                string(process_name) == string("Dwarf Fortress.exe"))
+            if (TO_UTF8(process_name) == string("dwarfort.exe") ||
+                TO_UTF8(process_name) == string("Dwarf Fortress.exe"))
             {
                 df_handle = h_p;
                 break;
@@ -597,10 +597,10 @@ bool DFGlue::detectDFVersion()
     if (!df_handle) return false;
 
     /* Find the DF executable, open it, and calculate checksum for it. */
-    char image_file_name[1001];
+    WCHAR image_file_name[1001];
     memset(image_file_name, 0, 1001);
-    GetModuleFileNameEx(df_handle, NULL, image_file_name, 1000);
-    FILE* f = fopen(image_file_name, "rb");
+    GetModuleFileNameExW(df_handle, NULL, image_file_name, 1000);
+    FILE* f = _wfopen(image_file_name, L"rb");
     if (!f)
         return false;
     /* We read 100000 bytes from the executable */
@@ -608,7 +608,7 @@ bool DFGlue::detectDFVersion()
     memset(buf, 0, 100000);
     fread(buf, 100000, 1, f);
     fclose(f);
-    uint32_t csum = checksum(buf, 100000);
+    ::uint32_t csum = checksum(buf, 100000);
 
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum);
 
@@ -769,7 +769,7 @@ bool DFGlue::injectDLL(string dllname)
                             (LPCVOID) dllname.c_str(), dllname.size(), NULL))
         return false;
 
-    HMODULE k32 = GetModuleHandle("Kernel32");
+    HMODULE k32 = GetModuleHandleW(L"Kernel32");
     FARPROC loadlibrary_address = GetProcAddress(k32, "LoadLibraryA");
 
     HANDLE remote_thread = CreateRemoteThread(df_handle, NULL, 0, (LPTHREAD_START_ROUTINE) loadlibrary_address, address, 0, NULL);

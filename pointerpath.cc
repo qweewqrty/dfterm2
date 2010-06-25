@@ -1,13 +1,17 @@
 #include "slot_dfglue.hpp"
-#ifndef __WIN32
+#ifndef _WIN32
 #error "Windows-only source file."
 #endif
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <psapi.h>
+#include <iostream>
 
 using namespace dfterm;
+using namespace std;
+using namespace trankesbel;
+using namespace std;
 
 PointerPath::PointerPath()
 {
@@ -32,7 +36,7 @@ void PointerPath::pushAddress(ptrdiff_t offset, string module)
     needs_search = true;
 }
 
-void PointerPath::pushSearchAddress(SearchAddress sa, std::string module, ptrdiff_t end_offset)
+void PointerPath::pushSearchAddress(SearchAddress sa, string module, ptrdiff_t end_offset)
 {
     address.push_back(0);
     this->module.push_back(module);
@@ -50,19 +54,19 @@ void PointerPath::enumModules(HANDLE df_handle)
 
     module_addresses.clear();
     int i1;
-    char namebuf[1000];
+    WCHAR namebuf[1000];
     namebuf[999] = 0;
 
     for (i1 = 0; i1 < num_modules; i1++)
     {
         MODULEINFO mi;
 
-        int length = GetModuleBaseName(df_handle, modules[i1], namebuf, 999);
+        int length = GetModuleBaseNameW(df_handle, modules[i1], namebuf, 999);
         if (!GetModuleInformation(df_handle, modules[i1], &mi, sizeof(mi)))
             continue;
 
         if (length > 0)
-            module_addresses.insert(pair<string, pair<ptrdiff_t, ptrdiff_t> >(string(namebuf, length), pair<ptrdiff_t, ptrdiff_t>((ptrdiff_t) mi.lpBaseOfDll, (ptrdiff_t) mi.SizeOfImage)));
+            module_addresses.insert(pair<string, pair<ptrdiff_t, ptrdiff_t> >(TO_UTF8(namebuf, length), pair<ptrdiff_t, ptrdiff_t>((ptrdiff_t) mi.lpBaseOfDll, (ptrdiff_t) mi.SizeOfImage)));
     }
 }
 

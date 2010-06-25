@@ -1,7 +1,7 @@
 #ifndef slot_dfglue_hpp
 #define slot_dfglue_hpp
 
-#ifndef __WIN32
+#ifndef _WIN32
 #error "DF glue is only for Windows."
 #endif
 
@@ -18,10 +18,6 @@
 #include "termemu.h"
 #include "interface_ncurses.hpp"
 
-using namespace boost;
-using namespace trankesbel;
-using namespace std;
-
 namespace dfterm
 {
 
@@ -37,18 +33,18 @@ template<class T> bool inline max_comp(const T& a, const T& b)
 class SearchAddress
 {
     private:
-        map<ptrdiff_t, pair<ui8, SearchCompare> > values8;
-        map<ptrdiff_t, pair<ui16, SearchCompare> > values16;
-        map<ptrdiff_t, pair<ui32, SearchCompare> > values32;
+        std::map<ptrdiff_t, std::pair<trankesbel::ui8, SearchCompare> > values8;
+        std::map<ptrdiff_t, std::pair<trankesbel::ui16, SearchCompare> > values16;
+        std::map<ptrdiff_t, std::pair<trankesbel::ui32, SearchCompare> > values32;
 
     public:
         void reset() { values8.clear(); values16.clear(); values32.clear(); };
-        void pushByte(ptrdiff_t offset, ui8 byte, SearchCompare comparetype = Equal)
-        { values8[offset] = pair<ui8, SearchCompare>(byte, comparetype); };
-        void pushShort(ptrdiff_t offset, ui16 short16, SearchCompare comparetype = Equal)
-        { values16[offset] = pair<ui16, SearchCompare>(short16, comparetype); };
-        void pushInt(ptrdiff_t offset, ui32 integer32, SearchCompare comparetype = Equal)
-        { values32[offset] = pair<ui32, SearchCompare>(integer32, comparetype); };
+        void pushByte(ptrdiff_t offset, trankesbel::ui8 byte, SearchCompare comparetype = Equal)
+        { values8[offset] = std::pair<trankesbel::ui8, SearchCompare>(byte, comparetype); };
+        void pushShort(ptrdiff_t offset, trankesbel::ui16 short16, SearchCompare comparetype = Equal)
+        { values16[offset] = std::pair<trankesbel::ui16, SearchCompare>(short16, comparetype); };
+        void pushInt(ptrdiff_t offset, trankesbel::ui32 integer32, SearchCompare comparetype = Equal)
+        { values32[offset] = std::pair<trankesbel::ui32, SearchCompare>(integer32, comparetype); };
 
         template<class T> bool compareValue(T value, T value2, SearchCompare comparetype)
         {
@@ -88,18 +84,18 @@ class SearchAddress
         bool compareMemory(void* data)
         {
             unsigned char* c = (unsigned char*) data;
-            map<ptrdiff_t, pair<ui8, SearchCompare> >::iterator i8;
-            map<ptrdiff_t, pair<ui16, SearchCompare> >::iterator i16;
-            map<ptrdiff_t, pair<ui32, SearchCompare> >::iterator i32;
+            std::map<ptrdiff_t, std::pair<trankesbel::ui8, SearchCompare> >::iterator i8;
+            std::map<ptrdiff_t, std::pair<trankesbel::ui16, SearchCompare> >::iterator i16;
+            std::map<ptrdiff_t, std::pair<trankesbel::ui32, SearchCompare> >::iterator i32;
 
             for (i8 = values8.begin(); i8 != values8.end(); i8++)
                 if (!compareValue(i8->second.first, c[i8->first], i8->second.second))
                     return false;
             for (i16 = values16.begin(); i16 != values16.end(); i16++)
-                if (!compareValue(i16->second.first, *((ui16*) &c[i16->first]), i16->second.second))
+                if (!compareValue(i16->second.first, *((trankesbel::ui16*) &c[i16->first]), i16->second.second))
                     return false;
             for (i32 = values32.begin(); i32 != values32.end(); i32++)
-                if (!compareValue(i32->second.first, *((ui32*) &c[i32->first]), i32->second.second))
+                if (!compareValue(i32->second.first, *((trankesbel::ui32*) &c[i32->first]), i32->second.second))
                     return false;
 
             return true;
@@ -113,11 +109,11 @@ class SearchAddress
 class PointerPath
 {
     private:
-        vector<ptrdiff_t> address;
-        vector<string> module;
-        vector<pair<SearchAddress, ptrdiff_t> > search_address;
+        std::vector<ptrdiff_t> address;
+        std::vector<std::string> module;
+        std::vector<std::pair<SearchAddress, ptrdiff_t> > search_address;
 
-        map<string, pair<ptrdiff_t, ptrdiff_t> > module_addresses;
+        std::map<std::string, std::pair<ptrdiff_t, ptrdiff_t> > module_addresses;
 
         bool needs_search;
 
@@ -133,13 +129,13 @@ class PointerPath
         PointerPath();
 
         void reset();
-        void pushAddress(ptrdiff_t offset, string module = string(""));
+        void pushAddress(ptrdiff_t offset, std::string module = std::string(""));
 
-        void pushSearchAddress(SearchAddress sa, string module, ptrdiff_t end_offset);
+        void pushSearchAddress(SearchAddress sa, std::string module, ptrdiff_t end_offset);
 
-        vector<ptrdiff_t> &getAddressList() { return address; };
-        vector<string> &getModuleList() { return module; };
-        vector<pair<SearchAddress, ptrdiff_t> > &getSearchAddressList() { return search_address; };
+        std::vector<ptrdiff_t> &getAddressList() { return address; };
+        std::vector<std::string> &getModuleList() { return module; };
+        std::vector<std::pair<SearchAddress, ptrdiff_t> > &getSearchAddressList() { return search_address; };
 
         ptrdiff_t getFinalAddress(HANDLE df_handle);
 };
@@ -154,20 +150,20 @@ class DFGlue : public Slot
 {
     private:
         bool alive;
-        recursive_mutex glue_mutex;
-        SP<thread> glue_thread;
+        boost::recursive_mutex glue_mutex;
+        SP<boost::thread> glue_thread;
 
         bool isDFClosed();
 
-        ui64 ticks_per_second;
+        trankesbel::ui64 ticks_per_second;
 
-        ui32 df_w, df_h;
+        trankesbel::ui32 df_w, df_h;
 
         /* Input deque */
-        deque<pair<ui32, bool> > input_queue;
+        std::deque<std::pair<trankesbel::ui32, bool> > input_queue;
 
         HANDLE df_handle;
-        vector<HWND> df_windows;
+        std::vector<HWND> df_windows;
 
         /* Terminal for DF screen. */
         Terminal df_terminal;
@@ -195,19 +191,19 @@ class DFGlue : public Slot
         DFScreenDataFormat data_format;
 
         /* Turns rgb floating point values to a terminal color. */
-        static void buildColorFromFloats(float32 r, float32 g, float32 b, Color* color, bool* bold);
+        static void buildColorFromFloats(trankesbel::float32 r, trankesbel::float32 g, trankesbel::float32 b, trankesbel::Color* color, bool* bold);
 
         void updateDFWindowTerminal();
 
         /* Launches a new DF process and fills in pointers. */
         /* Returns false if no can do. */
-        bool launchDFProcess(HANDLE* df_process, vector<HWND>* df_window);
+        bool launchDFProcess(HANDLE* df_process, std::vector<HWND>* df_window);
         /* This finds a running DF process for us. */
-        static bool findDFProcess(HANDLE* df_process, vector<HWND>* df_window);
+        static bool findDFProcess(HANDLE* df_process, std::vector<HWND>* df_window);
         /* Find the window for DF process. Needs process id */
-        static bool findDFWindow(vector<HWND>* df_window, DWORD pid);
+        static bool findDFWindow(std::vector<HWND>* df_window, DWORD pid);
         /* A callback for enumerating windows */
-        static BOOL enumDFWindow(HWND hwnd, LPARAM strct);
+        static BOOL CALLBACK enumDFWindow(HWND hwnd, LPARAM strct);
 
         /* Reads current DF window size from memory. */
         void updateWindowSizeFromDFMemory();
@@ -216,16 +212,16 @@ class DFGlue : public Slot
         bool detectDFVersion();
 
         /* Injects a DLL to the DF process.  */
-        bool injectDLL(string dllname);
+        bool injectDLL(std::string dllname);
 
         /* Maps trankesbel (special) key codes to windows virtual keys. */
-        map<KeyCode, DWORD> vkey_mappings;
+        std::map<trankesbel::KeyCode, DWORD> vkey_mappings;
         /* Initialize aformentioned map */
         void initVkeyMappings();
 
         bool dont_take_running_process;
 
-        map<string, UnicodeString> parameters;
+        std::map<std::string, UnicodeString> parameters;
 
     public:
         DFGlue();
@@ -234,11 +230,11 @@ class DFGlue : public Slot
                                process. */
         ~DFGlue();
 
-        void setParameter(string str, UnicodeString str2) { lock_guard<recursive_mutex> lock(glue_mutex); parameters[str] = str2; };
-        void getSize(ui32* width, ui32* height);
+        void setParameter(std::string str, UnicodeString str2) { boost::lock_guard<boost::recursive_mutex> lock(glue_mutex); parameters[str] = str2; };
+        void getSize(trankesbel::ui32* width, trankesbel::ui32* height);
         bool isAlive();
-        void unloadToWindow(SP<Interface2DWindow> target_window);
-        void feedInput(ui32 keycode, bool special_key);
+        void unloadToWindow(SP<trankesbel::Interface2DWindow> target_window);
+        void feedInput(trankesbel::ui32 keycode, bool special_key);
 };
 
 }

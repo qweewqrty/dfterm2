@@ -10,9 +10,6 @@
 #include <unicode/unistr.h>
 #include <time.h>
 
-using namespace std;
-using namespace boost;
-
 namespace dfterm
 {
 
@@ -25,16 +22,16 @@ class LoggerReader;
 class Logger
 {
     private:
-        recursive_mutex logmutex;
-        vector<WP<LoggerReader> > readers;
+        boost::recursive_mutex logmutex;
+        std::vector<WP<LoggerReader> > readers;
 
     public:
         /* Logs a unicode message. */
         void logMessage(const UnicodeString &message);
         /* Logs a UTF-8 encoded message. (standard string) */
-        void logMessageUTF8(string message);
+        void logMessageUTF8(const std::string &message);
         /* Logs a UTF-8 encoded message. (string stream) */
-        void logMessageUTF8(const stringstream &message);
+        void logMessageUTF8(const std::stringstream &message);
         /* Logs a UTF-8 encoded message. (C-string) */
         void logMessageUTF8(const char* message, size_t len);
         /* logs a UTF-8 encoded message. (C-string, null terminated) */
@@ -51,8 +48,8 @@ class LoggerReader
 {
     friend class Logger;
     private:
-        recursive_mutex logmutex;
-        queue<UnicodeString> messages;
+        boost::recursive_mutex logmutex;
+        std::queue<UnicodeString> messages;
         void logMessage(UnicodeString message);
 
     public:
@@ -92,8 +89,8 @@ enum Notability { Note, Error, Fatal };
 
 
 /* This is the most monstrous macro I have ever written. Please don't send me to hell. */
-#ifdef __WIN32
-#define LOG(notability, stringstream_msg) ({ std::stringstream ss; \
+#ifdef _WIN32
+#define LOG(notability, stringstream_msg) { std::stringstream ss; \
                                         dfterm::initialize_logger(); \
                                         wchar_t msg[1000]; \
                                         UChar msg_uchar[1000]; \
@@ -105,7 +102,7 @@ enum Notability { Note, Error, Fatal };
                                         { \
                                             admin_logger->logMessageUTF8("Error while trying to make a log message. wcsftime() returned 0."); \
                                         } else { \
-                                        int32_t msg_len = 0; \
+                                        ::int32_t msg_len = 0; \
                                         UErrorCode uerror = U_ZERO_ERROR; \
                                         u_strFromWCS(msg_uchar, 999, &msg_len, msg, -1, &uerror); \
                                         if (U_FAILURE(uerror)) \
@@ -113,8 +110,7 @@ enum Notability { Note, Error, Fatal };
                                             admin_logger->logMessageUTF8("Error while trying to make a log message."); \
                                         } else { \
                                         UnicodeString msg_us(msg_uchar, msg_len); \
-                                        string msg_utf8; \
-                                        msg_us.toUTF8String(msg_utf8); \
+                                        string msg_utf8 = TO_UTF8(msg_us); \
                                         ss << msg_utf8 << " "; \
                                         if (notability == dfterm::Note) \
                                             ss << "Note: "; \
@@ -125,9 +121,9 @@ enum Notability { Note, Error, Fatal };
                                         ss << stringstream_msg; \
                                         admin_logger->logMessageUTF8(ss.str()); \
                                         } } \
-                                       })
+                                       }
 #else
-#define LOG(notability, stringstream_msg) ({ std::stringstream ss; \
+#define LOG(notability, stringstream_msg) { std::stringstream ss; \
                                         dfterm::initialize_logger(); \
                                         wchar_t msg[1000]; \
                                         UChar msg_uchar[1000]; \
@@ -140,7 +136,7 @@ enum Notability { Note, Error, Fatal };
                                         { \
                                             admin_logger->logMessageUTF8("Error while trying to make a log message. wcsftime() returned 0."); \
                                         } else { \
-                                        int32_t msg_len = 0; \
+                                        ::int32_t msg_len = 0; \
                                         UErrorCode uerror = U_ZERO_ERROR; \
                                         u_strFromWCS(msg_uchar, 999, &msg_len, msg, -1, &uerror); \
                                         if (U_FAILURE(uerror)) \
@@ -160,7 +156,7 @@ enum Notability { Note, Error, Fatal };
                                         ss << stringstream_msg; \
                                         admin_logger->logMessageUTF8(ss.str()); \
                                         } } \
-                                       })
+                                       }
 #endif
 
 } /* namespace dfterm */

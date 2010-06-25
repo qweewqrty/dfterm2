@@ -22,14 +22,11 @@ namespace dfterm
 #include "dfterm2_configuration.hpp"
 #include "state.hpp"
 
-using namespace std;
-using namespace trankesbel;
-
 namespace dfterm
 {
 
 /* And their human-readable names */
-const string SlotNames[] = { "Grab a running DF instance.",
+const std::string SlotNames[] = { "Grab a running DF instance.",
                              "Launch a new DF instance.",
                              "Launch a new terminal program instance." };
 
@@ -60,7 +57,7 @@ class Slot
 
         /* Creates a slot of given slottype.
            If it fails, returns a null pointer. */
-        static SP<Slot> createSlot(string slottype);
+        static SP<Slot> createSlot(std::string slottype);
         static SP<Slot> createSlot(SlotType st) { return createSlot(SlotNames[(size_t) st]); };
 
         /* Sets/gets the slot profile used to create this slot. */
@@ -81,14 +78,14 @@ class Slot
 
         /* Gives/retrieves a name of the slot. */
         void setName(UnicodeString name) { this->name = name; };
-        void setNameUTF8(string name) { this->name = UnicodeString::fromUTF8(name); };
+        void setNameUTF8(std::string name) { this->name = UnicodeString::fromUTF8(name); };
         UnicodeString getName() const { return name; };
-        string getNameUTF8() const { string r; name.toUTF8String(r); return r; };
+        std::string getNameUTF8() const { return TO_UTF8(name); };
 
         /* Sets a generic parameter for slot. (See SlotTypes enum for explanations) 
          * TODO: Maybe roll some RTTI-like system to get real methods like setWorkingDirectory()
          * and setDFExecutablePath() instead of a lousy interface like this to set those. */
-        virtual void setParameter(string key, UnicodeString value) = 0;
+        virtual void setParameter(std::string key, UnicodeString value) = 0;
 
         /* Returns false if slot is dead and should be thrown away. 
            Slot can die if, for example, the DF session in it closed or could not be started. */
@@ -96,27 +93,27 @@ class Slot
 
         /* Returns the current size of the slot (in pointers). 
            If slot is empty, sets them to 80x25. */
-        virtual void getSize(ui32* width, ui32* height) = 0;
+        virtual void getSize(trankesbel::ui32* width, trankesbel::ui32* height) = 0;
 
         /* Unloads current screen to target window.
            This may include a resize to the window. */
-        virtual void unloadToWindow(SP<Interface2DWindow> target_window) = 0;
+        virtual void unloadToWindow(SP<trankesbel::Interface2DWindow> target_window) = 0;
 
         /* Sends input to the slot. */
-        virtual void feedInput(ui32 keycode, bool special_key) = 0;
+        virtual void feedInput(trankesbel::ui32 keycode, bool special_key) = 0;
 };
 
 /* Lists slot types. */
 class SlotEnumerator
 {
     private:
-        ui32 slot;
+        trankesbel::ui32 slot;
 
     public:
         SlotEnumerator() { slot = 0; };
-        string getSlotType() 
+        std::string getSlotType() 
         {
-            if (slot >= (ui32) InvalidSlotType) return string("");
+            if (slot >= (trankesbel::ui32) InvalidSlotType) return std::string("");
             return SlotNames[slot++]; 
         };
 };

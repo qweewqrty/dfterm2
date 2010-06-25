@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     unsigned int ticks_per_second = 20;
 
     function3<void, bool, SocketAddress, string> resolve_binding = 
-    bind(resolve_success, &succeeded_resolve, &listen_address, &error_message, _1, _2, _3);
+    boost::bind(resolve_success, &succeeded_resolve, &listen_address, &error_message, _1, _2, _3);
 
     int i1;
     for (i1 = 1; i1 < argc; i1++)

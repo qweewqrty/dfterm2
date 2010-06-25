@@ -6,6 +6,8 @@
 
 using namespace dfterm;
 using namespace std;
+using namespace boost;
+using namespace trankesbel;
 
 static bool state_initialized = false;
 
@@ -79,9 +81,7 @@ SP<State> State::createState()
 
 bool State::setDatabase(UnicodeString database_file)
 {
-    string r;
-    database_file.toUTF8String(r);
-    return setDatabaseUTF8(r);
+	return setDatabaseUTF8(TO_UTF8(database_file));
 }
 
 bool State::setDatabaseUTF8(string database_file)
@@ -149,7 +149,7 @@ bool State::addTelnetService(SocketAddress address)
     return true;
 }
 
-void State::setTicksPerSecond(uint64_t ticks_per_second)
+void State::setTicksPerSecond(::uint64_t ticks_per_second)
 {
     this->ticks_per_second = ticks_per_second;
 }
@@ -336,8 +336,7 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
             break;
         }
 
-    string slot_name_utf8;
-    slot_name.toUTF8String(slot_name_utf8);
+    string slot_name_utf8 = TO_UTF8(slot_name_utf8);
 
     if (!client)
     {
@@ -443,9 +442,9 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
     if (!slot_profile)
     {
         if (launcher)
-            LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a null slot profile.");
+		    { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a null slot profile."); }
         else
-            LOG(Error, "Null user attempted to launch a null slot profile.");
+		    { LOG(Error, "Null user attempted to launch a null slot profile."); }
         return false;
     }
 
@@ -454,9 +453,9 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
         if ((*i1) == slot_profile)
             return launchSlotNoCheck(*i1, launcher);
     if (launcher)
-        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile that does not exist in slot profile list.");
+	    { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile that does not exist in slot profile list."); }
     else
-        LOG(Error, "Null user attempted to launch a slot profile that does not exist in slot profile list.");
+	    { LOG(Error, "Null user attempted to launch a slot profile that does not exist in slot profile list."); }
     return false;
 }
 
@@ -466,12 +465,11 @@ bool State::launchSlot(UnicodeString slot_profile_name, SP<User> launcher)
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
         if ((*i1) && (*i1)->getName() == slot_profile_name)
             return launchSlotNoCheck(*i1, launcher);
-    string utf8_name;
-    slot_profile_name.toUTF8String(utf8_name);
+    string utf8_name = TO_UTF8(slot_profile_name);
     if (launcher)
-        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list.");
+	    { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list."); }
     else
-        LOG(Error, "Null user attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list.");
+	    { LOG(Error, "Null user attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list."); }
     return false;
 }
 
@@ -529,9 +527,9 @@ void State::pruneInactiveSlots()
         if (!slots[i2] || !slots[i2]->isAlive())
         {
             if (!slots[i2])
-                LOG(Note, "Removed a null slot from slot list.");
+			    { LOG(Note, "Removed a null slot from slot list."); }
             else
-                LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list.");
+			    { LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list."); }
                 
             unique_lock<recursive_mutex> lock2(clients_mutex);
             vector<SP<Client> >::iterator i1;
@@ -624,8 +622,8 @@ void State::new_connection(SP<Socket> listening_socket)
 void State::loop()
 {
     /* Use these for timing ticks */
-    uint64_t start_time;
-    const uint64_t tick_time = 1000000000 / ticks_per_second;
+    ::uint64_t start_time;
+    const ::uint64_t tick_time = 1000000000 / ticks_per_second;
 
     close = false;
     while(!close)

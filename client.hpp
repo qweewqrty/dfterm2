@@ -6,6 +6,7 @@ namespace dfterm
     class Client;
 };
 
+#include "types.hpp"
 #include "interface_termemu.hpp"
 #include "termemu.h"
 #include "sockets.hpp"
@@ -18,12 +19,10 @@ namespace dfterm
 namespace dfterm
 {
 
-using namespace trankesbel;
-
 class Client;
 
 /* Required by TelnetSession */
-class ClientTelnetSession : public TelnetSession
+class ClientTelnetSession : public trankesbel::TelnetSession
 {
     private:
         WP<Client> client;
@@ -42,12 +41,12 @@ class Client
 {
     private:
         ClientTelnetSession ts;
-        SP<Socket> client_socket;
-        SP<InterfaceTermemu> interface;
+        SP<trankesbel::Socket> client_socket;
+        SP<trankesbel::InterfaceTermemu> interface;
         Terminal buffer_terminal;
         Terminal last_client_terminal;
 
-        recursive_mutex cycle_mutex;
+        boost::recursive_mutex cycle_mutex;
 
         bool slot_active_in_last_cycle;
 
@@ -71,10 +70,10 @@ class Client
            (Creates windows etc.) */
         void clientIdentified();
 
-        ui32 chat_window_input_index;
+        trankesbel::ui32 chat_window_input_index;
 
         /* Maximum number of lines in chat history. */
-        ui32 max_chat_history;
+        trankesbel::ui32 max_chat_history;
 
         SP<Logger> global_chat;
         SP<LoggerReader> global_chat_reader;
@@ -88,27 +87,27 @@ class Client
         SP<User> user;
 
         /* Nicks go in this window */
-        SP<InterfaceElementWindow> nicklist_window;
+        SP<trankesbel::InterfaceElementWindow> nicklist_window;
         /* And chat to this window */
-        SP<InterfaceElementWindow> chat_window;
+        SP<trankesbel::InterfaceElementWindow> chat_window;
         /* And the game screen to this one */
-        SP<Interface2DWindow> game_window;
+        SP<trankesbel::Interface2DWindow> game_window;
         /* Configuration window */
-        SP<InterfaceElementWindow> config_window;
+        SP<trankesbel::InterfaceElementWindow> config_window;
 
         /* Identify window. Exists only at start. */
-        SP<InterfaceElementWindow> identify_window;
+        SP<trankesbel::InterfaceElementWindow> identify_window;
 
         /* Used to keep nick list up to date. */
-        vector<WP<Client> >* clients;
+        std::vector<WP<Client> >* clients;
         void updateNicklistWindow();
         /* This one calls updateNicklistWindow for all clients in that vector. */
         void updateNicklistWindowForAll();
 
         bool do_full_redraw;
         bool packet_pending;
-        ui32 packet_pending_index;
-        string deltas;
+        trankesbel::ui32 packet_pending_index;
+        std::string deltas;
 
         WP<Client> self;
         WP<State> state;
@@ -121,18 +120,18 @@ class Client
         Client() { };
 
         /* Create a client and associate a socket with it. */
-        Client(SP<Socket> client_socket);
+        Client(SP<trankesbel::Socket> client_socket);
 
         void setSelf(WP<Client> c) { self = c; ts.setClient(self); };
 
         /* Callback functions. */
-        bool chatRestrictFunction(ui32* keycode, ui32* cursor);
-        bool chatSelectFunction(ui32 index);
-        bool identifySelectFunction(ui32 index);
-        void gameInputFunction(ui32 keycode, bool special_key);
+        bool chatRestrictFunction(trankesbel::ui32* keycode, trankesbel::ui32* cursor);
+        bool chatSelectFunction(trankesbel::ui32 index);
+        bool identifySelectFunction(trankesbel::ui32 index);
+        void gameInputFunction(trankesbel::ui32 keycode, bool special_key);
 
     public:
-        static SP<Client> createClient(SP<Socket> client_socket);
+        static SP<Client> createClient(SP<trankesbel::Socket> client_socket);
         /* Destructor */
         ~Client();
 
@@ -145,7 +144,7 @@ class Client
         WP<ConfigurationDatabase> getConfigurationDatabase() const;
 
         /* Returns the socket the client is using */
-        SP<Socket> getSocket() { return client_socket; };
+        SP<trankesbel::Socket> getSocket() { return client_socket; };
 
         /* Returns true if client connection is active. */
         bool isActive() const;
@@ -169,7 +168,7 @@ class Client
 
         /* Sets the vector of clients that are connected. This is used
            to fill nicklist window, if set. */
-        void setClientVector(vector<WP<Client> >* clients);
+        void setClientVector(std::vector<WP<Client> >* clients);
         /* Tells this client that client list has been updated. 
            No effect if client vector has not been set with above call. */
         void updateClients() { updateNicklistWindow(); };

@@ -8,6 +8,7 @@
 
 using namespace dfterm;
 using namespace std;
+using namespace trankesbel;
 
 SP<Slot> Slot::createSlot(string slottype)
 {

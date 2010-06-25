@@ -1,7 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 project (dfterm2)
 
+link_directories(${Boost_LIBRARY_DIRS})
+
 subdirs (trankesbel)
+
+SET(NO_CURSES)
 
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
@@ -42,16 +46,35 @@ include_directories(${BOOST_ROOT})
 include_directories(${CURSES_INCLUDE_DIR})
 include_directories(${PCRE_INCLUDE_PATH})
 
+
 # The injection glue is only for Win32
 IF (WIN32)
     add_library(dfterm_injection_glue SHARED dfterm_injection_glue.cc)
     target_link_libraries(dfterm_injection_glue psapi)
 ENDIF (WIN32)
 
-ADD_DEFINITIONS("-Wall -D_UNICODE")
+IF (CMAKE_COMPILER_IS_GNUCXX) 
+    ADD_DEFINITIONS("-Wall -D_UNICODE")
+ENDIF (CMAKE_COMPILER_IS_GNUCXX)
+
+IF (MSVC)
+    ADD_DEFINITIONS("/D_UNICODE")
+ENDIF (MSVC)
+
+IF (NO_CURSES)
+    IF (MSVC)
+        ADD_DEFINITIONS("/DNO_CURSES")
+    ENDIF (MSVC)
+    IF (CMAKE_COMPILER_IS_GNUCXX)
+        ADD_DEFINITIONS("-DNO_CURSES")
+    ENDIF (CMAKE_COMPILE_IS_GNUCXX)
+ENDIF (NO_CURSES)
 
 IF (PROFILE)
-ADD_DEFINITIONS("-pg")
-SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure PROPERTIES LINK_FLAGS -pg)
+    IF (CMAKE_COMPILER_IS_GNUCXX)
+        ADD_DEFINITIONS("-pg")
+    ENDIF (CMAKE_COMPILER_IS_GNUCXX)
+
+    SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure PROPERTIES LINK_FLAGS -pg)
 ENDIF (PROFILE)
 
