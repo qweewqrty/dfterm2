@@ -22,31 +22,31 @@ class TerminalGlue : public Slot
         SP<boost::thread> glue_thread;
 
         Terminal game_terminal;
-        recursive_mutex game_terminal_mutex;
+        boost::recursive_mutex game_terminal_mutex;
 
-        std::map<string, UnicodeString> parameters;
+        std::map<std::string, UnicodeString> parameters;
 
-        std::deque<pair<ui32, bool> > input_queue;
+        std::deque<std::pair<trankesbel::ui32, bool> > input_queue;
         void flushInput(Pty* program_pty);
 
-        ui32 terminal_w, terminal_h;
+        trankesbel::ui32 terminal_w, terminal_h;
 
         volatile bool close_thread;
 
         static void static_thread_function(TerminalGlue* self);
         void thread_function();
 
-        static void pushEscapeSequence(KeyCode special_key, string &input_buf);
+        static void pushEscapeSequence(trankesbel::KeyCode special_key, std::string &input_buf);
     public:
         TerminalGlue();
         ~TerminalGlue();
 
         void setParameter(std::string key, UnicodeString value);
 
-        void getSize(ui32* width, ui32* height);
+        void getSize(trankesbel::ui32* width, trankesbel::ui32* height);
         bool isAlive();
-        void unloadToWindow(SP<Interface2DWindow> target_window);
-        void feedInput(ui32 keycode, bool special_key);
+        void unloadToWindow(SP<trankesbel::Interface2DWindow> target_window);
+        void feedInput(trankesbel::ui32 keycode, bool special_key);
 };
 
 }; /* namespace */

@@ -5,7 +5,7 @@ link_directories(${Boost_LIBRARY_DIRS})
 
 subdirs (trankesbel)
 
-SET(NO_CURSES)
+SET(NO_CURSES 1)
 
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
