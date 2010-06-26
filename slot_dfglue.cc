@@ -154,8 +154,8 @@ void DFGlue::initVkeyMappings()
 
     vkey_mappings[Home] = VK_HOME;
     vkey_mappings[End] = VK_END;
-    vkey_mappings[PgUp] = VK_NEXT;
-    vkey_mappings[PgDown] = VK_PRIOR;
+    vkey_mappings[PgUp] = VK_PRIOR;
+    vkey_mappings[PgDown] = VK_NEXT;
 
     vkey_mappings[InsertChar] = VK_INSERT;
     vkey_mappings[DeleteChar] = VK_DELETE;
