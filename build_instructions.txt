@@ -1,36 +1,109 @@
-Some simple build instructions for dfterm2.
+--- HOW TO BUILD DFTERM2 ---
 
-Last updated 2010/6/18.
 
-I have compiled and ran dfterm2 on Windows and Fedora 13.
+Check that you have the following libraries and their development
+files installed:
 
-To compile dfterm2 you need (at least):
+    gcc                   -   Any recent version appears to work. (Linux)
+    or
+    Microsoft Visual C++  -   Version 10 has been used to compile the Windows
+                              version of dfterm2.
 
-ICU libraries (often libicu or libicu-dev, libicu-devel)
-PCRE
-CMake  (version 2.8)
-OpenSSL
-Gcc or MinGW's version of gcc
+    PCRE                  -   For Windows binaries, version 8.02 has been
+                              used.
+                              http://www.pcre.org/
 
-On Windows I found that getting the dependencies to compile
-and work was much, much harder than compiling dfterm2 itself.
-At least I had to manually remove -ansi and -pedantic from ICU when
-I compiled it with MinGW/MSys.
+    Boost                 -   At least version 1.41.0. Dfterm2 uses
+                              some libraries that need compiled
+                              libraries from boost (threads).
+                              http://www.boost.org/
+    
+    OpenSSL               -   Dfterm2 needs it for secure random number
+                              generation and hashing algorithms.
+                              http://www.openssl.org/
 
-Remember to check out Trankesbel roguelike support library before trying
-to compile dfterm2. On Linux (or git/MSys):
+    ICU                   -   AKA International Components for Unicode.
+                              Dfterm2 is being built with version 4.4
+                              but it might work with older versions.
+                              http://site.icu-project.org/
 
-$ git submodule init
-$ git submodule update
+    CMake                 -   The tool dfterm2 is built with.
+                              http://www.cmake.org/
 
-On Linux, this hopefully works then for compiling dfterm2:
 
-$ cmake .
-$ make
-$ ./dfterm2
 
-On Windows, you may need to manually set some of the compiler parameters,
-so that it can find the libraries it needs. CMake has a nice GUI, which you can use.
-Refer to CMake's manual.
+--- BUILDING INSTRUCTIONS --- 
+
+    --- On Linux ---
+
+    1. Obtain the source code. If you are reading this,
+       chances are you already have the code.
+
+    $ git clone git://genodeen.net/dfterm2
+    $ cd dfterm2
+    $ git submodule init
+    $ git submodule update
+    
+    2. Run CMake to configure the building system.
+       If this step goes wrong, there can be missing
+       libraries or just misnamed libraries. At the moment
+       there is no extensive building testing platform for dfterm2.
+       CMake can be invoked with various parameters and
+       also has a GUI. Refer to its manual for more information.
+
+       The following command makes optimized binaries and
+       it usually defaults to plain Makefiles.
+
+    $ cmake -DCMAKE_BUILD_TYPE=Release .
+    
+    3. Build it.
+
+    $ make
+
+    4. Dfterm2 is ready. At the moment there is no automated
+       installer. You can run it from source directory
+       by running ./dfterm2
+
+    $ ./dfterm2
+
+    5. You probably want to add an admin account before
+       you log in though. This creates an admin account
+       with nickname "Adeon" and password "s3cret_p4ssw0rd".
+       If you drop the "admin" from end, it will create
+       a normal user instead.
+
+    $ ./dfterm2_configure --adduser Adeon s3cret_p4ssw0rd admin
+
+    6. You can configure slots and games from inside dfterm2 by
+       telnetting to it.
+
+    $ telnet 127.0.0.1 8000
+
+    7. Hopefully, the rest is intuitive. If not, then bad for you, ehehehehe.
+
+
+
+
+
+
+    --- On Windows ---
+    (The instructions are somewhat vague here.)
+
+
+
+    1. Grab yourself Microsoft Visual C++ 10 and Microsoft Windows SDK.
+
+    2. You likely need to manually either download development versions of
+       all libraries you need for Windows or compile them all yourself.
+       It can be complex, refer to each packages instructions.
+
+    3. Using CMake for Windows, configure dfterm2 and compile it with MSVC++
+
+    4. Starting and configuring dfterm2 is the same as with Linux, in 
+       steps #4 and #5.
+
+    5. Note that on Windows, you need to copy the dfterm_injection_glue.dll
+       to the Dwarf Fortress directory from where you launch the game.
+       Otherwise, you might not see anything.
 
 
