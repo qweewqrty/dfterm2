@@ -122,14 +122,14 @@ int main(int argc, char* argv[])
     cout << "Selecting database file " << database_file << endl;
 
     SP<ConfigurationDatabase> cdb(new ConfigurationDatabase);
-	OpenStatus os = cdb->openUTF8(database_file);
+    OpenStatus os = cdb->openUTF8(database_file);
     if (os == Failure)
     {
         cout << "Failed." << endl;
         return -1;
     }
-	if (os == OkCreatedNewDatabase)
-		cout << "Created a new database." << endl;
+    if (os == OkCreatedNewDatabase)
+        cout << "Created a new database." << endl;
 
     User user;
     SP<User> user_sp;

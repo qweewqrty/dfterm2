@@ -348,14 +348,14 @@ void DFGlue::updateDFWindowTerminal()
                 b_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x00FF0000) >> 16);
                 f_bold = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0xFF000000) >> 24);
 
-				if (f_color == Red) f_color = Blue;
-				else if (f_color == Blue) f_color = Red;
-				else if (f_color == Yellow) f_color = Cyan;
-				else if (f_color == Cyan) f_color = Yellow;
-				if (b_color == Red) b_color = Blue;
-				else if (b_color == Blue) b_color = Red;
-				else if (b_color == Yellow) b_color = Cyan;
-				else if (b_color == Cyan) b_color = Yellow;
+                if (f_color == Red) f_color = Blue;
+                else if (f_color == Blue) f_color = Red;
+                else if (f_color == Yellow) f_color = Cyan;
+                else if (f_color == Cyan) f_color = Yellow;
+                if (b_color == Red) b_color = Blue;
+                else if (b_color == Blue) b_color = Red;
+                else if (b_color == Yellow) b_color = Cyan;
+                else if (b_color == Cyan) b_color = Yellow;
 
                 df_terminal.setTile(i1, i2, TerminalTile(symbol, f_color, b_color, false, f_bold));
             }
@@ -481,10 +481,10 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     wchar_t path_cstr[MAX_PATH+1], working_path[MAX_PATH+1];
     memset(path_cstr, 0, (MAX_PATH+1)*sizeof(wchar_t));
     memset(working_path, 0, (MAX_PATH+1)*sizeof(wchar_t));
-	size_t path_size = MAX_PATH;
-	size_t work_size = MAX_PATH;
-	TO_WCHAR_STRING(path, path_cstr, &path_size);
-	TO_WCHAR_STRING(work_dir, working_path, &work_size);
+    size_t path_size = MAX_PATH;
+    size_t work_size = MAX_PATH;
+    TO_WCHAR_STRING(path, path_cstr, &path_size);
+    TO_WCHAR_STRING(work_dir, working_path, &work_size);
     
     STARTUPINFO sup;
     memset(&sup, 0, sizeof(STARTUPINFO));
@@ -539,7 +539,7 @@ bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
         HMODULE h_mod;
         DWORD cb_needed;
         WCHAR process_name[MAX_PATH+1];
-		process_name[MAX_PATH] = 0;
+        process_name[MAX_PATH] = 0;
 
         if (EnumProcessModules(h_p, &h_mod, sizeof(h_mod), &cb_needed))
         {

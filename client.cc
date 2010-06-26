@@ -560,7 +560,7 @@ bool Client::chatSelectFunction(ui32 index)
     global_chat->logMessage(prefix + chat_message);
 
     string prefix_utf8, chat_message_utf8;
-	prefix_utf8 = TO_UTF8(prefix);
+    prefix_utf8 = TO_UTF8(prefix);
     chat_message_utf8 = TO_UTF8(chat_message);
     
     LOG(Note, "Global chat: " << prefix_utf8 << chat_message_utf8);

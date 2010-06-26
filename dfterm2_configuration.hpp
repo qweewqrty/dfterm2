@@ -78,7 +78,7 @@ class User
         UnicodeString getName() const { return name; };
         std::string getNameUTF8() const
         {
-			return TO_UTF8(name);
+            return TO_UTF8(name);
         }
 
         void setName(const UnicodeString &us) { name = us; };
@@ -307,10 +307,10 @@ class ConfigurationDatabase
         OpenStatus open(const UnicodeString &filename);
         OpenStatus openUTF8(const std::string &filename)
         { 
-			UnicodeString us = UnicodeString::fromUTF8(filename);
-			OpenStatus os = open(us);
-			return os;
-		};
+            UnicodeString us = UnicodeString::fromUTF8(filename);
+            OpenStatus os = open(us);
+            return os;
+        };
 
         void deleteUserData(const UnicodeString &name);
 
