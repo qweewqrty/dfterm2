@@ -216,6 +216,9 @@ class DFGlue : public Slot
 
         /* Maps trankesbel (special) key codes to windows virtual keys. */
         std::map<trankesbel::KeyCode, DWORD> vkey_mappings;
+        /* And these are just normal keys that need to be mapped to somewhere else for greater portability
+           (such as number keys to numpad) */
+        std::map<trankesbel::KeyCode, DWORD> fixed_mappings;
         /* Initialize aformentioned map */
         void initVkeyMappings();
 

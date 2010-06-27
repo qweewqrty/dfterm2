@@ -131,6 +131,21 @@ void DFGlue::static_thread_function(DFGlue* self)
 
 void DFGlue::initVkeyMappings()
 {
+    fixed_mappings[(KeyCode) '0'] = VK_NUMPAD0;
+    fixed_mappings[(KeyCode) '1'] = VK_NUMPAD1;
+    fixed_mappings[(KeyCode) '2'] = VK_NUMPAD2;
+    fixed_mappings[(KeyCode) '3'] = VK_NUMPAD3;
+    fixed_mappings[(KeyCode) '4'] = VK_NUMPAD4;
+    fixed_mappings[(KeyCode) '5'] = VK_NUMPAD5;
+    fixed_mappings[(KeyCode) '6'] = VK_NUMPAD6;
+    fixed_mappings[(KeyCode) '7'] = VK_NUMPAD7;
+    fixed_mappings[(KeyCode) '8'] = VK_NUMPAD8;
+    fixed_mappings[(KeyCode) '9'] = VK_NUMPAD9;
+    fixed_mappings[(KeyCode) '/'] = VK_DIVIDE;
+    fixed_mappings[(KeyCode) '*'] = VK_MULTIPLY;
+    fixed_mappings[(KeyCode) '+'] = VK_ADD;
+    fixed_mappings[(KeyCode) '-'] = VK_SUBTRACT;
+
     vkey_mappings[AUp] = VK_UP;
     vkey_mappings[ADown] = VK_DOWN;
     vkey_mappings[ALeft] = VK_LEFT;
@@ -237,12 +252,18 @@ void DFGlue::thread_function()
                     vkey = VK_RETURN;
                 else
                 {
-                    SHORT keyscan = VkKeyScanW((WCHAR) keycode);
-                    vkey = (DWORD) (keyscan & 0xFF);
-                    if ((keyscan & 0x00ff) != -1 && (keyscan & 0xff00))
-                        shift_down_now = true;
-                    if (keycode == 127) // backspace
-                        vkey = VK_BACK;
+                    map<KeyCode, DWORD>::iterator i1 = fixed_mappings.find((KeyCode) keycode);
+                    if (i1 != fixed_mappings.end())
+                        vkey = i1->second;
+                    else
+                    {
+                        SHORT keyscan = VkKeyScanW((WCHAR) keycode);
+                        vkey = (DWORD) (keyscan & 0xFF);
+                        if ((keyscan & 0x00ff) != -1 && (keyscan & 0xff00))
+                            shift_down_now = true;
+                        if (keycode == 127) // backspace
+                            vkey = VK_BACK;
+                    }
                 }
             }
             else if (special_key)
