@@ -59,8 +59,6 @@ class State
         void pruneInactiveSlots();
         void pruneInactiveClients();
 
-        uint64_t ticks_per_second;
-
         bool close;
 
         trankesbel::SocketEvents socketevents;

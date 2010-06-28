@@ -50,8 +50,6 @@ int main(int argc, char* argv[])
     bool succeeded_resolve = false;
     string error_message;
 
-    unsigned int ticks_per_second = 20;
-
     function3<void, bool, SocketAddress, string> resolve_binding = 
     boost::bind(resolve_success, &succeeded_resolve, &listen_address, &error_message, _1, _2, _3);
 
@@ -72,10 +70,6 @@ int main(int argc, char* argv[])
             cout << "This dfterm2 version supports IPv4 and IPv6." << endl;
             return 0;
         }
-        else if ((!strcmp(argv[i1], "--tickspersecond") || !strcmp(argv[i1], "-t")) && i1 < argc-1)
-        {
-            ticks_per_second = (unsigned int) strtol(argv[++i1], NULL, 10);
-        }
         else if (!strcmp(argv[i1], "--help") || !strcmp(argv[i1], "-h") || !strcmp(argv[i1], "-?"))
         {
             cout << "Usage: " << endl;
@@ -87,30 +81,24 @@ int main(int argc, char* argv[])
             cout << "-a (address)          Set the address on which dfterm2 will listen to. Defaults to 0.0.0.0." << endl << endl;
             cout << "--version" << endl;
             cout << "-v                    Show version information and exit." << endl << endl;
-            cout << "--tickspersecond (ticks per second)" << endl;
-            cout << "-t (ticks per second) Set number of ticks per second. Defaults to 20." << endl << endl;;
             cout << "--database (database file)" << endl;
             cout << "-db (database file)   Set the database file used. By default dfterm2 will try to look for" << endl;
-            cout << "                      environment variable DFTERM2_DB for the file location. If there is no" << endl;
-            cout << "                      such variable, it will try opening dfterm2_database.sqlite3 instead." << endl;
+            cout << "                      dfterm2_database.sqlite3. as database." << endl;
             cout << "--help"  << endl;;
             cout << "-h"  << endl;
             cout << "-?                    Show this help." << endl;
             cout << endl;
             cout << "Examples:" << endl << endl;
-            cout << "Set 10 ticks per second and listen on port 8001:" << endl;
-            cout << "dfterm2 --port 8001 -t 10" << endl;
+            cout << "Listen on port 8001:" << endl;
+            cout << "dfterm2 --port 8001" << endl;
             cout << "Listen on an IPv6 localhost:" << endl;
-            cout << "dfterm2 --address ::1" << endl << endl;
+            cout << "dfterm2 --address ::1" << endl;
+            cout << "Use another database instead of the default one: " << endl;
+            cout << "dfterm2 --db my_great_dfterm2_database.sqlite3" << endl << endl;
             cout << "Take it easy!!" << endl;
             cout << endl;
             return 0;
         }
-    }
-    if (ticks_per_second == 0)
-    {
-        cout << "Cannot use 0 ticks per second. Making that 1 tick per second." << endl;
-        ticks_per_second = 1;
     }
 
     SocketAddress::resolve(address, port, resolve_binding, true);
@@ -122,8 +110,6 @@ int main(int argc, char* argv[])
     }
 
     SP<State> state = State::createState();
-    state->setTicksPerSecond(ticks_per_second);
-
     if (!state->setDatabaseUTF8(database_file))
     {
         cerr << "Failed to set database." << endl;

@@ -17,7 +17,6 @@ State::State()
 {
     state_initialized = true;
     global_chat = SP<Logger>(new Logger);
-    ticks_per_second = 20;
     close = false;
 };
 
@@ -147,11 +146,6 @@ bool State::addTelnetService(SocketAddress address)
     socketevents.addSocket(s);
 
     return true;
-}
-
-void State::setTicksPerSecond(::uint64_t ticks_per_second)
-{
-    this->ticks_per_second = ticks_per_second;
 }
 
 void State::destroyClient(UnicodeString nickname, SP<Client> exclude)
@@ -621,10 +615,6 @@ void State::new_connection(SP<Socket> listening_socket)
 
 void State::loop()
 {
-    /* Use these for timing ticks */
-    ::uint64_t start_time;
-    const ::uint64_t tick_time = 1000000000 / ticks_per_second;
-
     close = false;
     while(!close)
     {
