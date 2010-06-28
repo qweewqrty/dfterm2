@@ -47,9 +47,10 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
     if (result)
         return Failure;
 
-    /* Create tables. These calls fail if they already exist. */
+    /* Create tables. These calls fail if they already exist (which is not bad). */
     result = sqlite3_exec(db, "CREATE TABLE Users(Name TEXT, PasswordSHA512 TEXT, PasswordSalt TEXT, Admin TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, MaxSlots TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE MOTD(Content TEXT);", 0, 0, 0);
     /* Create an admin user, if database was created. */
     if (!database_exists)
         return OkCreatedNewDatabase;
@@ -181,12 +182,81 @@ int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, vo
     return 0;
 };
 
+int ConfigurationDatabase::motdCallback(UnicodeString* us, void* v_self, int argc, char** argv, char** colname)
+{
+    int i;
+    for (i = 0; i < argc; i++)
+    {
+        if (!argv[i]) continue;
+
+        if (!strcmp(colname[i], "Content"))
+            (*us) = TO_UNICODESTRING(string(argv[i]));
+    }
+    
+    return 0;
+}
+
 static int c_callback(void* a, int b, char** c, char** d)
 {
     function4<int, void*, int, char**, char**>* sql_callback_function = 
     (function4<int, void*, int, char**, char**>*) a;
 
     return (*sql_callback_function)((void*) 0, b, c, d);
+}
+
+void ConfigurationDatabase::saveMOTD(UnicodeString motd)
+{
+    saveMOTDUTF8(TO_UTF8(motd));
+}
+
+void ConfigurationDatabase::saveMOTDUTF8(string motd_utf8)
+{
+    if (!db) return;
+    
+    string motd_escaped = escape_sql_string(motd_utf8);
+    
+    char* errormsg = (char*) 0;
+    
+    string statement;
+    statement = string("DELETE FROM MOTD;");
+    int result = sqlite3_exec(db, statement.c_str(), 0, 0, &errormsg);
+    if (result != SQLITE_OK) /* Yes, next one is a warning and not an error */
+    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+    
+    if (errormsg) sqlite3_free(errormsg);
+    errormsg = (char*) 0;
+    
+    statement = string("INSERT INTO MOTD(Content) VALUES(\'") + motd_escaped + string("\');");
+    result = sqlite3_exec(db, statement.c_str(), 0, 0, &errormsg);
+    if (result != SQLITE_OK)
+    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+    
+    if (errormsg) sqlite3_free(errormsg);
+}
+
+string ConfigurationDatabase::loadMOTDUTF8()
+{
+    return TO_UTF8(loadMOTD());
+}
+
+UnicodeString ConfigurationDatabase::loadMOTD()
+{
+    if (!db) return UnicodeString();
+    
+    UnicodeString motd;
+    
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = boost::bind(&ConfigurationDatabase::motdCallback, this, &motd, _1, _2, _3, _4);
+    
+    string statement = string("SELECT Content FROM MOTD;");
+    char* errormsg = (char*) 0;
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
+    if (result != SQLITE_OK)
+    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+    
+    if (errormsg) sqlite3_free(errormsg);
+    
+    return motd;
 }
 
 vector<SP<User> > ConfigurationDatabase::loadAllUserData()
@@ -380,3 +450,4 @@ data1D dfterm::escape_sql_string(const data1D &str)
 
     return result;
 }
+

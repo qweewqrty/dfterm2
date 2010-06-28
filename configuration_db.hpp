@@ -28,6 +28,7 @@ class ConfigurationDatabase
         sqlite3* db;
         int slotprofileNameListDataCallback(std::vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
         int slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname);
+        int motdCallback(UnicodeString* us, void* v_self, int argc, char** argv, char** colname);
         int userDataCallback(std::string* name, std::string* password_hash, std::string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
         int userListDataCallback(std::vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
 
@@ -59,6 +60,11 @@ class ConfigurationDatabase
         void deleteSlotProfileDataUTF8(const std::string &name) { deleteSlotProfileData(UnicodeString::fromUTF8(name)); };
         SP<SlotProfile> loadSlotProfileData(const UnicodeString &name);
         SP<SlotProfile> loadSlotProfileDataUTF8(const std::string &name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
+        
+        void saveMOTD(UnicodeString motd);
+        void saveMOTDUTF8(std::string motd_utf8);
+        UnicodeString loadMOTD();
+        std::string loadMOTDUTF8();
 };
 
 }

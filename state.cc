@@ -131,6 +131,8 @@ bool State::setDatabaseUTF8(string database_file)
 
         addSlotProfile(sp);
     }
+    
+    MOTD = configuration->loadMOTD();
 
     return true;
 }
