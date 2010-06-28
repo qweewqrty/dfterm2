@@ -5,46 +5,12 @@
 #include <openssl/rand.h>
 #include <time.h>
 #include "nanoclock.hpp"
+#include "rng.hpp"
 
 using namespace std; 
 using namespace trankesbel;
 using namespace dfterm;
 using namespace boost;
-
-void seedRNG()
-{
-    int rng_counter = 100000;
-    /* Seed random number generator a bit */
-    while(!RAND_status() && rng_counter > 0)
-    {
-        rng_counter--;
-
-        #ifdef __WIN32
-        #define WIN32_LEAN_AND_MEAN
-        #include <windows.h>
-
-        RAND_screen();
-        DWORD t = GetTickCount();
-        RAND_add((void*) &t, sizeof(t), sizeof(t) / 2);
-        #else
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        RAND_add((void*) &tv, sizeof(tv), sizeof(tv) / 4);
-        #endif
-    }
-}
-
-void makeRandomBytes(unsigned char* output, int output_size)
-{
-    if (!RAND_status()) seedRNG();
-
-    if (!RAND_bytes(output, output_size))
-    {
-        seedRNG();
-        if (!RAND_bytes(output, output_size))
-            RAND_pseudo_bytes(output, output_size);
-    }
-}
 
 ClientTelnetSession::ClientTelnetSession() : TelnetSession()
 {
