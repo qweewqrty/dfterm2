@@ -1,11 +1,15 @@
-#include "sqlite3.h"
-#include "dfterm2_configuration.hpp"
+#include "configuration_db.hpp"
 #include <string>
 #include <cstdio>
 #include <iostream>
 #include <boost/bind.hpp>
 #include <openssl/sha.h>
 #include "hash.hpp"
+#include "sqlite3.h"
+#include <vector>
+#include "configuration_primitives.hpp"
+#include <boost/function.hpp>
+#include "slot.hpp"
 
 using namespace dfterm;
 using namespace std;

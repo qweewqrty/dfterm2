@@ -1,6 +1,6 @@
 #include <sstream>
 #include <string>
-#include "dfterm2_configuration.hpp"
+#include "configuration_primitives.hpp"
 
 using namespace std;
 using namespace dfterm;

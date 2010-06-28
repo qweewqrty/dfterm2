@@ -10,7 +10,8 @@ class State;
 #include "sockets.hpp"
 #include "logger.hpp"
 #include "client.hpp"
-#include "dfterm2_configuration.hpp"
+#include "configuration_interface.hpp"
+#include "configuration_primitives.hpp"
 #include <sstream>
 
 namespace dfterm {

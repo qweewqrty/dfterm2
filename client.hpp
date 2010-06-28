@@ -13,7 +13,8 @@ namespace dfterm
 #include "telnet.hpp"
 #include "logger.hpp"
 #include "slot.hpp"
-#include "dfterm2_configuration.hpp"
+#include "configuration_interface.hpp"
+#include "configuration_primitives.hpp"
 #include "state.hpp"
 
 namespace dfterm

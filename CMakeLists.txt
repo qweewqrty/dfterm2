@@ -10,23 +10,23 @@ SET(NO_CURSES 1)
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
 IF (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc dfterm2_configuration.cc dfterm2_configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc)
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc)
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.c dfterm2_configuration.cc dfterm2_configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc)
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.c configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc)
     target_link_libraries(dfterm2 dl)
 ENDIF (WIN32)
 
 target_link_libraries(dfterm2 trankesbel)
 
-add_executable(dfterm2_configure dfterm2_configure.cc dfterm2_configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc id.cc hash.cc rng.cc)
+add_executable(dfterm2_configure dfterm2_configure.cc configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc id.cc hash.cc rng.cc)
 IF(NOT WIN32)
 target_link_libraries(dfterm2_configure trankesbel dl)
 ELSE(NOT WIN32)
 target_link_libraries(dfterm2_configure trankesbel)
 ENDIF(NOT WIN32)
 
-add_executable(dfterm2_sha512 dfterm2_sha512.cc dfterm2_configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc id.cc hash.cc rng.cc)
+add_executable(dfterm2_sha512 dfterm2_sha512.cc hash.cc)
 IF(NOT WIN32)
 target_link_libraries(dfterm2_sha512 trankesbel dl)
 ELSE(NOT WIN32)

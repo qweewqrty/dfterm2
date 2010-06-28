@@ -398,7 +398,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     rcs << running_counter;
     running_counter++;
 
-    SP<Slot> slot = Slot::createSlot(slot_profile->getSlotType());
+    SP<Slot> slot = Slot::createSlot((SlotType) slot_profile->getSlotType());
     slot->setState(self);
     slot->setSlotProfile(slot_profile);
     slot->setLauncher(launcher);

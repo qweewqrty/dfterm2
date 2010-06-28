@@ -1,6 +1,6 @@
 /* Simple configuration script for dfterm2 databases. */
 
-#include "dfterm2_configuration.hpp"
+#include "configuration_db.hpp"
 #include <string>
 #include <iostream>
 #include <unicode/unistr.h>
@@ -8,6 +8,7 @@
 #include <openssl/rand.h>
 #include <time.h>
 #include <unicode/uclean.h>
+#include <cstring>
 
 using namespace std;
 using namespace dfterm;

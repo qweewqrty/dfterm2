@@ -1,32 +1,20 @@
-/* Lump all configuration handling (reading from sqlite database)
- * and window handling to this file. */
-
-#ifndef dfterm2_configuration_hpp
-#define dfterm2_configuration_hpp
+#ifndef configuration_primitives_hpp
+#define configuration_primitives_hpp
 
 namespace dfterm {
-class ConfigurationDatabase;
 class SlotProfile;
-class ConfigurationInterface;
 class User;
+class UserGroup;
 };
 
-#include "interface.hpp"
-#include "sqlite3.h"
-#include "slot.hpp"
-#include <set>
-#include <vector>
-#include "state.hpp"
+#include "types.hpp"
+#include <unicode/unistr.h>
+#include "id.hpp"
 #include "hash.hpp"
+#include <set>
 
-namespace dfterm {
-    
-/* Escapes a string so that it can be used as an SQL string in its statements. */
-/* Used internally. Throws null characters away. */
-data1D escape_sql_string(const data1D &str);
-
-class UserGroup;
-class User;
+namespace dfterm
+{
 
 class User
 {
@@ -202,27 +190,23 @@ class SlotProfile
 {
     private:
         UnicodeString name;              /* name of the slot profile */
-        trankesbel::ui32 w, h;                       /* width and height of the game inside slot */
+        trankesbel::ui32 w, h;           /* width and height of the game inside slot */
         UnicodeString path;              /* path to game executable */
         UnicodeString working_path;      /* working directory for the game. */
-        SlotType slot_type;              /* slot type */
+        trankesbel::ui32 slot_type;       /* slot type (should be type SlotType, is ui32 for header dependency reasons) */
         UserGroup allowed_watchers;      /* who may watch */
         UserGroup allowed_launchers;     /* who may launch */
         UserGroup allowed_players;       /* who may play */
         UserGroup forbidden_watchers;    /* who may not watch */
         UserGroup forbidden_launchers;   /* who may not launch */
         UserGroup forbidden_players;     /* who may not play */
-        trankesbel::ui32 max_slots;                  /* maximum number of slots to create */
+        trankesbel::ui32 max_slots;      /* maximum number of slots to create */
 
     public:
         SlotProfile()
         {
             w = 80; h = 25;
-            #ifdef __WIN32
-            slot_type = DFLaunch;
-            #else
-            slot_type = TerminalLaunch;
-            #endif
+            slot_type = 0;
             max_slots = 1;
             allowed_watchers.setAnybody();
             allowed_launchers.setAnybody();
@@ -257,8 +241,9 @@ class SlotProfile
         UnicodeString getWorkingPath() const { return working_path; };
         std::string getWorkingPathUTF8() const { return TO_UTF8(working_path); };
 
-        void setSlotType(SlotType t) { slot_type = t; };
-        SlotType getSlotType() const { return slot_type; };
+        /* Use like this: setSlotType((ui32) t); where t is of SlotType enum. */
+        void setSlotType(trankesbel::ui32 t) { slot_type = t; };
+        trankesbel::ui32 getSlotType() const { return slot_type; };
 
         void setMaxSlots(trankesbel::ui32 slots) { max_slots = slots; };
         trankesbel::ui32 getMaxSlots() const { return max_slots; };
@@ -277,164 +262,7 @@ class SlotProfile
         void setForbiddenLaunchers(UserGroup gr) { forbidden_launchers = gr; };
         void setForbiddenPlayers(UserGroup gr) { forbidden_players = gr; };
 };
-
-enum OpenStatus { Failure, Ok, OkCreatedNewDatabase };
-
-/* A class that handles access to the actual database file on disk. 
- * The class does some input sanitizing so you can't do SQL injection with the methods. */
-class ConfigurationDatabase
-{
-    private:
-        ConfigurationDatabase(const ConfigurationDatabase &) { };
-        ConfigurationDatabase& operator=(const ConfigurationDatabase &) { return (*this); };
-
-        sqlite3* db;
-        int slotprofileNameListDataCallback(std::vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
-        int slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname);
-        int userDataCallback(std::string* name, std::string* password_hash, std::string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
-        int userListDataCallback(std::vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
-
-    public:
-        ConfigurationDatabase();
-        ~ConfigurationDatabase();
-
-        OpenStatus open(const UnicodeString &filename);
-        OpenStatus openUTF8(const std::string &filename)
-        { 
-            UnicodeString us = UnicodeString::fromUTF8(filename);
-            OpenStatus os = open(us);
-            return os;
-        };
-
-        void deleteUserData(const UnicodeString &name);
-
-        std::vector<SP<User> > loadAllUserData();
-        SP<User> loadUserData(const UnicodeString &name);
-        void saveUserData(User* user);
-        void saveUserData(SP<User> user) { saveUserData(user.get()); };
-
-        void saveSlotProfileData(SlotProfile* slotprofile);
-        void saveSlotProfileData(SP<SlotProfile> slotprofile) { saveSlotProfileData(slotprofile.get()); };
-
-        std::vector<UnicodeString> loadSlotProfileNames();
-
-        void deleteSlotProfileData(const UnicodeString &name);
-        void deleteSlotProfileDataUTF8(const std::string &name) { deleteSlotProfileData(UnicodeString::fromUTF8(name)); };
-        SP<SlotProfile> loadSlotProfileData(const UnicodeString &name);
-        SP<SlotProfile> loadSlotProfileDataUTF8(const std::string &name) { return loadSlotProfileData(UnicodeString::fromUTF8(name)); };
-};
-
-enum Menu { /* These are menus for all of us! */
-            MainMenu,
-            LaunchSlotsMenu,
-            JoinSlotsMenu,
-
-            /* And the following are admin-only menus. */
-            AdminMainMenu, 
-            SlotsMenu };
-
-/* Handles windows for easy online editing of configuration */
-class ConfigurationInterface
-{
-    private:
-        /* No copies */
-        ConfigurationInterface(const ConfigurationInterface &ci) { };
-        ConfigurationInterface& operator=(const ConfigurationInterface &ci) { return (*this); };
-
-        SP<trankesbel::Interface> interface;
-        SP<trankesbel::InterfaceElementWindow> window;
-        SP<trankesbel::InterfaceElementWindow> auxiliary_window;
-
-        SP<ConfigurationDatabase> configuration_database;
-
-        Menu current_menu;
-        void enterMainMenu();
-        void enterAdminMainMenu();
-        void enterSlotsMenu();
-        void enterNewSlotProfileMenu();
-        void enterEditSlotProfileMenu();
-        void enterLaunchSlotsMenu();
-        void enterJoinSlotsMenu();
-        void checkSlotProfileMenu(bool no_read = false);
-
-        void auxiliaryEnterUsergroupWindow();
-        void auxiliaryEnterSpecificUsersWindow();
-        void checkAuxiliaryWindowUsergroupSelections();
-
-        /* When defining user groups, this is the currently edited user group. */
-        UserGroup edit_usergroup;
-        /* And this is currently edited slot profile */
-        SlotProfile edit_slotprofile;
-        /* This is there slot profile should be saved after done with it.
-         * Used when editing an existing slot profile. */
-        SP<SlotProfile> edit_slotprofile_sp_target;
-
-        /* And this is where the currently edited user group should be copied
-         * when done with it. ("watchers", "launchers", "etc.") */
-        std::string edit_slotprofile_target;
-
-        /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
-        bool true_if_ok;
-
-        bool admin;
-        SP<User> user;
-        WP<Client> client;
-
-        bool menuSelectFunction(trankesbel::ui32 index);
-        bool auxiliaryMenuSelectFunction(trankesbel::ui32 index);
-
-        bool shutdown;
-
-        WP<State> state;
-
-    public:
-        ConfigurationInterface();
-        ConfigurationInterface(SP<trankesbel::Interface> interface);
-        ~ConfigurationInterface();
-
-        /* Set/get the configuration database */
-        void setConfigurationDatabase(SP<ConfigurationDatabase> c_database);
-        SP<ConfigurationDatabase> getConfigurationDatabase();
-
-        /* Set/get dfterm2 state class */
-        void setState(WP<State> state) { this->state = state; };
-        void setState(SP<State> state) { setState(WP<State>(state)); };
-        WP<State> getState() { return state; };
-
-        /* Some menus change over time, without interaction.
-         * This function has to be called to fix'em. */
-        void cycle();
-
-        /* Set interface to use from this */
-        void setInterface(SP<trankesbel::Interface> interface);
-
-        /* Sets the user for this interface. Calling this will also
-         * call enableAdmin/disableAdmin according to user admin status. */
-        void setUser(SP<User> user);
-        /* And gets the user. */
-        SP<User> getUser();
-
-        /* Sets the client for this interface. */
-        void setClient(WP<Client> client);
-        /* And gets it */
-        WP<Client> getClient();
-
-        /* Returns true if shutdown of the entire server has been requested. */
-        bool shouldShutdown() const;
-
-        /* Allow admin stuff to be controlled from this interface. 
-         * Better do some authentication on the user before calling this... 
-         * Also causes current user to drop to the main menu. */
-        void enableAdmin();
-        /* Revoke admin stuff. Drops the user to the main menu. */
-        void disableAdmin();
-
-        /* Generic user window, configuration and stuff is handled through this. */
-        SP<trankesbel::InterfaceElementWindow> getUserWindow();
-};
-
-
+    
 };
 
 #endif
-

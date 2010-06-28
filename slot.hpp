@@ -19,7 +19,7 @@ namespace dfterm
 #include "types.hpp"
 #include <string>
 #include "interface.hpp"
-#include "dfterm2_configuration.hpp"
+#include "configuration_interface.hpp"
 #include "state.hpp"
 
 namespace dfterm

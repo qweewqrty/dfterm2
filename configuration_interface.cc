@@ -1,6 +1,6 @@
 #include <boost/bind.hpp>
 #include <iostream>
-#include "dfterm2_configuration.hpp"
+#include "configuration_interface.hpp"
 #include <algorithm>
 #include <cstdio>
 #include "logger.hpp"
@@ -364,7 +364,17 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
             }
             else if (data == "newslot_method")
             {
-                SlotType st = edit_slotprofile.getSlotType();
+                SlotType st = (SlotType) edit_slotprofile.getSlotType();
+                if (!no_read)
+                {
+                    #ifdef _WIN32
+                    if (st != DFGrab || st != DFLaunch) st = DFLaunch;
+                    #else
+                    if (st != TerminalLaunch) st = TerminalLaunch;
+                    #endif
+                    edit_slotprofile.setSlotType(st);
+                }
+                
                 if (st == DFGrab)
                     window->modifyListElementTextUTF8(index, "Grab a running DF instance (win32)");
                 else if (st == DFLaunch)

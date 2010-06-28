@@ -1,7 +1,7 @@
 /* A program for testing SHA512 correctness used in dfterm2 */
 
 #include "types.hpp"
-#include "dfterm2_configuration.hpp"
+#include "hash.hpp"
 #include <iostream>
 
 using namespace dfterm;
