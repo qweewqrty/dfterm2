@@ -78,6 +78,8 @@ class Client
 
         SP<Logger> global_chat;
         SP<LoggerReader> global_chat_reader;
+        SP<Logger> private_chat;
+        SP<LoggerReader> private_chat_reader;
         void cycleChat();
 
         /* Configuring dfterm2 is complex enough to warrant
@@ -166,6 +168,12 @@ class Client
         /* Sets the global chat. */
         void setGlobalChatLogger(SP<Logger> global_chat);
         SP<Logger> getGlobalChatLogger() const;
+        
+        /* Sends a private chat message to the client. 
+           The message will appear in its chat window. */
+        void sendPrivateChatMessage(const UnicodeString &us);
+        void sendPrivateChatMessageUTF8(const std::string &s)
+        { sendPrivateChatMessage(TO_UNICODESTRING(s)); };
 
         /* Sets the vector of clients that are connected. This is used
            to fill nicklist window, if set. */

@@ -153,7 +153,7 @@ Client::Client(SP<Socket> client_socket)
     config_interface->setInterface(interface);
 
     identify_window = interface->createInterfaceElementWindow();
-    identify_window->setHint("chat");
+    identify_window->setHint("wide");
     identify_window->setTitleUTF8("Enter your nickname for this session");
     ui32 index = identify_window->addListElementUTF8("", "nickname", true, true);
     identify_window->modifyListSelectionIndex(index);
@@ -188,6 +188,14 @@ bool Client::isActive() const
     return client_socket->active();
 }
 
+void Client::sendPrivateChatMessage(const UnicodeString &us)
+{
+    if (!private_chat) private_chat = SP<Logger>(new Logger);
+    if (!private_chat_reader) private_chat_reader = private_chat->createReader();
+    
+    private_chat->logMessage(us);
+}
+
 void Client::cycleChat()
 {
     if (!global_chat) return;
@@ -198,7 +206,13 @@ void Client::cycleChat()
     {
         bool message;
         UnicodeString us = global_chat_reader->getLogMessage(&message);
-        if (!message) break;
+        if (!message)
+        {
+            if (private_chat_reader)
+                us = private_chat_reader->getLogMessage(&message);
+            if (!message)
+                break;
+        }
 
         UnicodeString chat_str = chat_window->getListElement(chat_window_input_index);
         chat_window->deleteListElement(chat_window_input_index);

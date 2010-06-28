@@ -18,6 +18,11 @@ State::State()
     state_initialized = true;
     global_chat = SP<Logger>(new Logger);
     close = false;
+    
+    stringstream ss;
+    ss << "Welcome. This is a dfterm2 server. Take off your shoes and wipe your nose. "
+    "Do good and no evil. ";
+    MOTD = TO_UNICODESTRING(ss.str());
 };
 
 State::~State()
@@ -606,6 +611,9 @@ void State::new_connection(SP<Socket> listening_socket)
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
 
         socketevents.addSocket(new_connection);
+        
+        new_client->sendPrivateChatMessage(MOTD);
+        
         size_t i1, len = clients.size();
         for (i1 = 0; i1 < len; i1++)
             if (clients[i1])

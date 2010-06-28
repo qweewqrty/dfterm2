@@ -29,6 +29,9 @@ class State
 
         /* Self */
         WP<State> self;
+        
+        /* The MOTD */
+        UnicodeString MOTD;
 
         std::set<SP<trankesbel::Socket> > listening_sockets;
 
