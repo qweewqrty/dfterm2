@@ -10,10 +10,12 @@
 #include <unicode/uclean.h>
 #include <cstring>
 
+#include <clocale>
+
 using namespace std;
 using namespace dfterm;
 
-enum Action { Nothing, ListUsers, AddUser, RemoveUser, UserInfo };
+enum Action { Nothing, ListUsers, AddUser, RemoveUser, UserInfo, SetMotd, GetMotd };
 
 void seedRNG()
 {
@@ -50,6 +52,8 @@ void makeRandomBytes(unsigned char* output, int output_size)
 
 int main(int argc, char* argv[])
 {
+    setlocale(LC_ALL, "");
+    
     seedRNG();
     if (RAND_status() == 0)
     {
@@ -64,6 +68,7 @@ int main(int argc, char* argv[])
 
     UnicodeString username;
     UnicodeString password;
+    UnicodeString motd;
 
     bool make_admin = false;
 
@@ -97,6 +102,16 @@ int main(int argc, char* argv[])
             action = UserInfo;
             i1++;
         }
+        else if (!strcmp(argv[i1], "--setmotd") && i1 < argc - 1)
+        {
+            motd = UnicodeString::fromUTF8(string(argv[i1+1]));
+            action = SetMotd;
+            i1++;
+        }
+        else if (!strcmp(argv[i1], "--motd") || !strcmp(argv[i1], "--getmotd"))
+        {
+            action = GetMotd;
+        }
         else if (!strcmp(argv[i1], "--help") || !strcmp(argv[i1], "-h"))
         {
             cout << "Usage: " << endl;
@@ -110,12 +125,17 @@ int main(int argc, char* argv[])
             cout << "                      inside dfterm2 after you log in for the first time." << endl;
             cout << "--removeuser (name)" << endl;
             cout << "                      Removes a user from the database." << endl;
+            cout << "--setmotd (motd)      Sets Message of the Day." << endl;
+            cout << "--getmotd             Print out current Message of the Day." << endl;
+            cout << "--motd                Print out current Message of the Day." << endl;
             cout << "--userinfo (name)" << endl;
             cout << "                      Shows user information." << endl;
             cout << endl;
             cout << "Examples:" << endl;
             cout << "  Adding an administrator: " << endl;
-            cout << "  dfterm2_configure --adduser Adeon s3cr3t_p4ssw0rd admin" << endl;
+            cout << "    dfterm2_configure --adduser Adeon s3cr3t_p4ssw0rd admin" << endl;
+            cout << "  Setting a MotD: " << endl;
+            cout << "    dfterm2_configure --setmotd \"Hello. This is Adeon's b3stest server on da earth. Close DF before disconnecting, if at all possible." << endl; 
             return 0;
         }
     }
@@ -136,6 +156,17 @@ int main(int argc, char* argv[])
     SP<User> user_sp;
     switch(action)
     {
+        case GetMotd:
+        {
+        string motd = cdb->loadMOTDUTF8();
+        cout << motd << endl;
+        }
+        return 0;
+        break;
+        case SetMotd:
+        cdb->saveMOTD(motd);
+        cout << "MotD set." << endl;
+        return 0;
         case RemoveUser:
         cout << "Removing user." << endl;
         user_sp = cdb->loadUserData(username);
