@@ -27,6 +27,7 @@ enum Menu { /* These are menus for all of us! */
 
             /* And the following are admin-only menus. */
             AdminMainMenu, 
+            MotdMenu,
             SlotsMenu };
 
 /* Handles windows for easy online editing of configuration */
@@ -51,6 +52,7 @@ class ConfigurationInterface
         void enterEditSlotProfileMenu();
         void enterLaunchSlotsMenu();
         void enterJoinSlotsMenu();
+        void enterMotdMenu();
         void checkSlotProfileMenu(bool no_read = false);
 
         void auxiliaryEnterUsergroupWindow();

@@ -144,6 +144,10 @@ class State
 
         /* Add a new telnet port to listen to. */
         bool addTelnetService(trankesbel::SocketAddress address);
+        
+        /* Set/Get motd */
+        void setMOTD(UnicodeString motd);
+        UnicodeString getMOTD();
 
         /* Runs until admin tells it to stop. */
         void loop();

@@ -124,7 +124,8 @@ void ConfigurationInterface::enterAdminMainMenu()
 
     ui32 slot_index = window->addListElement("Launch a new game", "launchgame", true, false);
     window->addListElement("Join a running game", "joingame", true, false);
-    slot_index = window->addListElement("Configure slots", "slots", true, false); 
+    window->addListElement("Configure slots", "slots", true, false);
+    window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
     window->modifyListSelectionIndex(slot_index);
@@ -209,6 +210,25 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     }
 
     window->modifyListSelectionIndex(slot_index);
+}
+
+void ConfigurationInterface::enterMotdMenu()
+{
+    if (!admin) return;
+    
+    window->deleteAllListElements();
+    window->setHint("chat");
+    window->setTitle("Message of the Day");
+    
+    current_menu = MotdMenu;
+    
+    int motd_index = window->addListElement("", "motd_text", true, true);
+    if (configuration_database)
+        window->modifyListElementText(motd_index, configuration_database->loadMOTD());
+    
+    window->addListElement("Cancel", "mainmenu", true, false);
+    window->addListElement("Set MotD", "motd_set", true, false);
+    window->modifyListSelectionIndex(motd_index);
 }
 
 void ConfigurationInterface::enterSlotsMenu()
@@ -506,6 +526,32 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "joingame")
     {
         enterJoinSlotsMenu();
+    }
+    /* Motd */
+    else if (selection == "motd")
+    {
+        enterMotdMenu();
+    }
+    else if (selection == "motd_text")
+    {
+        window->modifyListSelectionIndex(window->getListSelectionIndex()+1);
+    }
+    else if (selection == "motd_set")
+    {
+        if (admin)
+        {
+            SP<State> st = state.lock();
+            if (st)
+                st->setMOTD(window->getListElement(0)); /* assuming MotD text is in index 0 */
+            else
+            {
+                if (user)
+                { LOG(Error, "User " << user->getNameUTF8() << " attempted to set MotD but state is null."); }
+                else
+                { LOG(Error, "Null user attempted to set MotD but state is null."); }
+            }
+        }
+        enterMainMenu();
     }
     /* The new slot profile menu */
     else if (selection == "newslot_watchers")

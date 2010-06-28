@@ -30,6 +30,18 @@ State::~State()
     state_initialized = false;
 };
 
+void State::setMOTD(UnicodeString motd)
+{
+    this->MOTD = motd;
+    if (configuration)
+        configuration->saveMOTD(motd);
+}
+
+UnicodeString State::getMOTD()
+{
+    return MOTD;
+}
+
 WP<SlotProfile> State::getSlotProfile(UnicodeString name)
 {
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
