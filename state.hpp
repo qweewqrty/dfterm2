@@ -76,8 +76,7 @@ class State
         ~State();
 
         /* Disconnects a user with the given nickname. Unless it corresponds to the client 'exclude' */
-        void destroyClient(UnicodeString nickname, SP<Client> exclude = SP<Client>());
-        void destroyClientUTF8(std::string nickname, SP<Client> exclude = SP<Client>()) { destroyClient(UnicodeString::fromUTF8(nickname), exclude); };
+        void destroyClient(const ID &id, SP<Client> exclude = SP<Client>());
 
         /* Notify client or user to do I/O */
         void notifyClient(SP<Client> client);
@@ -97,13 +96,10 @@ class State
         /* If called with a slot profile, that slot profile must be in the list of slot profiles
          * this state knows about. This method checks for allowed launchers and returns false if it's not allowed for this user. */
         bool launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher);
-        bool launchSlot(UnicodeString slot_profile_name, SP<User> launcher);
-        bool launchSlotUTF8(std::string slot_profile_name, SP<User> launcher) { return launchSlot(UnicodeString::fromUTF8(slot_profile_name), launcher); };
+        bool launchSlot(const ID &id, SP<User> launcher);
 
         /* Makes given user watch a slot with the given name. */
-        bool setUserToSlot(SP<User> user, UnicodeString slot_name);
-        bool setUserToSlotUTF8(SP<User> user, std::string slot_name)
-        { return setUserToSlot(user, UnicodeString::fromUTF8(slot_name)); };
+        bool setUserToSlot(SP<User> user, const ID& id);
 
         /* Checks if given user is allowed to watch given slot. */
         bool isAllowedWatcher(SP<User> user, SP<Slot> slot);
@@ -111,11 +107,12 @@ class State
         bool isAllowedLauncher(SP<User> user, SP<SlotProfile> slot_profile);
         /* Checks if given user is allowed to play in a given slot */
         bool isAllowedPlayer(SP<User> user, SP<Slot> slot);
+        /* Checks if given user is allowed to force close a slot */
+        bool isAllowedForceCloser(SP<User> closer, SP<Slot> slot);
 
         /* Returns if a slot by given name exists and returns true if it does.
          * Also returns true for empty string. */
-        bool hasSlotProfile(UnicodeString name);
-        bool hasSlotProfileUTF8(std::string name) { return hasSlotProfile(UnicodeString::fromUTF8(name)); };
+        bool hasSlotProfile(const ID &id);
 
         /* Updates a slot profile. It checks for currently watching/playing users
          * and kicks them out according to if something was forbidden in edit. */
@@ -125,13 +122,11 @@ class State
         void deleteSlotProfile(SP<SlotProfile> slotprofile);
 
         /* Returns a slot of given name, if there is one. */
-        WP<Slot> getSlot(UnicodeString name);
-        WP<Slot> getSlotUTF8(std::string name) { return getSlot(UnicodeString::fromUTF8(name)); };
+        WP<Slot> getSlot(const ID &id);
 
         /* Returns a slot profile of given name, if there is one. */
-        WP<SlotProfile> getSlotProfile(UnicodeString name);
-        WP<SlotProfile> getSlotProfileUTF8(std::string name) { return getSlotProfile(UnicodeString::fromUTF8(name)); };
-
+        WP<SlotProfile> getSlotProfile(const ID &id);
+        
         /* Adds a new slot profile to state */
         void addSlotProfile(SP<SlotProfile> sp);
 
@@ -148,6 +143,13 @@ class State
         /* Set/Get motd */
         void setMOTD(UnicodeString motd);
         UnicodeString getMOTD();
+        
+        /* Gets the user that corresponds to the given id */
+        SP<User> getUser(const ID& id);
+        
+        /* Force closes slot user is currently watching. 
+           Returns true if that succeeded and false if it did not. */
+        bool forceCloseSlotOfUser(SP<User> user);
 
         /* Runs until admin tells it to stop. */
         void loop();

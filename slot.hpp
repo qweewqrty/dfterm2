@@ -43,6 +43,8 @@ class Slot
         WP<SlotProfile> slotprofile;
         WP<User> user;
         WP<User> last_player;
+        
+        ID id;
 
         void setSelf(WP<Slot> s) { self = s; };
 
@@ -54,6 +56,10 @@ class Slot
 
     public:
         virtual ~Slot() { };
+        
+        const ID& getIDRef() const { return id; };
+        ID getID() const { return id; };
+        void setID(const ID& id) { this->id = id; };
 
         /* Creates a slot of given slottype.
            If it fails, returns a null pointer. */

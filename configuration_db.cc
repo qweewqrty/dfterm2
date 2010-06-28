@@ -48,8 +48,8 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
         return Failure;
 
     /* Create tables. These calls fail if they already exist (which is not bad). */
-    result = sqlite3_exec(db, "CREATE TABLE Users(Name TEXT, PasswordSHA512 TEXT, PasswordSalt TEXT, Admin TEXT);", 0, 0, 0);
-    result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, MaxSlots TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE Users(Name TEXT, ID TEXT, PasswordSHA512 TEXT, PasswordSalt TEXT, Admin TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, ID TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, AllowedClosers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, ForbiddenClosers TEXT, MaxSlots TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE MOTD(Content TEXT);", 0, 0, 0);
     /* Create an admin user, if database was created. */
     if (!database_exists)
@@ -88,6 +88,8 @@ int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self
 
         if (!strcmp(colname[i], "Name"))
             sp->setNameUTF8(argv[i]);
+        else if (!strcmp(colname[i], "ID"))
+            sp->setID(ID::getUnSerialized(string(argv[i])));
         else if (!strcmp(colname[i], "Width"))
             sp->setWidth(strtol(argv[i], NULL, 10));
         else if (!strcmp(colname[i], "Height"))
@@ -110,12 +112,16 @@ int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self
             sp->setAllowedLaunchers(UserGroup::unSerialize(argv[i]));
         else if (!strcmp(colname[i], "AllowedPlayers"))
             sp->setAllowedPlayers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "AllowedClosers"))
+            sp->setAllowedClosers(UserGroup::unSerialize(argv[i]));
         else if (!strcmp(colname[i], "ForbiddenWatchers"))
             sp->setForbiddenWatchers(UserGroup::unSerialize(argv[i]));
         else if (!strcmp(colname[i], "ForbiddenLaunchers"))
             sp->setForbiddenLaunchers(UserGroup::unSerialize(argv[i]));
         else if (!strcmp(colname[i], "ForbiddenPlayers"))
             sp->setForbiddenPlayers(UserGroup::unSerialize(argv[i]));
+        else if (!strcmp(colname[i], "ForbiddenClosers"))
+            sp->setForbiddenClosers(UserGroup::unSerialize(argv[i]));
         else if (!strcmp(colname[i], "MaxSlots"))
             sp->setMaxSlots(strtol(argv[i], NULL, 10));
     }
@@ -123,28 +129,34 @@ int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self
     return 0;
 };
 
-int ConfigurationDatabase::userDataCallback(string* name, string* password_hash, string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname)
+int ConfigurationDatabase::userDataCallback(SP<User>* user, void* v_self, int argc, char** argv, char** colname)
 {
-    (*name).clear();
-    (*password_hash).clear();
-    (*password_salt).clear();
-    (*admin) = false;
+    if (!user || !(*user)) return 1;
 
+    string password_salt, password_hash;
     int i;
     for (i = 0; i < argc; i++)
     {
         if (!argv[i]) continue;
 
         if (!strcmp(colname[i], "Name"))
-            (*name) = argv[i];
+            (*user)->setNameUTF8(string(argv[i]));
         else if (!strcmp(colname[i], "PasswordSHA512"))
-            (*password_hash) = argv[i];
+            password_hash = argv[i];
         else if (!strcmp(colname[i], "PasswordSalt"))
-            (*password_salt) = argv[i];
+            password_salt = argv[i];
+        else if (!strcmp(colname[i], "ID"))
+        {
+            ID id;
+            id.unSerialize(string(argv[i]));
+            (*user)->setID(id);
+        }
         else if (!strcmp(colname[i], "Admin"))
             if (!strcmp(argv[i], "Yes"))
-                (*admin) = true;
+                (*user)->setAdmin(true);
     }
+    (*user)->setPasswordSalt(password_salt);
+    (*user)->setPasswordHash(password_hash);
 
     return 0;
 };
@@ -152,6 +164,7 @@ int ConfigurationDatabase::userDataCallback(string* name, string* password_hash,
 int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname)
 {
     string name, password_hash, password_salt;
+    ID id;
     bool admin = false;
 
     int i;
@@ -165,6 +178,8 @@ int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, vo
             password_hash = argv[i];
         else if (!strcmp(colname[i], "PasswordSalt"))
             password_salt = argv[i];
+        else if (!strcmp(colname[i], "ID"))
+            id.unSerialize(string(argv[i]));
         else if (!strcmp(colname[i], "Admin"))
             if (!strcmp(argv[i], "Yes"))
                 admin = true;
@@ -175,6 +190,7 @@ int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, vo
     SP<User> user(new User);
     user->setPasswordSalt(password_salt);
     user->setPasswordHash(password_hash);
+    user->setID(id);
     user->setName(UnicodeString::fromUTF8(name));
     user->setAdmin(admin);
 
@@ -269,7 +285,7 @@ vector<SP<User> > ConfigurationDatabase::loadAllUserData()
     sql_callback_function = boost::bind(&ConfigurationDatabase::userListDataCallback, this, &result_users, _1, _2, _3, _4);
 
     string statement;
-    statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users;");
+    statement = string("SELECT Name, ID, PasswordSHA512, PasswordSalt, Admin FROM Users;");
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, 0);
     if (result != SQLITE_OK) return vector<SP<User> >();
 
@@ -298,32 +314,43 @@ void ConfigurationDatabase::deleteUserData(const UnicodeString &name)
     sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 }
 
+SP<User> ConfigurationDatabase::loadUserData(const ID& id)
+{
+    if (!db) return SP<User>();
+
+    string id_str = escape_sql_string(id.serialize());
+    
+    SP<User> r_result(new User);
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = boost::bind(&ConfigurationDatabase::userDataCallback, this, &r_result, _1, _2, _3, _4);
+
+    string statement;
+    statement = string("SELECT Name, ID, PasswordSHA512, PasswordSalt, Admin FROM Users WHERE ID = \'") + id_str + string("\';");
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, 0);
+    if (result != SQLITE_OK) return SP<User>();
+    if (r_result->getNameUTF8().size() == 0) return SP<User>();
+
+    return r_result;
+}
+
 SP<User> ConfigurationDatabase::loadUserData(const UnicodeString &name)
 {
     if (!db) return SP<User>();
 
     string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return SP<User>();
-
-    string r_name, r_password_hash, r_password_salt;
-    bool r_admin = false;
-
+    
+    SP<User> r_result(new User);
     function4<int, void*, int, char**, char**> sql_callback_function;
-    sql_callback_function = boost::bind(&ConfigurationDatabase::userDataCallback, this, &r_name, &r_password_hash, &r_password_salt, &r_admin, _1, _2, _3, _4);
+    sql_callback_function = boost::bind(&ConfigurationDatabase::userDataCallback, this, &r_result, _1, _2, _3, _4);
 
     string statement;
-    statement = string("SELECT Name, PasswordSHA512, PasswordSalt, Admin FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
+    statement = string("SELECT Name, ID, PasswordSHA512, PasswordSalt, Admin FROM Users WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, 0);
     if (result != SQLITE_OK) return SP<User>();
-    if (r_name.size() == 0) return SP<User>();
+    if (r_result->getNameUTF8().size() == 0) return SP<User>();
 
-    SP<User> user(new User);
-    user->setPasswordSalt(r_password_salt);
-    user->setPasswordHash(r_password_hash);
-    user->setName(UnicodeString::fromUTF8(r_name));
-    user->setAdmin(r_admin);
-
-    return user;
+    return r_result;
 }
 
 void ConfigurationDatabase::saveUserData(User* user)
@@ -341,7 +368,7 @@ void ConfigurationDatabase::saveUserData(User* user)
     string admin_str("No");
     if (user->isAdmin()) admin_str = "Yes";
         
-    statement = string("INSERT INTO Users(Name, PasswordSHA512, PasswordSalt, Admin) VALUES(\'") + escape_sql_string(name_utf8) + string("\', \'") + escape_sql_string(user->getPasswordHash()) + string("\', \'") + escape_sql_string(user->getPasswordSalt()) + string("\', \'") + admin_str + string("\');");
+    statement = string("INSERT INTO Users(Name, ID, PasswordSHA512, PasswordSalt, Admin) VALUES(\'") + escape_sql_string(name_utf8) + string("\', \'") + escape_sql_string(user->getID().serialize()) + string("\', \'") + escape_sql_string(user->getPasswordHash()) + string("\', \'") + escape_sql_string(user->getPasswordSalt()) + string("\', \'") + admin_str + string("\');");
     result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 };
 
@@ -357,8 +384,9 @@ void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
     int result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 
     stringstream ss;
-    ss << "INSERT INTO Slotprofiles(Name, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots) VALUES(\'" << 
+    ss << "INSERT INTO Slotprofiles(Name, ID, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots) VALUES(\'" << 
     escape_sql_string(slotprofile->getNameUTF8()) << "\',\'" << 
+    escape_sql_string(slotprofile->getID().serialize()) << "\',\'" <<
     slotprofile->getWidth() << "\',\'" <<
     slotprofile->getHeight() << "\',\'" <<
     escape_sql_string(slotprofile->getExecutableUTF8()) << "\',\'" <<
@@ -418,7 +446,7 @@ SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(const UnicodeString &
     char* errormsg = (char*) 0;
 
     string statement;
-    statement = string("SELECT Name, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
+    statement = string("SELECT Name, ID, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
     if (result != SQLITE_OK)
     {

@@ -632,7 +632,7 @@ void Client::clientIdentified()
 {
     SP<State> st = state.lock();
     if (!st) return;
-    st->destroyClient(nickname, self.lock());
+    st->destroyClient(user->getIDRef(), self.lock());
 
     game_window = interface->createInterface2DWindow();
     nicklist_window = interface->createInterfaceElementWindow();

@@ -16,6 +16,7 @@ using namespace std;
 
 ID::ID()
 {
+    memset(id_value, 0, 64);
     makeRandomBytes( (trankesbel::ui8*) id_value, 64);
 }
 
@@ -31,29 +32,41 @@ void ID::serialize(std::string &s) const
 
 ID ID::getUnSerialized(const std::string &s)
 {
-    ID id_value(false);
-    if (s.size() == 64)
-        memcpy(id_value.id_value, s.c_str(), 64);
+    ID id_value;
+    if (s.size() == 128)
+    {
+        string s2 = hex_to_bytes(s);
+        memcpy(id_value.id_value, s2.c_str(), 64);
+    }
     else
     {
         string hashed = hash_data(s);
-        if (hashed.size() == 64)
+        if (hashed.size() == 128)
+        {
+            hashed = hex_to_bytes(hashed);
             memcpy(id_value.id_value, hashed.c_str(), 64);
+        }
         else
             makeRandomBytes( (trankesbel::ui8*) id_value.id_value, 64);
     }
-    return id_value.id_value;
+    return id_value;
 }
 
 ID::ID(const std::string &s)
 {
-    if (s.size() == 64)
-        memcpy(this->id_value, s.c_str(), 64);
+    if (s.size() == 128)
+    {
+        string s2 = hex_to_bytes(s);
+        memcpy(this->id_value, s2.c_str(), 64);
+    }
     else
     {
         string hashed = hash_data(s);
-        if (hashed.size() == 64)
+        if (hashed.size() == 128)
+        {
+            hashed = hex_to_bytes(hashed);
             memcpy(this->id_value, hashed.c_str(), 64);
+        }
         else
             makeRandomBytes( (trankesbel::ui8*) this->id_value, 64);
     }
@@ -61,13 +74,19 @@ ID::ID(const std::string &s)
 
 ID::ID(const char* s, size_t s_size)
 {
-    if (s_size == 64)
-        memcpy(this->id_value, s, 64);
+    if (s_size == 128)
+    {
+        string s2 = hex_to_bytes(string(s, s_size));
+        memcpy(this->id_value, s2.c_str(), 64);
+    }
     else
     {
-        string hashed = hash_data(data1D(s, s_size));
-        if (hashed.size() == 64)
+        string hashed = hash_data(string(s, s_size));
+        if (hashed.size() == 128)
+        {
+            hashed = hex_to_bytes(hashed);
             memcpy(this->id_value, hashed.c_str(), 64);
+        }
         else
             makeRandomBytes( (trankesbel::ui8*) this->id_value, 64);
     }
@@ -75,13 +94,19 @@ ID::ID(const char* s, size_t s_size)
 
 void ID::unSerialize(const std::string &s)
 {
-    if (s.size() == 64)
-        memcpy(this->id_value, s.c_str(), 64);
+    if (s.size() == 128)
+    {
+        string s2 = hex_to_bytes(s);
+        memcpy(this->id_value, s2.c_str(), 64);
+    }
     else
     {
         string hashed = hash_data(s);
-        if (hashed.size() == 64)
+        if (hashed.size() == 128)
+        {
+            hashed = hex_to_bytes(hashed);
             memcpy(this->id_value, hashed.c_str(), 64);
+        }
         else
             makeRandomBytes( (trankesbel::ui8*) this->id_value, 64);
     }

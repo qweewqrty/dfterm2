@@ -217,6 +217,7 @@ int main(int argc, char* argv[])
             cout << "Password (hash): " << password_utf8 << endl;
             string password_salt = user_sp->getPasswordSalt();
             cout << "Password salt: " << password_salt << endl;
+            cout << "ID: " << user_sp->getID().serialize() << endl;
             string admin("Yes");
             if (!user_sp->isAdmin()) admin = "No";
             cout << "Administrator: " << admin << endl;

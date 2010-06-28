@@ -12,11 +12,10 @@ data1D UserGroup::serialize() const
     ss << (has_anybody ? 'Y' : 'N');
     ss << (has_launcher ? 'Y' : 'N');
 
-    set<UnicodeString>::iterator i1;
+    set<ID>::iterator i1;
     for (i1 = has_user.begin(); i1 != has_user.end(); i1++)
     {
-        string user_utf8;
-        (*i1).toUTF8String(user_utf8);
+        string user_utf8 = (*i1).serialize();
 
         size_t i2, len = user_utf8.size();
         for (i2 = 0; i2 < len; i2++)
@@ -56,7 +55,7 @@ UserGroup UserGroup::unSerialize(data1D data)
         }
         if (c == ';')
         {
-            ug.has_user.insert(UnicodeString::fromUTF8(name_utf8));
+            ug.has_user.insert(ID::getUnSerialized(name_utf8));
             name_utf8.clear();
             continue;
         }

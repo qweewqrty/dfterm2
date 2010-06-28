@@ -18,9 +18,23 @@ class ID
         
     public:
         ID();
-        ID(bool dont_initialize) { };
         ID(const std::string &s);
         ID(const char* buf, size_t buf_size);
+        
+        ID& operator=(const ID &i)
+        { 
+            if (this == &i) return (*this);
+            
+            for (trankesbel::ui8 i1 = 0; i1 < 64; i1++)
+                id_value[i1] = i.id_value[i1];
+            
+            return (*this);
+        };
+        ID(const ID& i)
+        {
+            for (trankesbel::ui8 i1 = 0; i1 < 64; i1++)
+                id_value[i1] = i.id_value[i1];
+        }
         
         /* You can use these to convert the ID
            to an ASCII-string. The result will be a
@@ -37,6 +51,16 @@ class ID
         void unSerialize(const std::string &s);
         
         bool operator==(const ID& id_value) const;
+        bool operator<(const ID& id) const
+        {
+            for (trankesbel::ui8 i1 = 0; i1 < 64; i1++)
+            {
+                if (id_value[i1] == id.id_value[i1]) continue;
+                if (id_value[i1] < id.id_value[i1]) return true; else return false;
+            }
+                
+            return false;
+        }
 };
 
 }

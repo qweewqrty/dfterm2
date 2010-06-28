@@ -24,6 +24,7 @@ class User
         data1D password_salt;
         bool active;
         bool admin;
+        ID id;
 
     public:
         User() { active = true; admin = false; };
@@ -35,6 +36,10 @@ class User
 
         data1D getPasswordSalt() const { return password_salt; };
         void setPasswordSalt(data1D salt) { password_salt = salt; };
+        
+        ID getID() const { return id; };
+        const ID& getIDRef() const { return id; };
+        void setID(const ID& id) { this->id = id; };
 
         /* This one hashes the password and then calls setPasswordHash. */
         /* UnicodeString will be first converted to UTF-8 */
@@ -82,7 +87,7 @@ class UserGroup
         bool has_nobody;
         bool has_anybody;
         bool has_launcher;
-        std::set<UnicodeString> has_user;
+        std::set<ID> has_user;
 
     public:
         UserGroup()
@@ -100,16 +105,12 @@ class UserGroup
         bool hasNobody() const { return has_nobody; };
         bool hasAnybody() const { return has_anybody; };
         bool hasLauncher() const { return has_launcher; };
-        bool hasUser(const UnicodeString &username) const 
+        bool hasUser(const ID &user_id) const 
         { 
             if (has_nobody) return false;
             if (has_anybody) return true;
-            return has_user.find(username) != has_user.end(); 
+            return has_user.find(user_id) != has_user.end(); 
         };
-        bool hasUserUTF8(const std::string &username) const
-        {
-            return hasUser(UnicodeString::fromUTF8(username));
-        }
 
         bool toggleAnybody()
         {
@@ -125,9 +126,9 @@ class UserGroup
             else setLauncher();
             return hasLauncher();
         }
-        bool toggleUser(const UnicodeString &username)
+        bool toggleUser(const ID &user_id)
         {
-            std::set<UnicodeString>::iterator i1 = has_user.find(username);
+            std::set<ID>::iterator i1 = has_user.find(user_id);
             if (i1 != has_user.end())
             {
                 has_user.erase(i1);
@@ -136,14 +137,10 @@ class UserGroup
             }
             else
             {
-                has_user.insert(username);
+                has_user.insert(user_id);
                 if (has_nobody) has_nobody = false;
                 return true;
             }
-        }
-        bool toggleUserUTF8(const std::string &username)
-        {
-            return toggleUser(UnicodeString::fromUTF8(username));
         }
 
         void setNobody()
@@ -176,13 +173,13 @@ class UserGroup
                     has_nobody = true;
             }
         }
-        void setUser(const UnicodeString &username)
+        void setUser(const ID &user_id)
         {
-            has_user.insert(username);
+            has_user.insert(user_id);
         }
-        void unsetUser(const UnicodeString &username)
+        void unsetUser(const ID &user_id)
         {
-            has_user.erase(username);
+            has_user.erase(user_id);
         }
 };
 
@@ -197,10 +194,14 @@ class SlotProfile
         UserGroup allowed_watchers;      /* who may watch */
         UserGroup allowed_launchers;     /* who may launch */
         UserGroup allowed_players;       /* who may play */
+        UserGroup allowed_closers;       /* who may force close the game */
         UserGroup forbidden_watchers;    /* who may not watch */
         UserGroup forbidden_launchers;   /* who may not launch */
         UserGroup forbidden_players;     /* who may not play */
+        UserGroup forbidden_closers;     /* who may not force close the game */
         trankesbel::ui32 max_slots;      /* maximum number of slots to create */
+        
+        ID id;                           /* Identify the slot profile with this. */
 
     public:
         SlotProfile()
@@ -211,9 +212,11 @@ class SlotProfile
             allowed_watchers.setAnybody();
             allowed_launchers.setAnybody();
             allowed_players.setAnybody();
+            allowed_closers.setAnybody();
             forbidden_players.setNobody();
             forbidden_launchers.setNobody();
             forbidden_watchers.setNobody();
+            forbidden_closers.setNobody();
         }
 
         /* All these functions are just simple getter/setter pairs */
@@ -221,6 +224,10 @@ class SlotProfile
         void setNameUTF8(const std::string &name) { this->name = UnicodeString::fromUTF8(name); };
         UnicodeString getName() const { return name; };
         std::string getNameUTF8() const { return TO_UTF8(name); };
+        
+        ID getID() const { return id; };
+        const ID& getIDRef() const { return id; };
+        void setID(const ID &id) { this->id = id; };
 
         void setWidth(trankesbel::ui32 w) { this->w = w; };
         trankesbel::ui32 getWidth() const { return w; };
@@ -251,16 +258,20 @@ class SlotProfile
         UserGroup getAllowedWatchers() const { return allowed_watchers; };
         UserGroup getAllowedLaunchers() const { return allowed_launchers; };
         UserGroup getAllowedPlayers() const { return allowed_players; };
+        UserGroup getAllowedClosers() const { return allowed_closers; };
         UserGroup getForbiddenWatchers() const { return forbidden_watchers; };
         UserGroup getForbiddenLaunchers() const { return forbidden_launchers; };
         UserGroup getForbiddenPlayers() const { return forbidden_players; };
+        UserGroup getForbiddenClosers() const { return forbidden_closers; };
         
         void setAllowedWatchers(UserGroup gr) { allowed_watchers = gr; };
         void setAllowedLaunchers(UserGroup gr) { allowed_launchers = gr; };
         void setAllowedPlayers(UserGroup gr) { allowed_players = gr; };
+        void setAllowedClosers(UserGroup gr) { allowed_closers = gr; };
         void setForbiddenWatchers(UserGroup gr) { forbidden_watchers = gr; };
         void setForbiddenLaunchers(UserGroup gr) { forbidden_launchers = gr; };
         void setForbiddenPlayers(UserGroup gr) { forbidden_players = gr; };
+        void setForbiddenClosers(UserGroup gr) { forbidden_closers = gr; };
 };
     
 };

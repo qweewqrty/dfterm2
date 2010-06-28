@@ -30,6 +30,46 @@ State::~State()
     state_initialized = false;
 };
 
+SP<User> State::getUser(const ID& id)
+{
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        if ( (*i1) && (*i1)->getUser()->getID() == id)
+            return (*i1)->getUser();
+        
+    if (configuration)
+        return configuration->loadUserData(id);
+    
+    return SP<User>();
+}
+
+bool State::forceCloseSlotOfUser(SP<User> user)
+{
+    if (!user)
+        return false;
+    
+    /* Find the slot and the corresponding slot profile this user is watching */
+    
+    SP<Slot> slot;
+    vector<SP<Client> >::iterator i1;
+    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        if ( (*i1) && (*i1)->getUser()->getID() == user->getID() )
+        {
+            slot = (*i1)->getSlot().lock();
+            break;
+        }
+        
+    if (!slot) return false;
+    
+    SP<SlotProfile> sp = slot->getSlotProfile().lock();
+    if (!sp) return false;
+    
+    /* Check that user is allowed to force-close this slot */
+    
+    
+    return true;
+}
+
 void State::setMOTD(UnicodeString motd)
 {
     this->MOTD = motd;
@@ -42,24 +82,24 @@ UnicodeString State::getMOTD()
     return MOTD;
 }
 
-WP<SlotProfile> State::getSlotProfile(UnicodeString name)
+WP<SlotProfile> State::getSlotProfile(const ID &id)
 {
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
 
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
-        if ((*i1) && (*i1)->getName() == name)
+        if ((*i1) && (*i1)->getIDRef() == id)
             return (*i1);
     return WP<SlotProfile>();
 }
     
-WP<Slot> State::getSlot(UnicodeString name)
+WP<Slot> State::getSlot(const ID &id)
 {
     lock_guard<recursive_mutex> lock(slots_mutex);
 
     vector<SP<Slot> >::iterator i1;
     for (i1 = slots.begin(); i1 != slots.end(); i1++)
-        if ((*i1) && (*i1)->getName() == name)
+        if ((*i1) && (*i1)->getIDRef() == id)
             return (*i1);
     return WP<Slot>();
 }
@@ -167,7 +207,7 @@ bool State::addTelnetService(SocketAddress address)
     return true;
 }
 
-void State::destroyClient(UnicodeString nickname, SP<Client> exclude)
+void State::destroyClient(const ID &user_id, SP<Client> exclude)
 {
     lock_guard<recursive_mutex> lock(clients_mutex);
 
@@ -178,7 +218,7 @@ void State::destroyClient(UnicodeString nickname, SP<Client> exclude)
     {
         if (clients[i1] == exclude) continue;
 
-        if (clients[i1] && clients[i1]->getUser()->getName() == nickname)
+        if (clients[i1] && clients[i1]->getUser()->getIDRef() == user_id)
         {
             clients.erase(clients.begin() + i1);
             clients_weak.erase(clients_weak.begin() + i1);
@@ -261,14 +301,40 @@ void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
     }
 }
 
-bool State::hasSlotProfile(UnicodeString name)
+bool State::hasSlotProfile(const ID& id)
 {
-    if (name.countChar32() == 0) return true;
-
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
-        if ((*i1)->getName() == name) return true;
+        if ((*i1)->getIDRef() == id) return true;
     return false;
+}
+
+bool State::isAllowedForceCloser(SP<User> closer, SP<Slot> slot)
+{
+    bool not_allowed_by_being_launcher = false;
+    SP<SlotProfile> sp_slotprofile = slot->getSlotProfile().lock();
+    if (!sp_slotprofile)
+    {
+        LOG(Error, "State::isAllowedForceCloser(), no slot profile associated with slot " << slot->getNameUTF8());
+        return false;
+    }
+    
+    UserGroup allowed_closers = sp_slotprofile->getAllowedClosers();
+    UserGroup forbidden_closers = sp_slotprofile->getForbiddenClosers();
+    
+    SP<User> launcher = slot->getLauncher().lock();
+    if (launcher && launcher == closer)
+    {
+        if (forbidden_closers.hasLauncher())
+            return false;
+        if (!allowed_closers.hasLauncher())
+            not_allowed_by_being_launcher = true;
+    }
+    if (forbidden_closers.hasUser(closer->getIDRef()))
+        return false;
+    if (!allowed_closers.hasUser(closer->getIDRef()) && (not_allowed_by_being_launcher || launcher != closer))
+        return false;
+    return true;
 }
 
 bool State::isAllowedLauncher(SP<User> launcher, SP<SlotProfile> slot_profile)
@@ -276,9 +342,9 @@ bool State::isAllowedLauncher(SP<User> launcher, SP<SlotProfile> slot_profile)
     UserGroup allowed_launchers = slot_profile->getAllowedLaunchers();
     UserGroup forbidden_launchers = slot_profile->getForbiddenLaunchers();
     
-    if (forbidden_launchers.hasUser(launcher->getName()))
+    if (forbidden_launchers.hasUser(launcher->getIDRef()))
         return false;
-    if (!allowed_launchers.hasUser(launcher->getName()) && !allowed_launchers.hasLauncher())
+    if (!allowed_launchers.hasUser(launcher->getIDRef()) && !allowed_launchers.hasLauncher())
         return false;
     return true;
 }
@@ -303,9 +369,9 @@ bool State::isAllowedPlayer(SP<User> user, SP<Slot> slot)
         if (!allowed_players.hasLauncher())
             not_allowed_by_being_launcher = true;
     }
-    if (forbidden_players.hasUser(user->getName()))
+    if (forbidden_players.hasUser(user->getIDRef()))
         return false;
-    if (!allowed_players.hasUser(user->getName()) && (not_allowed_by_being_launcher || launcher != user))
+    if (!allowed_players.hasUser(user->getIDRef()) && (not_allowed_by_being_launcher || launcher != user))
         return false;
     return true;
 };
@@ -330,14 +396,14 @@ bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
         if (!allowed_watchers.hasLauncher())
             not_allowed_by_being_launcher = true;
     }
-    if (forbidden_watchers.hasUser(user->getName()))
+    if (forbidden_watchers.hasUser(user->getIDRef()))
         return false;
-    if (!allowed_watchers.hasUser(user->getName()) && (not_allowed_by_being_launcher || launcher != user))
+    if (!allowed_watchers.hasUser(user->getIDRef()) && (not_allowed_by_being_launcher || launcher != user))
         return false;
     return true;
 };
 
-bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
+bool State::setUserToSlot(SP<User> user, const ID &slot_id)
 {
     /* Find the user from client list */
     SP<Client> client;
@@ -349,42 +415,38 @@ bool State::setUserToSlot(SP<User> user, UnicodeString slot_name)
             break;
         }
 
-    string slot_name_utf8 = TO_UTF8(slot_name_utf8);
-
     if (!client)
     {
-        LOG(Error, "User " << user->getNameUTF8() << " attempted to watch slot " << slot_name_utf8 << " but there is no associated client connected.");
+        LOG(Error, "User " << user->getNameUTF8() << " attempted to watch slot with ID " << slot_id.serialize() << " but there is no associated client connected.");
         return false;
     }
 
     client->setSlot(SP<Slot>());
 
-    if (slot_name.countChar32() == 0) return true;
-
-    WP<Slot> slot = getSlot(slot_name);
+    WP<Slot> slot = getSlot(slot_id);
     SP<Slot> sp_slot = slot.lock();
     if (!sp_slot)
     {
-        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " from interface but no such slot is in state. Slot name " << slot_name_utf8);
+        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " from interface but no such slot is in state. Slot ID " << slot_id.serialize());
         return false;
     }
 
     SP<SlotProfile> sp_slotprofile = sp_slot->getSlotProfile().lock();
     if (!sp_slotprofile)
     {
-        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. Slot name " << slot_name_utf8);
+        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " from interface but the slot has no slot profile associated with it. Slot name " << slot_id.serialize());
         return false;
     }
 
     /* Check if this client is allowed to watch this. */
     if (!isAllowedWatcher(user, sp_slot))
     {
-        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " but they are not allowed to do that. Slot name " << slot_name_utf8);
+        LOG(Error, "Slot join requested by " << user->getNameUTF8() << " but they are not allowed to do that. Slot ID " << slot_id.serialize());
         return false;
     }
 
     client->setSlot(sp_slot);
-    LOG(Note, "User " << user->getNameUTF8() << " is now watching slot " << slot_name_utf8);
+    LOG(Note, "User " << user->getNameUTF8() << " is now watching slot " << sp_slot->getNameUTF8());
     return true;
 }
 
@@ -443,7 +505,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     slots.push_back(slot);
 
     /* Put the user to watch the just launched slot */
-    setUserToSlotUTF8(launcher, name_utf8);
+    setUserToSlot(launcher, slot->getIDRef());
 
     return true;
 }
@@ -472,17 +534,17 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
     return false;
 }
 
-bool State::launchSlot(UnicodeString slot_profile_name, SP<User> launcher)
+bool State::launchSlot(const ID &slot_id, SP<User> launcher)
 {
     vector<SP<SlotProfile> >::iterator i1;
     for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
-        if ((*i1) && (*i1)->getName() == slot_profile_name)
+        if ((*i1) && (*i1)->getIDRef() == slot_id)
             return launchSlotNoCheck(*i1, launcher);
-    string utf8_name = TO_UTF8(slot_profile_name);
+    string utf8_name = slot_id.serialize();
     if (launcher)
-        { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list."); }
+        { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile with ID " << utf8_name << " that does not exist in slot profile list."); }
     else
-        { LOG(Error, "Null user attempted to launch a slot profile with name " << utf8_name << " that does not exist in slot profile list."); }
+        { LOG(Error, "Null user attempted to launch a slot profile with ID " << utf8_name << " that does not exist in slot profile list."); }
     return false;
 }
 
@@ -517,7 +579,7 @@ void State::notifyClient(SP<User> user)
     lock_guard<recursive_mutex> lock(clients_mutex);
     vector<SP<Client> >::iterator i1;
     for (i1 = clients.begin(); i1 != clients.end(); i1++)
-        if ((*i1) && (*i1)->getUser()->getNameUTF8() == user->getNameUTF8())
+        if ((*i1) && (*i1)->getUser()->getIDRef() == user->getIDRef())
         {
             socketevents.forceEvent((*i1)->getSocket());
             return;

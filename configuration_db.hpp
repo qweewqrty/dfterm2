@@ -29,7 +29,7 @@ class ConfigurationDatabase
         int slotprofileNameListDataCallback(std::vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname);
         int slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname);
         int motdCallback(UnicodeString* us, void* v_self, int argc, char** argv, char** colname);
-        int userDataCallback(std::string* name, std::string* password_hash, std::string* password_salt, bool* admin, void* v_self, int argc, char** argv, char** colname);
+        int userDataCallback(SP<User>* user, void* v_self, int argc, char** argv, char** colname);
         int userListDataCallback(std::vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
 
     public:
@@ -48,6 +48,7 @@ class ConfigurationDatabase
 
         std::vector<SP<User> > loadAllUserData();
         SP<User> loadUserData(const UnicodeString &name);
+        SP<User> loadUserData(const ID& id);
         void saveUserData(User* user);
         void saveUserData(SP<User> user) { saveUserData(user.get()); };
 

@@ -108,6 +108,7 @@ void ConfigurationInterface::enterMainMenu()
     current_menu = MainMenu;
     ui32 slot_index = window->addListElement("Launch a new game", "launchgame", true, false);
     window->addListElement("Join a running game", "joingame", true, false);
+    window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Disconnect", "disconnect", true, false);
     window->modifyListSelectionIndex(slot_index);
 }
@@ -126,6 +127,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Join a running game", "joingame", true, false);
     window->addListElement("Configure slots", "slots", true, false);
     window->addListElement("Set MotD", "motd", true, false);
+    window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
     window->modifyListSelectionIndex(slot_index);
@@ -205,7 +207,7 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
         if (!st->isAllowedLauncher(user, sp)) continue;
 
         data1D data_str("launchslot_");
-        data_str += sp->getNameUTF8();
+        data_str += sp->getID().serialize();
         window->addListElement(sp->getName(), data_str, true, false);
     }
 
@@ -255,7 +257,7 @@ void ConfigurationInterface::enterSlotsMenu()
             SP<SlotProfile> slot_profile = (*i1).lock();
             if (!slot_profile) continue;
 
-            window->addListElement(slot_profile->getName(), string("editslotprofile_") + slot_profile->getNameUTF8(), true, false);
+            window->addListElement(slot_profile->getName(), string("editslotprofile_") + slot_profile->getIDRef().serialize(), true, false);
         }
     }
 }
@@ -479,8 +481,8 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
     }
     else if (!selection.compare(0, min(selection.size(), (size_t) 11), "userselect_", 11))
     {
-        string username = selection.substr(11);
-        edit_usergroup.toggleUserUTF8(username);
+        ID user_id = ID::getUnSerialized(selection.substr(11));
+        edit_usergroup.toggleUser(user_id);
     }
 
     checkAuxiliaryWindowUsergroupSelections();
@@ -526,6 +528,19 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "joingame")
     {
         enterJoinSlotsMenu();
+    }
+    else if (selection == "forceclose")
+    {
+        SP<State> st = state.lock();
+        if (!st)
+        {
+            if (user)
+            { LOG(Error, "User " << user->getNameUTF8() << " attempted to force close a slot but state is null."); }
+            else
+            { LOG(Error, "Null user attempted to force close a slot but state is null."); };
+        }
+        else
+            st->forceCloseSlotOfUser(user);
     }
     /* Motd */
     else if (selection == "motd")
@@ -639,12 +654,12 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             }
             else
             {
-                if (selection == "newslot_create" && st->hasSlotProfile(edit_slotprofile.getName()))
+                if (selection == "newslot_create" && st->hasSlotProfile(edit_slotprofile.getID()))
                 {
                     if (user)
-                        { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with a name that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
+                        { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an ID that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
                     else
-                        { LOG(Note, "Null user attempted to create a slot profile with a name that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
+                        { LOG(Note, "Null user attempted to create a slot profile with an ID that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
                     window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
                     window->modifyListElementTextUTF8(1, window->getListElementUTF8(1) + string("_"));
                 }
@@ -685,7 +700,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     /* editing slots */
     else if (!selection.compare(0, min(selection.size(), (size_t) 16), "editslotprofile_", 16))
     {
-        string slot_name = selection.substr(16);
+        ID slot_id = ID::getUnSerialized(selection.substr(16));
         SP<State> st = state.lock();
         if (!st)
         {
@@ -696,14 +711,14 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            WP<SlotProfile> wp_sp = st->getSlotProfileUTF8(slot_name);
+            WP<SlotProfile> wp_sp = st->getSlotProfile(slot_id);
             SP<SlotProfile> sp = wp_sp.lock();
             if (!sp)
             {
                 if (user)
-                    { LOG(Error, "User " << user->getNameUTF8() << " requested edit from interface with name " << slot_name << " but there's no such slot profile."); }
+                    { LOG(Error, "User " << user->getNameUTF8() << " requested edit from interface with name " << sp->getNameUTF8() << " but there's no such slot profile."); }
                 else
-                    { LOG(Error, "Null user requested edit from interface with name " << slot_name << " but there's no such slot profile."); }
+                    { LOG(Error, "Null user requested edit from interface with name " << sp->getNameUTF8() << " but there's no such slot profile."); }
             }
             else
             {
@@ -716,35 +731,35 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     /* launching slots */
     else if (!selection.compare(0, min(selection.size(), (size_t) 11), "launchslot_", 11))
     {
-        string slot_name = selection.substr(11);
+        ID slot_id = ID::getUnSerialized(selection.substr(11));
         SP<State> st = state.lock();
         if (!st)
         {
             if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " requested slot launch from interface but state is null. Oops. Slot profile name " << slot_name); }
+                { LOG(Error, "User " << user->getNameUTF8() << " requested slot launch from interface but state is null. Oops. Slot ID " << slot_id.serialize()); }
             else
-                { LOG(Error, "Null user requested slot launch from interface but state is null. Oops. Slot profile name " << slot_name); }
+                { LOG(Error, "Null user requested slot launch from interface but state is null. Oops. Slot profile ID " << slot_id.serialize() ); }
         }
         else
         {
-            if (st->launchSlotUTF8(slot_name, user));
+            if (st->launchSlot(slot_id, user));
                 enterMainMenu();
         }
     }
     /* join slots */
     else if (!selection.compare(0, min(selection.size(), (size_t) 9), "joinslot_", 9))
     {
-        string slot_name = selection.substr(9);
+        ID slot_id = ID::getUnSerialized(selection.substr(9));
         SP<State> st = state.lock();
         if (!st)
         {
             if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_name); }
+                { LOG(Error, "User " << user->getNameUTF8() << " requested slot join from interface but state is null. Oopsies. Slot ID " << slot_id.serialize()); }
             else
-                { LOG(Error, "Null user requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_name); }
+                { LOG(Error, "Null user requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_id.serialize()); }
         }
         else
-            if (st->setUserToSlotUTF8(user, slot_name))
+            if (st->setUserToSlot(user, slot_id))
                 enterMainMenu();
     }
     else if (selection == "join_none")
@@ -758,7 +773,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                 { LOG(Error, "Null user requested slot join none from interface but state is null. Oopsies."); }
         }
         else
-            st->setUserToSlotUTF8(user, "");
+            st->setUserToSlot(user, ID());
     }
 
     checkSlotProfileMenu();
@@ -804,9 +819,9 @@ void ConfigurationInterface::auxiliaryEnterSpecificUsersWindow()
     {
         if (!users[i1]) continue;
         string element = string("\"") + users[i1]->getNameUTF8() + string("\"");
-        if (edit_usergroup.hasUser(users[i1]->getName())) element.push_back('*');
+        if (edit_usergroup.hasUser(users[i1]->getIDRef())) element.push_back('*');
 
-        string user_str = string("userselect_") + users[i1]->getNameUTF8();
+        string user_str = string("userselect_") + users[i1]->getID().serialize();
         auxiliary_window->addListElementUTF8(element.c_str(), user_str.c_str(), true, false);
     }
 
@@ -869,11 +884,24 @@ void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
         }
         else if (!data.compare(0, min(data.size(), (size_t) 11), "userselect_", 11))
         {
-            string username = data.substr(11);
-            if (edit_usergroup.hasUserUTF8(username))
-                auxiliary_window->modifyListElementTextUTF8(index, string("\"") + username + string("\"*"));
+            ID user_id = ID::getUnSerialized(data.substr(11));
+            SP<State> st = state.lock();
+            if (!st)
+            { LOG(Error, "Tried to toggle user " << user_id.serialize() << " in user group selection window but state is null."); }
             else
-                auxiliary_window->modifyListElementTextUTF8(index, string("\"") + username + string("\""));
+            {
+                SP<User> user = st->getUser(user_id);
+                if (!user)
+                { LOG(Error, "Tried to toggle user " << user_id.serialize() << " but such user can't be found."); }
+                else
+                {
+                    string username = user->getNameUTF8();
+                    if (edit_usergroup.hasUser(user_id))
+                        auxiliary_window->modifyListElementTextUTF8(index, string("\"") + username + string("\"*"));
+                    else
+                        auxiliary_window->modifyListElementTextUTF8(index, string("\"") + username + string("\""));
+                }
+            }
         }
     }
 }
