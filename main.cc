@@ -9,6 +9,8 @@
 #include "logger.hpp"
 #include "state.hpp"
 
+#include <clocale>
+
 using namespace dfterm;
 using namespace trankesbel;
 using namespace boost;
@@ -37,6 +39,8 @@ class sockets_initialize
 
 int main(int argc, char* argv[])
 {
+    setlocale(LC_ALL, "");
+    
     LOG(Note, "Starting up dfterm2.");
 
     sockets_initialize socket_initialization;
