@@ -671,6 +671,22 @@ void Client::clientIdentified()
     identify_window = SP<InterfaceElementWindow>();
 
     state.lock()->notifyClient(self.lock());
+
+    char time_c[51];
+    time_c[50] = 0;
+    time_t timet = time(0);
+    #ifdef __WIN32
+    struct tm* timem = localtime(&timet);
+    strftime(time_c, 50, "%H:%M:%S ", timem);
+    #else
+    struct tm timem;
+    localtime_r(&timet, &timem);
+    strftime(time_c, 50, "%H:%M:%S ", &timem);
+    #endif
+    
+    stringstream ss;
+    ss << time_c << " " << TO_UTF8(nickname) << " has connected to the server.";
+    global_chat->logMessageUTF8(ss.str());
 }
 
 void Client::setClientVector(vector<WP<Client> >* clients)

@@ -80,6 +80,21 @@ bool State::forceCloseSlotOfUser(SP<User> user)
         }
 
     if (!found_slot) return false;
+
+    char time_c[51];
+    time_c[50] = 0;
+    time_t timet = time(0);
+    #ifdef _WIN32
+    struct tm* timem = localtime(&timet);
+    strftime(time_c, 50, "%H:%M:%S ", timem);
+    #else
+    struct tm timem;
+    localtime_r(&timet, &timem);
+    strftime(time_c, 50, "%H:%M:%S ", &timem);
+    #endif
+    stringstream ss;
+    ss << time_c << " " << user->getNameUTF8() << " has force closed slot " << slot->getNameUTF8();
+    global_chat->logMessageUTF8(ss.str());
     
     return true;
 }
@@ -520,6 +535,21 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 
     /* Put the user to watch the just launched slot */
     setUserToSlot(launcher, slot->getIDRef());
+    
+    char time_c[51];
+    time_c[50] = 0;
+    time_t timet = time(0);
+    #ifdef _WIN32
+    struct tm* timem = localtime(&timet);
+    strftime(time_c, 50, "%H:%M:%S ", timem);
+    #else
+    struct tm timem;
+    localtime_r(&timet, &timem);
+    strftime(time_c, 50, "%H:%M:%S ", &timem);
+    #endif
+    stringstream ss;
+    ss << time_c << " " << launcher->getNameUTF8() << " has launched slot " << slot->getNameUTF8();
+    global_chat->logMessageUTF8(ss.str());
 
     return true;
 }
@@ -619,6 +649,22 @@ void State::pruneInactiveSlots()
                 { LOG(Note, "Removed a null slot from slot list."); }
             else
                 { LOG(Note, "Removed slot " << slots[i2]->getNameUTF8() << " from slot list."); }
+
+            char time_c[51];
+            time_c[50] = 0;
+            time_t timet = time(0);
+            #ifdef _WIN32
+            struct tm* timem = localtime(&timet);
+            strftime(time_c, 50, "%H:%M:%S ", timem);
+            #else
+            struct tm timem;
+            localtime_r(&timet, &timem);
+            strftime(time_c, 50, "%H:%M:%S ", &timem);
+            #endif
+            stringstream ss;
+            if (slots[i2])
+                ss << time_c << " Slot " << slots[i2]->getNameUTF8() << " has closed.";
+            global_chat->logMessageUTF8(ss.str());
                 
             unique_lock<recursive_mutex> lock2(clients_mutex);
             vector<SP<Client> >::iterator i1;
@@ -654,6 +700,23 @@ void State::pruneInactiveClients()
     {
         if (!clients[i2]->isActive())
         {
+            char time_c[51];
+            time_c[50] = 0;
+            time_t timet = time(0);
+            #ifdef __WIN32
+            struct tm* timem = localtime(&timet);;
+            strftime(time_c, 50, "%H:%M:%S ", timem);
+            #else
+            struct tm timem;
+            localtime_r(&timet, &timem);
+            strftime(time_c, 50, "%H:%M:%S ", &timem);
+            #endif
+
+            stringstream ss;
+            if (clients[i2]->getUser()->getNameUTF8().size() > 0)
+                ss << time_c << " " << clients[i2]->getUser()->getNameUTF8() << " has disconnected from the server.";
+            global_chat->logMessageUTF8(ss.str());
+
             clients.erase(clients.begin() + i2);
             clients_weak.erase(clients_weak.begin() + i2);
             len--;
