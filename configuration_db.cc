@@ -384,7 +384,7 @@ void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
     int result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
 
     stringstream ss;
-    ss << "INSERT INTO Slotprofiles(Name, ID, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots) VALUES(\'" << 
+    ss << "INSERT INTO Slotprofiles(Name, ID, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, AllowedClosers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, ForbiddenClosers, MaxSlots) VALUES(\'" << 
     escape_sql_string(slotprofile->getNameUTF8()) << "\',\'" << 
     escape_sql_string(slotprofile->getID().serialize()) << "\',\'" <<
     slotprofile->getWidth() << "\',\'" <<
@@ -395,9 +395,11 @@ void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
     escape_sql_string(slotprofile->getAllowedWatchers().serialize()) << "\',\'" <<
     escape_sql_string(slotprofile->getAllowedLaunchers().serialize()) << "\',\'" <<
     escape_sql_string(slotprofile->getAllowedPlayers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getAllowedClosers().serialize()) << "\',\'" <<
     escape_sql_string(slotprofile->getForbiddenWatchers().serialize()) << "\',\'" <<
     escape_sql_string(slotprofile->getForbiddenLaunchers().serialize()) << "\',\'" <<
     escape_sql_string(slotprofile->getForbiddenPlayers().serialize()) << "\',\'" <<
+    escape_sql_string(slotprofile->getForbiddenClosers().serialize()) << "\',\'" <<
     slotprofile->getMaxSlots() << "\');";
 
     char* errormsg = (char*) 0;
@@ -446,7 +448,7 @@ SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(const UnicodeString &
     char* errormsg = (char*) 0;
 
     string statement;
-    statement = string("SELECT Name, ID, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, MaxSlots FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
+    statement = string("SELECT Name, ID, Width, Height, Path, WorkingPath, SlotType, AllowedWatchers, AllowedLaunchers, AllowedPlayers, AllowedClosers, ForbiddenWatchers, ForbiddenLaunchers, ForbiddenPlayers, ForbiddenClosers, MaxSlots FROM Slotprofiles WHERE Name = \'") + escape_sql_string(name_utf8) + string("\';");
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
     if (result != SQLITE_OK)
     {
