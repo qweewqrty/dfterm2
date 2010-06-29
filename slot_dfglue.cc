@@ -320,7 +320,11 @@ void DFGlue::thread_function()
     }
     catch (const thread_interrupted &ti)
     {
+        
     }
+    SP<State> s = state.lock();
+    SP<Slot> self_sp = self.lock();
+    s->signalSlotData(self_sp);
     alive = false;
 }
 
