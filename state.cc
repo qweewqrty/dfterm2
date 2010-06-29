@@ -65,7 +65,20 @@ bool State::forceCloseSlotOfUser(SP<User> user)
     if (!sp) return false;
     
     /* Check that user is allowed to force-close this slot */
-    
+    if (!isAllowedForceCloser(user, slot)) return false;
+
+    /* Find the slot from slot list */
+    bool found_slot = false;
+    vector<SP<Slot> >::iterator i2;
+    for (i2 = slots.begin(); i2 != slots.end(); i2++)
+        if ((*i2) == slot)
+        {
+            slots.erase(i2);
+            found_slot = true;
+            break;
+        }
+
+    if (!found_slot) return false;
     
     return true;
 }

@@ -107,6 +107,9 @@ DFGlue::DFGlue(bool dummy) : Slot()
 
 DFGlue::~DFGlue()
 {
+    if (glue_thread)
+        glue_thread->interrupt();
+
     unique_lock<recursive_mutex> lock(glue_mutex);
     close_thread = true;
     if (df_handle != INVALID_HANDLE_VALUE && dont_take_running_process) TerminateProcess(df_handle, 1);
@@ -218,94 +221,103 @@ void DFGlue::thread_function()
         return;
     }
     alive_lock.unlock();
-
-    while(!isDFClosed())
+    try
     {
-        unique_lock<recursive_mutex> update_mutex(glue_mutex);
-
-        if (close_thread) break;
-        updateWindowSizeFromDFMemory();
-        
-        bool esc_down = false;
-        while(input_queue.size() > 0)
+        while(!isDFClosed())
         {
-            bool esc_down_now = esc_down;
-            bool ctrl_down_now = false;
-            bool shift_down_now = false;
-            esc_down = false;
+            this_thread::interruption_point();
 
-            DWORD vkey;
-            ui32 keycode = input_queue.front().first;
-            bool special_key = input_queue.front().second;
-            input_queue.pop_front();
+            unique_lock<recursive_mutex> update_mutex(glue_mutex);
 
-            if (!special_key)
+            if (close_thread) break;
+            updateWindowSizeFromDFMemory();
+        
+            bool esc_down = false;
+            while(input_queue.size() > 0)
             {
-                if (keycode == 27 && input_queue.size() > 0)
+                bool esc_down_now = esc_down;
+                bool ctrl_down_now = false;
+                bool shift_down_now = false;
+                esc_down = false;
+
+                DWORD vkey;
+                ui32 keycode = input_queue.front().first;
+                bool special_key = input_queue.front().second;
+                input_queue.pop_front();
+
+                if (!special_key)
                 {
-                    esc_down = true;
-                    continue;
-                }
-                else if (keycode == 27)
-                    vkey = VK_ESCAPE;
-                else if (keycode == '\n')
-                    vkey = VK_RETURN;
-                else
-                {
-                    map<KeyCode, DWORD>::iterator i1 = fixed_mappings.find((KeyCode) keycode);
-                    if (i1 != fixed_mappings.end())
-                        vkey = i1->second;
+                    if (keycode == 27 && input_queue.size() > 0)
+                    {
+                        esc_down = true;
+                        continue;
+                    }
+                    else if (keycode == 27)
+                        vkey = VK_ESCAPE;
+                    else if (keycode == '\n')
+                        vkey = VK_RETURN;
                     else
                     {
-                        SHORT keyscan = VkKeyScanW((WCHAR) keycode);
-                        vkey = (DWORD) (keyscan & 0xFF);
-                        if ((keyscan & 0x00ff) != -1 && (keyscan & 0xff00))
-                            shift_down_now = true;
-                        if (keycode == 127) // backspace
-                            vkey = VK_BACK;
+                        map<KeyCode, DWORD>::iterator i1 = fixed_mappings.find((KeyCode) keycode);
+                        if (i1 != fixed_mappings.end())
+                            vkey = i1->second;
+                        else
+                        {
+                            SHORT keyscan = VkKeyScanW((WCHAR) keycode);
+                            vkey = (DWORD) (keyscan & 0xFF);
+                            if ((keyscan & 0x00ff) != -1 && (keyscan & 0xff00))
+                                shift_down_now = true;
+                            if (keycode == 127) // backspace
+                                vkey = VK_BACK;
+                        }
                     }
                 }
-            }
-            else if (special_key)
-            {
-                map<KeyCode, DWORD>::iterator i1 = vkey_mappings.find((KeyCode) keycode);
-                if (i1 == vkey_mappings.end()) continue;
+                else if (special_key)
+                {
+                    map<KeyCode, DWORD>::iterator i1 = vkey_mappings.find((KeyCode) keycode);
+                    if (i1 == vkey_mappings.end()) continue;
 
-                vkey = i1->second;
+                    vkey = i1->second;
                 
-                KeyCode kc = (KeyCode) keycode;
-                if (kc == CtrlUp || kc == CtrlDown || kc == CtrlRight || kc == CtrlLeft)
-                    ctrl_down_now = true;
+                    KeyCode kc = (KeyCode) keycode;
+                    if (kc == CtrlUp || kc == CtrlDown || kc == CtrlRight || kc == CtrlLeft)
+                        ctrl_down_now = true;
+                }
+
+                if (shift_down_now)
+                {
+                    PostMessage(df_windows, WM_USER, 1, 0);
+                }
+                if (ctrl_down_now)
+                    PostMessage(df_windows, WM_USER, 1, 1);
+                if (esc_down_now)
+                    PostMessage(df_windows, WM_USER, 1, 2);
+                PostMessage(df_windows, WM_USER, vkey, 3);
+                if (shift_down_now)
+                {
+                    PostMessage(df_windows, WM_USER, 0, 0);
+                }
+                if (ctrl_down_now)
+                    PostMessage(df_windows, WM_USER, 0, 1);
+                if (esc_down_now)
+                    PostMessage(df_windows, WM_USER, 0, 2);
             }
 
-            if (shift_down_now)
+            update_mutex.unlock();
+            updateDFWindowTerminal();
+
             {
-                PostMessage(df_windows, WM_USER, 1, 0);
+            SP<State> s = state.lock();
+            SP<Slot> self_sp = self.lock();
+            if (s && self_sp)
+                s->signalSlotData(self_sp);
             }
-            if (ctrl_down_now)
-                PostMessage(df_windows, WM_USER, 1, 1);
-            if (esc_down_now)
-                PostMessage(df_windows, WM_USER, 1, 2);
-            PostMessage(df_windows, WM_USER, vkey, 3);
-            if (shift_down_now)
-            {
-                PostMessage(df_windows, WM_USER, 0, 0);
-            }
-            if (ctrl_down_now)
-                PostMessage(df_windows, WM_USER, 0, 1);
-            if (esc_down_now)
-                PostMessage(df_windows, WM_USER, 0, 2);
+
+            this_thread::sleep(posix_time::time_duration(posix_time::microseconds(1000000LL / ticks_per_second)));
         }
-
-        update_mutex.unlock();
-        updateDFWindowTerminal();
-
-        SP<State> s = state.lock();
-        SP<Slot> self_sp = self.lock();
-        if (s && self_sp)
-            s->signalSlotData(self_sp);
-
-        nanowait(1000000000LL / ticks_per_second);
+    }
+    catch (const thread_interrupted &ti)
+    {
     }
     alive = false;
 }
@@ -485,7 +497,14 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
             break;
         lock.unlock();
         counter--;
-        Sleep(1000);
+        try
+        {
+            this_thread::sleep(posix_time::time_duration(posix_time::microseconds(1000000LL)));
+        }
+        catch (const thread_interrupted &ti)
+        {
+            return false;
+        }
     }
     if (counter == 0)
     {
@@ -525,7 +544,17 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     lock.unlock();
 
     /* Sleep for 20 seconds before attaching */
-    Sleep(20000);
+    try
+    {
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(20000000LL)));
+    }
+    catch (const thread_interrupted &ti)
+    {
+        if (pi.hThread != INVALID_HANDLE_VALUE) CloseHandle(pi.hThread);
+        if (pi.hProcess) { UINT dummy = 0; TerminateProcess(pi.hProcess, dummy); };
+        CloseHandle(pi.hProcess);
+        return false;
+    }
 
     (*df_process) = pi.hProcess;
     if (pi.hThread != INVALID_HANDLE_VALUE) CloseHandle(pi.hThread);
