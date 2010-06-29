@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <psapi.h>
 #include <iostream>
+#include "logger.hpp"
 
 using namespace dfterm;
 using namespace std;
@@ -17,6 +18,7 @@ PointerPath::PointerPath()
 {
     last_used_module = (HANDLE) 0;
     num_modules = 0;
+    reported_error = false;
     needs_search = true;
 }
 
@@ -123,10 +125,24 @@ ptrdiff_t PointerPath::getFinalAddress(HANDLE df_handle)
             continue;
         }
 
-        ReadProcessMemory(df_handle, (LPCVOID) (fa + address[i1] + module_offset), &fa, sizeof(ptrdiff_t), NULL);
+        ptrdiff_t fa_target = 0;
+        if (!ReadProcessMemory(df_handle, (LPCVOID) (fa + address[i1] + module_offset), &fa_target, sizeof(ptrdiff_t), NULL))
+        {
+            DWORD err = GetLastError();
+
+            /* If we have a wrong address or something, it's likely this error will repeat, repeat and repeat.
+               Therefore, we limit it to once per class instance. */
+            if (!reported_error)
+            { LOG(Error, "Pointerpathing: ReadProcessMemory() failed in address " << (LPCVOID) (fa + address[i1] + module_offset) << " with GetLastError() == " << err << ". (This error will be reported only once for this PointerPath -class.)"); }
+            reported_error = true;
+        }
+        else if (!reported_path)
+        { LOG(Note, "Pointerpathing: Read process memory from address " << (LPCVOID) (fa + address[i1] + module_offset) << ". Got address " << (LPCVOID) fa_target << ". (Path will be reported only once per PointerPath -class)"); }
+
+        fa = fa_target;
     }
     needs_search = false;
-
+    reported_path = true;
     return fa;
 }
 

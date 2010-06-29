@@ -58,6 +58,7 @@ static ui32 checksum(string str)
 DFGlue::DFGlue() : Slot()
 {
     df_terminal.setCursorVisibility(false);
+    reported_memory_error = false;
 
     df_handle = INVALID_HANDLE_VALUE;
     close_thread = false;
@@ -83,6 +84,7 @@ DFGlue::DFGlue() : Slot()
 DFGlue::DFGlue(bool dummy) : Slot()
 {
     df_terminal.setCursorVisibility(false);
+    reported_memory_error = false;
 
     df_handle = INVALID_HANDLE_VALUE;
     close_thread = false;
@@ -362,7 +364,7 @@ void DFGlue::updateDFWindowTerminal()
         ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
 
         ui32 packed_buf[256*256];
-        ReadProcessMemory(df_handle, (LPCVOID) symbol_address, packed_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) symbol_address, packed_buf, df_w*df_h*4, NULL);
 
         lock_guard<recursive_mutex> lock(glue_mutex);
         if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
@@ -411,13 +413,13 @@ void DFGlue::updateDFWindowTerminal()
         float32 green_b_buf[256*256];
         float32 blue_b_buf[256*256];
 
-        ReadProcessMemory(df_handle, (LPCVOID) symbol_address, symbol_buf, df_w*df_h*4, NULL);
-        ReadProcessMemory(df_handle, (LPCVOID) red_address, red_buf, df_w*df_h*4, NULL);
-        ReadProcessMemory(df_handle, (LPCVOID) blue_address, blue_buf, df_w*df_h*4, NULL);
-        ReadProcessMemory(df_handle, (LPCVOID) green_address, green_buf, df_w*df_h*4, NULL);
-        ReadProcessMemory(df_handle, (LPCVOID) red_b_address, red_b_buf, df_w*df_h*4, NULL);
-        ReadProcessMemory(df_handle, (LPCVOID) blue_b_address, blue_b_buf, df_w*df_h*4, NULL);
-        ReadProcessMemory(df_handle, (LPCVOID) green_b_address, green_b_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) symbol_address, symbol_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) red_address, red_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) blue_address, blue_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) green_address, green_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) red_b_address, red_b_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) blue_b_address, blue_b_buf, df_w*df_h*4, NULL);
+        LoggerReadProcessMemory(df_handle, (LPCVOID) green_b_address, green_b_buf, df_w*df_h*4, NULL);
 
         lock_guard<recursive_mutex> lock(glue_mutex);
         if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
@@ -628,6 +630,17 @@ void DFGlue::getSize(ui32* width, ui32* height)
     (*height) = h;
 }
 
+void DFGlue::LoggerReadProcessMemory(HANDLE handle, const void* address, void* target, SIZE_T size, SIZE_T* read_size)
+{
+    int result = ReadProcessMemory(handle, address, target, size, read_size);
+    if (!result && !reported_memory_error)
+    {
+        reported_memory_error = true;
+        int err = GetLastError();
+        LOG(Error, "ReadProcessMemory() failed for address " << address << " with GetLastError() == " << err << ". (This error will only be reported once per slot)");
+    }
+}
+
 void DFGlue::updateWindowSizeFromDFMemory()
 {
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
@@ -635,8 +648,8 @@ void DFGlue::updateWindowSizeFromDFMemory()
 
     ui32 w = 0, h = 0;
     ptrdiff_t size_address = size_pp.getFinalAddress(df_handle);
-    ReadProcessMemory(df_handle, (LPCVOID) size_address, &w, 4, NULL);
-    ReadProcessMemory(df_handle, (LPCVOID) (size_address + 4), &h, 4, NULL);
+    LoggerReadProcessMemory(df_handle, (LPCVOID) size_address, &w, 4, NULL);
+    LoggerReadProcessMemory(df_handle, (LPCVOID) (size_address + 4), &h, 4, NULL);
 
     /* Limit the size. If this condition here ever becomes true, it probably means we are reading
        the size information from wrong place and getting weird results. */
@@ -669,7 +682,7 @@ bool DFGlue::detectDFVersion()
     fclose(f);
     ::uint32_t csum = checksum(buf, 100000);
 
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum);
+    
 
     PointerPath af;
     PointerPath sz;
@@ -681,12 +694,14 @@ bool DFGlue::detectDFVersion()
     sz.pushAddress(0x140C11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3108, 4);
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.08 SDL version)");
     break;
     case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
     af.pushAddress(0x00004050, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3106, 4);
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.06 SDL version)");
     break;
     case 0x9404d33d:  /* DF 0.31.03 */
     af.pushAddress(0x0106FE7C, "dwarfort.exe");
@@ -711,6 +726,7 @@ bool DFGlue::detectDFVersion()
     blue_b_pp.pushAddress(0x1c);
 
     data_format = DistinctFloatingPointVarying;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.03)");
     break;
     case 0xa0b99a67:  /* DF v0.31.02 */
     af.pushAddress(0x0106EE7C, "dwarfort.exe");
@@ -736,6 +752,7 @@ bool DFGlue::detectDFVersion()
     blue_b_pp.pushAddress(0x1c);
 
     data_format = DistinctFloatingPointVarying;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.02)");
     break;
     case 0xdf6285d3: /* DF v.0.31.01 */
     af.pushAddress(0x0106EE7C, "dwarfort.exe");
@@ -761,6 +778,7 @@ bool DFGlue::detectDFVersion()
     blue_b_pp.pushAddress(0x1c);
 
     data_format = DistinctFloatingPointVarying;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.01)");
     break;
     case 0x0b6bf445:  /* DF 40d19.2 */
     af.pushAddress(0x00F32B68, "dwarfort.exe");
@@ -768,17 +786,20 @@ bool DFGlue::detectDFVersion()
     sz.pushAddress(0x0129BF28, "dwarfort.exe");
     data_format = PackedVarying;
 
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d19.2)");
     break;
     case 0xb548e1b3: /* DF 40d19 */
     af.pushAddress(0x00F31B68, "dwarfort.exe");
     af.pushAddress(0);
     sz.pushAddress(0x0129AF28, "dwarfort.exe");
     data_format = PackedVarying;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d19)");
     break;
     case 0x04b75394: /* DF 40d18 */
     af.pushAddress(0x0101D240, "dwarfort.exe");
     sz.pushAddress(0x01417EE8, "dwarfort.exe");
     data_format = Packed256x256;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d18)");
     break;
     default:
     return false;

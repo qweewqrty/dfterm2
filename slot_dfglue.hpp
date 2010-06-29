@@ -113,6 +113,9 @@ class PointerPath
         std::vector<std::string> module;
         std::vector<std::pair<SearchAddress, ptrdiff_t> > search_address;
 
+        bool reported_error;
+        bool reported_path;
+
         std::map<std::string, std::pair<ptrdiff_t, ptrdiff_t> > module_addresses;
 
         bool needs_search;
@@ -225,6 +228,11 @@ class DFGlue : public Slot
         bool dont_take_running_process;
 
         std::map<std::string, UnicodeString> parameters;
+
+
+        /* Like ReadProcessMemory(), but logs a message if it fails. */
+        void LoggerReadProcessMemory(HANDLE handle, const void* address, void* target, SIZE_T size, SIZE_T* read_size);
+        bool reported_memory_error;
 
     public:
         DFGlue();
