@@ -41,8 +41,6 @@ int main(int argc, char* argv[])
 {
     log_file = TO_UNICODESTRING(string("dfterm2.log"));
     setlocale(LC_ALL, "");
-    
-    LOG(Note, "Starting up dfterm2.");
 
     sockets_initialize socket_initialization;
 
@@ -75,6 +73,15 @@ int main(int argc, char* argv[])
             cout << "This dfterm2 version supports IPv4 and IPv6." << endl;
             return 0;
         }
+        else if (!strcmp(argv[i1], "--disablelog"))
+        {
+            log_file = UnicodeString();
+        }
+        else if (!strcmp(argv[i1], "--logfile") && i1 < argc-1)
+        {
+            log_file = TO_UNICODESTRING(string(argv[i1+1]));
+            i1++;
+        }
         else if (!strcmp(argv[i1], "--help") || !strcmp(argv[i1], "-h") || !strcmp(argv[i1], "-?"))
         {
             cout << "Usage: " << endl;
@@ -86,6 +93,8 @@ int main(int argc, char* argv[])
             cout << "-a (address)          Set the address on which dfterm2 will listen to. Defaults to 0.0.0.0." << endl << endl;
             cout << "--version" << endl;
             cout << "-v                    Show version information and exit." << endl << endl;
+            cout << "--logfile (log file)  Specify where dfterm2 saves its log. Defaults to dfterm2.log" << endl;
+            cout << "--disablelog          Do not log to a file." << endl;
             cout << "--database (database file)" << endl;
             cout << "-db (database file)   Set the database file used. By default dfterm2 will try to look for" << endl;
             cout << "                      dfterm2_database.sqlite3. as database." << endl;
@@ -105,6 +114,11 @@ int main(int argc, char* argv[])
             return 0;
         }
     }
+    
+    if (log_file.length() > 0)
+        cout << "Logging to file " << TO_UTF8(log_file) << endl;
+
+    LOG(Note, "Starting up dfterm2.");
 
     SocketAddress::resolve(address, port, resolve_binding, true);
     if (!succeeded_resolve)
