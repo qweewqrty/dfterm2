@@ -39,6 +39,7 @@ class sockets_initialize
 
 int main(int argc, char* argv[])
 {
+    log_file = TO_UNICODESTRING(string("dfterm2.log"));
     setlocale(LC_ALL, "");
     
     LOG(Note, "Starting up dfterm2.");

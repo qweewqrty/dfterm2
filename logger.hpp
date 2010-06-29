@@ -82,6 +82,7 @@ class LoggerReader
 */
 
 extern SP<Logger> admin_logger; 
+extern UnicodeString log_file;
 extern void flush_messages();
 extern void initialize_logger();
 

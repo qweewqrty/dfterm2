@@ -15,6 +15,8 @@ using namespace trankesbel;
 namespace dfterm {
 SP<Logger> admin_logger;
 SP<LoggerReader> admin_messages_reader;
+
+UnicodeString log_file; /* if not empty, logs to this file */
 };
 
 void dfterm::initialize_logger()
@@ -66,6 +68,45 @@ void dfterm::flush_messages()
         wprintf(L"%ls\n", dest_str);
         fflush(stdout);
         delete[] dest_str;
+
+        if (log_file.length() > 0)
+        {
+            wchar_t* wc = (wchar_t*) 0;
+            size_t wc_size = 0;
+            TO_WCHAR_STRING(log_file, wc, &wc_size);
+            if (wc_size == 0)
+            {
+                wprintf(L"There is something wrong with the log file string. Could not save previous line to the log.\n");
+                continue;
+            }
+            wc = new wchar_t[wc_size+1];
+            memset(wc, 0, (wc_size+1) * sizeof(wchar_t));
+
+            TO_WCHAR_STRING(log_file, wc, &wc_size);
+            errno = 0;
+            #ifdef _WIN32
+            FILE* f = _wfopen(wc, L"at");
+            #else
+            FILE* f = fopen(TO_UTF8(log_file).c_str(), "at");
+            #endif
+            if (!f)
+            {
+                int err = errno;
+                wprintf(L"Could not open log file %ls, errno %d.\n", wc, err);
+                delete[] wc;
+                continue;
+            }
+            if (fprintf(f, "%s\n", TO_UTF8(us).c_str()) < 0)
+            {
+                int err = errno;
+                wprintf(L"Error when trying to write to log file %ls with fprintf(), errno %d.\n", wc, err);
+                delete[] wc;
+                fclose(f);
+                continue;
+            }
+            fclose(f);
+        }
+        
     } while(msg);
 }
 
