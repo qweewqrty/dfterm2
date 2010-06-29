@@ -56,6 +56,7 @@ bool State::forceCloseSlotOfUser(SP<User> user)
         if ( (*i1) && (*i1)->getUser()->getID() == user->getID() )
         {
             slot = (*i1)->getSlot().lock();
+            notifyClient(*i1);
             break;
         }
         
