@@ -128,8 +128,14 @@ WP<Slot> State::getSlot(const ID &id)
 
     vector<SP<Slot> >::iterator i1;
     for (i1 = slots.begin(); i1 != slots.end(); i1++)
-        if ((*i1) && (*i1)->getIDRef() == id)
-            return (*i1);
+    {
+        if ((*i1))
+        {
+            if ((*i1)->getIDRef() == id)
+                return (*i1);
+        }
+    }
+     
     return WP<Slot>();
 }
 

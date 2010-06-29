@@ -168,7 +168,7 @@ void ConfigurationInterface::enterJoinSlotsMenu()
         if (!st->isAllowedWatcher(user, sp)) continue;
 
         data1D data_str("joinslot_");
-        data_str += sp->getNameUTF8();
+        data_str += sp->getIDRef().serialize();
         window->addListElement(sp->getName(), data_str, true, false);
     }
 
