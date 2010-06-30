@@ -240,11 +240,14 @@ void Client::cycle()
     do_full_redraw = false;
     ui32 w, h;
     ts.getTerminalSize(&w, &h);
+    /* Clamp w and h to (10, 300) */
+    w = (w > 300) ? 300 : w;
+    h = (h > 300) ? 300 : h;
+    w = (w < 10) ? 10 : w;
+    h = (h < 10) ? 10 : h;
+
     if (w != (ui32) buffer_terminal.getWidth() || h != (ui32) buffer_terminal.getHeight())
     {
-        /* Do not allow larger than 300x300 terminals. */
-        w = (w > 300) ? 300 : w;
-        h = (h > 300) ? 300 : h;
 
         buffer_terminal.resize(w, h);
         buffer_terminal.feedString("\x1b[2J", 4);
