@@ -39,6 +39,7 @@ target_link_libraries(dfterm2 ${OPENSSL_LIBRARIES})
 target_link_libraries(dfterm2_configure ${OPENSSL_LIBRARIES})
 target_link_libraries(dfterm2_sha512 ${OPENSSL_LIBRARIES})
 
+include_directories(.)
 include_directories(./trankesbel)
 include_directories(./trankesbel/auxiliary)
 include_directories(${ICU_INCLUDE_PATH})
@@ -78,3 +79,10 @@ IF (PROFILE)
     SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure PROPERTIES LINK_FLAGS -pg)
 ENDIF (PROFILE)
 
+
+
+# Testing stuff
+ENABLE_TESTING()
+
+ADD_EXECUTABLE(lockedresource_test tests/lockedresource_test.cc)
+ADD_TEST(lockedresource_test ${EXECUTABLE_OUTPUT_PATH}/lockedresource_test)

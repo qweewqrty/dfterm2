@@ -32,11 +32,13 @@ State::~State()
 
 SP<User> State::getUser(const ID& id)
 {
+    unique_lock<recursive_mutex> lock(clients_mutex);
     vector<SP<Client> >::iterator i1;
     for (i1 = clients.begin(); i1 != clients.end(); i1++)
         if ( (*i1) && (*i1)->getUser()->getID() == id)
             return (*i1)->getUser();
-        
+    lock.unlock();
+
     if (configuration)
         return configuration->loadUserData(id);
     
@@ -59,7 +61,7 @@ bool State::forceCloseSlotOfUser(SP<User> user)
             notifyClient(*i1);
             break;
         }
-        
+
     if (!slot) return false;
     
     SP<SlotProfile> sp = slot->getSlotProfile().lock();
