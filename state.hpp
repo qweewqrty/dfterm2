@@ -13,6 +13,7 @@ class State;
 #include "configuration_interface.hpp"
 #include "configuration_primitives.hpp"
 #include <sstream>
+#include "lockedresource.hpp"
 
 namespace dfterm {
 
@@ -36,11 +37,9 @@ class State
         std::set<SP<trankesbel::Socket> > listening_sockets;
 
         /* This is the list of connected clients. */
-        std::vector<SP<Client> > clients;
+        LockedResource<std::vector<SP<Client> > > clients;
         /* And weak pointers to them. */
-        std::vector<WP<Client> > clients_weak;
-        /* And a mutex to those lists */
-        boost::recursive_mutex clients_mutex;
+        LockedResource<std::vector<WP<Client> > > clients_weak;
         
         /* The global chat logger */
         SP<Logger> global_chat;

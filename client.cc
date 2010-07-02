@@ -581,6 +581,8 @@ bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 
 void Client::updateNicklistWindowForAll()
 {
+    { return; }; /* disable nick list for now */
+
     vector<WP<Client> >::iterator i1;
     for (i1 = clients->begin(); i1 != clients->end(); i1++)
     {
@@ -593,6 +595,8 @@ void Client::updateNicklistWindowForAll()
 void Client::updateNicklistWindow()
 {
     if (!nicklist_window) return;
+
+    { return; }; /* disable nick list window for now */
 
     ui32 nicklist_window_index = nicklist_window->getListSelectionIndex();
     nicklist_window->deleteAllListElements();
@@ -638,7 +642,7 @@ void Client::clientIdentified()
     st->destroyClient(user->getIDRef(), self.lock());
 
     game_window = interface->createInterface2DWindow();
-    nicklist_window = interface->createInterfaceElementWindow();
+    // nicklist_window = interface->createInterfaceElementWindow();
     chat_window = interface->createInterfaceElementWindow();
 
     chat_window->setHint("chat");
@@ -667,8 +671,10 @@ void Client::clientIdentified()
 
     identified = true;
 
+    /*
     nicklist_window->setTitle("Local players");
     nicklist_window->setHint("nicklist");
+    */
 
     updateNicklistWindowForAll();
     identify_window = SP<InterfaceElementWindow>();

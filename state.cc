@@ -32,12 +32,14 @@ State::~State()
 
 SP<User> State::getUser(const ID& id)
 {
-    unique_lock<recursive_mutex> lock(clients_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
         if ( (*i1) && (*i1)->getUser()->getID() == id)
             return (*i1)->getUser();
-    lock.unlock();
+    lo_clients.release();
 
     if (configuration)
         return configuration->loadUserData(id);
@@ -53,14 +55,17 @@ bool State::forceCloseSlotOfUser(SP<User> user)
     /* Find the slot and the corresponding slot profile this user is watching */
     
     SP<Slot> slot;
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
         if ( (*i1) && (*i1)->getUser()->getID() == user->getID() )
         {
             slot = (*i1)->getSlot().lock();
             notifyClient(*i1);
             break;
         }
+    lo_clients.release();
 
     if (!slot) return false;
     
@@ -246,20 +251,24 @@ bool State::addTelnetService(SocketAddress address)
 
 void State::destroyClient(const ID &user_id, SP<Client> exclude)
 {
-    lock_guard<recursive_mutex> lock(clients_mutex);
-
     bool update_nicklists = false;
 
-    size_t i1, len = clients.size();
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    LockedObject<vector<WP<Client> > > lo_weak_clients = clients_weak.lock();
+    vector<WP<Client> > &weak_cli = *lo_weak_clients.get();
+
+    size_t i1, len = cli.size();
     for (i1 = 0; i1 < len; i1++)
     {
-        if (clients[i1] == exclude) continue;
+        if (cli[i1] == exclude) continue;
 
-        if (clients[i1] && clients[i1]->getUser()->getIDRef() == user_id)
+        if (cli[i1] && cli[i1]->getUser()->getIDRef() == user_id)
         {
-            clients.erase(clients.begin() + i1);
-            clients_weak.erase(clients_weak.begin() + i1);
-            LOG(Note, "Disconnected a duplicate connection for user " << clients[i1]->getUser()->getNameUTF8());
+            cli.erase(cli.begin() + i1);
+            weak_cli.erase(weak_cli.begin() + i1);
+            LOG(Note, "Disconnected a duplicate connection for user " << cli[i1]->getUser()->getNameUTF8());
             update_nicklists = true;
             break;
         }
@@ -267,10 +276,10 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
 
     if (!update_nicklists) return;
 
-    len = clients.size();
+    len = cli.size();
     for (i1 = 0; i1 < len; i1++)
-        if (clients[i1])
-            clients[i1]->updateClients();
+        if (cli[i1])
+            cli[i1]->updateClients();
 }
 
 void State::addSlotProfile(SP<SlotProfile> sp)
@@ -321,19 +330,22 @@ void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
         SP<SlotProfile> slotprofile = slots[i1]->getSlotProfile().lock();
         if (!slotprofile) continue;
 
-        size_t i2, len2 = clients.size();
+        LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+        vector<SP<Client> > &cli = *lo_clients.get();
+
+        size_t i2, len2 = cli.size();
         for (i2 = 0; i2 < len2; i2++)
         {
-            if (!clients[i2]) continue;
+            if (!cli[i2]) continue;
 
-            if (clients[i2]->getSlot().lock() != slots[i1])
+            if (cli[i2]->getSlot().lock() != slots[i1])
                 continue;
 
-            SP<User> user = clients[i2]->getUser();
+            SP<User> user = cli[i2]->getUser();
             if (!user) continue;
 
             if (!isAllowedWatcher(user, slots[i1]))
-                clients[i2]->setSlot(SP<Slot>());
+                cli[i2]->setSlot(SP<Slot>());
         }
     }
 }
@@ -443,9 +455,12 @@ bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
 bool State::setUserToSlot(SP<User> user, const ID &slot_id)
 {
     /* Find the user from client list */
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
     SP<Client> client;
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
         if ( (*i1)->getUser() == user)
         {
             client = (*i1);
@@ -602,9 +617,11 @@ bool State::launchSlot(const ID &slot_id, SP<User> launcher)
 
 void State::notifyAllClients()
 {
-    lock_guard<recursive_mutex> lock(clients_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
         if (*i1 && (*i1)->getSocket())
             socketevents.forceEvent((*i1)->getSocket());
 }
@@ -613,9 +630,11 @@ void State::notifyClient(SP<Client> client)
 {
     if (!client) return;
 
-    lock_guard<recursive_mutex> lock(clients_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
         if ((*i1) == client)
         {
             socketevents.forceEvent(client->getSocket());
@@ -628,9 +647,11 @@ void State::notifyClient(SP<User> user)
 {
     if (!user) return;
 
-    lock_guard<recursive_mutex> lock(clients_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
         if ((*i1) && (*i1)->getUser()->getIDRef() == user->getIDRef())
         {
             socketevents.forceEvent((*i1)->getSocket());
@@ -674,9 +695,10 @@ void State::pruneInactiveSlots()
                 ss << time_c << " Slot " << slots[i2]->getNameUTF8() << " has closed.";
             global_chat->logMessageUTF8(ss.str());
                 
-            unique_lock<recursive_mutex> lock2(clients_mutex);
+            LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+            vector<SP<Client> > &cli = *lo_clients.get();
             vector<SP<Client> >::iterator i1;
-            for (i1 = clients.begin(); i1 != clients.end(); i1++)
+            for (i1 = cli.begin(); i1 != cli.end(); i1++)
             {
                 if (!(*i1)) continue;
 
@@ -686,7 +708,7 @@ void State::pruneInactiveSlots()
                     notifyClient((*i1)->getSocket());
                 }
             }
-            lock2.unlock();
+            lo_clients.release();
 
             slots.erase(slots.begin() + i2);
             len--;
@@ -698,15 +720,18 @@ void State::pruneInactiveSlots()
 
 void State::pruneInactiveClients()
 {
-    lock_guard<recursive_mutex> lock(clients_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+    LockedObject<vector<WP<Client> > > lo_weak_clients = clients_weak.lock();
+    vector<WP<Client> > &weak_cli = *lo_weak_clients.get();
 
     bool changes = false;
 
     /* Prune inactive clients */
-    size_t i2, len = clients.size();
+    size_t i2, len = cli.size();
     for (i2 = 0; i2 < len; i2++)
     {
-        if (!clients[i2]->isActive())
+        if (!cli[i2]->isActive())
         {
             char time_c[51];
             time_c[50] = 0;
@@ -721,12 +746,12 @@ void State::pruneInactiveClients()
             #endif
 
             stringstream ss;
-            if (clients[i2]->getUser()->getNameUTF8().size() > 0)
-                ss << time_c << " " << clients[i2]->getUser()->getNameUTF8() << " has disconnected from the server.";
+            if (cli[i2]->getUser()->getNameUTF8().size() > 0)
+                ss << time_c << " " << cli[i2]->getUser()->getNameUTF8() << " has disconnected from the server.";
             global_chat->logMessageUTF8(ss.str());
 
-            clients.erase(clients.begin() + i2);
-            clients_weak.erase(clients_weak.begin() + i2);
+            cli.erase(cli.begin() + i2);
+            weak_cli.erase(weak_cli.begin() + i2);
             len--;
             i2--;
             LOG(Note, "Pruned an inactive connection.");
@@ -737,9 +762,9 @@ void State::pruneInactiveClients()
 
     if (!changes) return;
 
-    len = clients.size();
+    len = cli.size();
     for (i2 = 0; i2 < len; i2++)
-        clients[i2]->updateClients();
+        cli[i2]->updateClients();
     notifyAllClients();
 }
 
@@ -764,21 +789,24 @@ void State::new_connection(SP<Socket> listening_socket)
         new_client->setConfigurationDatabase(configuration);
         new_client->setGlobalChatLogger(global_chat);
 
-        lock_guard<recursive_mutex> lock(clients_mutex);
+        LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+        vector<SP<Client> > &cli = *lo_clients.get();
+        LockedObject<vector<WP<Client> > > lo_weak_clients = clients_weak.lock();
+        vector<WP<Client> > &weak_cli = *lo_weak_clients.get();
 
-        clients.push_back(new_client);
-        clients_weak.push_back(new_client);
-        new_client->setClientVector(&clients_weak);
+        cli.push_back(new_client);
+        weak_cli.push_back(new_client);
+        
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
 
         socketevents.addSocket(new_connection);
         
         new_client->sendPrivateChatMessage(MOTD);
         
-        size_t i1, len = clients.size();
+        size_t i1, len = cli.size();
         for (i1 = 0; i1 < len; i1++)
-            if (clients[i1])
-                clients[i1]->updateClients();
+            if (cli[i1])
+                cli[i1]->updateClients();
     }
 }
 
@@ -800,10 +828,11 @@ void State::loop()
             new_connection(s);
             continue;
         }
+        LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+        vector<SP<Client> > &cli = *lo_clients.get();
 
-        lock_guard<recursive_mutex> lock(clients_mutex);
         vector<SP<Client> >::iterator i1;
-        for (i1 = clients.begin(); i1 != clients.end(); i1++)
+        for (i1 = cli.begin(); i1 != cli.end(); i1++)
         {
             if (!(*i1)) continue;
             if ((*i1)->getSocket() == s)
@@ -818,9 +847,10 @@ void State::loop()
 
 void State::signalSlotData(SP<Slot> who)
 {
-    lock_guard<recursive_mutex> lock(clients_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
     vector<SP<Client> >::iterator i1;
-    for (i1 = clients.begin(); i1 != clients.end(); i1++)
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
     {
         if (!(*i1)) continue;
 
