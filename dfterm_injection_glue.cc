@@ -25,6 +25,8 @@ char GetAsyncKeyState_patch[6];
 ptrdiff_t GetAsyncKeyState_addr;
 char DefWindowProc_patch[6];
 ptrdiff_t DefWindowProc_addr;
+char SDLNumJoysticks_patch[6];
+ptrdiff_t SDLNumJoysticks_addr;
 
 char erasescreen_patch[6];
 ptrdiff_t erasescreen_addr;
@@ -46,7 +48,7 @@ unsigned char buffer[500*500];
 
 ptrdiff_t last_read_address = 0;
 
-void fake_graphics_31_06__erasescreen()
+int WINAPI hooked_SDLNumJoysticks()
 {
     if (set_buffer_address && buffer_address == 3108)
     {
@@ -71,9 +73,10 @@ void fake_graphics_31_06__erasescreen()
         last_read_address = final_address;
     }
 
-    restore_old_function(erasescreen_addr, erasescreen_patch);
-    ((void (*)()) erasescreen_addr)();
-    patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, NULL);
+    restore_old_function(SDLNumJoysticks_addr, SDLNumJoysticks_patch);
+    int result = ((int (*)()) SDLNumJoysticks_addr)();
+    patch_function(SDLNumJoysticks_addr, (ptrdiff_t) hooked_SDLNumJoysticks, NULL);
+    return result;
 }
 
 LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -128,7 +131,7 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
                             erasescreen_addr = 0x0015DE50 + (ptrdiff_t) mi.lpBaseOfDll;
                         else
                             return result;
-                        patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, erasescreen_patch);
+                        //patch_function(erasescreen_addr, (ptrdiff_t) fake_graphics_31_06__erasescreen, erasescreen_patch);
                         hooked_erase = true;
                     };
                 }
@@ -217,14 +220,20 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     LPCVOID gaks2 = (LPCVOID) GetProcAddress(module3, "GetAsyncKeyState");
     HMODULE module2 = GetModuleHandleW(L"Ntdll");
     LPCVOID dwp = (LPCVOID) GetProcAddress(module, "DefWindowProcA");
+    
+    HMODULE module5 = GetModuleHandleW(L"SDL");
+    LPCVOID gaks5 = GetProcAddress(module5, "SDL_NumJoysticks");
+
     GetKeyState_addr = (ptrdiff_t) gaks;
     DefWindowProc_addr = (ptrdiff_t) dwp;
     GetAsyncKeyState_addr = (ptrdiff_t) gaks2;
     GetKeyboardState_addr = (ptrdiff_t) gaks4;
+    SDLNumJoysticks_addr = (ptrdiff_t) gaks5;
     patch_function(GetKeyState_addr, (ptrdiff_t) hooked_GetKeyState, GetKeyState_patch);
     patch_function(GetKeyboardState_addr, (ptrdiff_t) hooked_GetKeyboardState, GetKeyboardState_patch);
     patch_function(GetAsyncKeyState_addr, (ptrdiff_t) hooked_GetAsyncKeyState, GetAsyncKeyState_patch);
     patch_function(DefWindowProc_addr, (ptrdiff_t) hooked_DefWindowProc, DefWindowProc_patch);
+    patch_function(SDLNumJoysticks_addr, (ptrdiff_t) hooked_SDLNumJoysticks, SDLNumJoysticks_patch);
 
 
     return TRUE;
