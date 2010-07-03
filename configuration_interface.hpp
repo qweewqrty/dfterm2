@@ -54,6 +54,7 @@ class ConfigurationInterface
         void enterJoinSlotsMenu();
         void enterMotdMenu();
         void checkSlotProfileMenu(bool no_read = false);
+        void checkSlotsMenu(bool no_read = false);
 
         void auxiliaryEnterUsergroupWindow();
         void auxiliaryEnterSpecificUsersWindow();

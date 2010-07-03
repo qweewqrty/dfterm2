@@ -50,6 +50,21 @@ SP<User> State::getUser(const ID& id)
     return SP<User>();
 }
 
+void State::setMaximumNumberOfSlots(trankesbel::ui32 max_slots)
+{
+    maximum_slots = max_slots;
+    if (maximum_slots >= MAX_SLOTS)
+        maximum_slots = MAX_SLOTS;
+
+    if (configuration)
+        configuration->saveMaximumNumberOfSlots(maximum_slots);
+}
+
+trankesbel::ui32 State::getMaximumNumberOfSlots() const
+{
+    return maximum_slots;
+}
+
 bool State::forceCloseSlotOfUser(SP<User> user)
 {
     if (!user)
@@ -215,6 +230,11 @@ bool State::setDatabaseUTF8(string database_file)
     unique_lock<recursive_mutex> lock(slots_mutex);
     slots.clear();
     lock.unlock();
+
+    maximum_slots = configuration->loadMaximumNumberOfSlots();
+    LOG(Note, "Maximum number of slots is " << maximum_slots);
+    if (maximum_slots >= MAX_SLOTS)
+        maximum_slots = MAX_SLOTS;
 
     lock_guard<recursive_mutex> lock2(slotprofiles_mutex);
     slotprofiles.clear();
@@ -534,12 +554,14 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but maximum number of compile-time slots has been reached.");
         if (client) client->sendPrivateChatMessageUTF8("Maximum number of slots has been reached.");
+        if (client) notifyClient(client);
         return false;
     }
     else if (slots.size() >= maximum_slots) /* soft configurable limit */
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but maximum number of slots has been reached.");
         if (client) client->sendPrivateChatMessageUTF8("Maximum number of slots has been reached.");
+        if (client) notifyClient(client);
         return false;
     }
 
@@ -547,6 +569,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but they are not allowed to do that.");
         if (client) client->sendPrivateChatMessageUTF8("You are not allowed to launch from this slot profile.");
+        if (client) notifyClient(client);
         return false;
     }
 
@@ -560,6 +583,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot but maximum number of slots of this slot profile has been reached. Slot profile name " << slot_profile->getNameUTF8());
         if (client) client->sendPrivateChatMessageUTF8("Maximum number of slots of this slot profile have already been launched.");
+        if (client) notifyClient(client);
         return false;
     }
 
@@ -572,6 +596,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     {
         LOG(Error, "Slot::createSlot() failed with slot profile " << slot_profile->getNameUTF8());
         if (client) client->sendPrivateChatMessageUTF8("Internal error while trying to launch a slot.");
+        if (client) notifyClient(client);
         return false;
     }
 
@@ -891,15 +916,6 @@ void State::loop()
 
 void State::signalSlotData(SP<Slot> who)
 {
-    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
-    vector<SP<Client> > &cli = *lo_clients.get();
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
-    {
-        if (!(*i1)) continue;
-
-        if ((*i1)->getSlot().lock() == who)
-            (*i1)->cycle();
-    }
+    notifyAllClients();
 }
 

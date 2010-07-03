@@ -141,6 +141,10 @@ class State
 
         /* Add a new telnet port to listen to. */
         bool addTelnetService(trankesbel::SocketAddress address);
+
+        /* Sets and gets the maximum number of slots that can run at a time. */
+        void setMaximumNumberOfSlots(trankesbel::ui32 max_slots);
+        trankesbel::ui32 getMaximumNumberOfSlots() const;
         
         /* Set/Get motd */
         void setMOTD(UnicodeString motd);

@@ -63,19 +63,27 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
 
 int ConfigurationDatabase::maximumSlotsCallback(ui32* maximum, void* v_self, int argc, char** argv, char** colname)
 {
+    ui32 value = 0xffffffff;
+    bool correct_key = false;
+
     int i;
     for (i = 0; i < argc; i++)
     {
         if (!argv[i]) continue;
         
-        if (!strcmp(colname[i], "MaximumSlots"))
+        if (!strcmp(colname[i], "Value"))
         {
-            (*maximum) = strtol(argv[i], 0, 10);
+            value = strtol(argv[i], 0, 10);
             break;
         }
+        if (!strcmp(colname[i], "Key") && !strcmp(argv[i], "MaximumSlots"))
+            correct_key = true;
     }
 
-    return 1;
+    if (correct_key)
+        (*maximum) = value;
+
+    return 0;
 }
 
 int ConfigurationDatabase::slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname)
@@ -508,7 +516,7 @@ ui32 ConfigurationDatabase::loadMaximumNumberOfSlots()
     function4<int, void*, int, char**, char**> sql_callback_function;
     sql_callback_function = boost::bind(&ConfigurationDatabase::maximumSlotsCallback, this, &maximum, _1, _2, _3, _4);
 
-    string statement = string("SELECT Key, Value FROM GlobalSettings WHERE Key = \'MaximumSlots\'");
+    string statement = string("SELECT Key, Value FROM GlobalSettings WHERE Key = \'MaximumSlots\';");
     char* errormsg = (char*) 0;
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
     if (result != SQLITE_OK)

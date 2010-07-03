@@ -238,13 +238,14 @@ void ConfigurationInterface::enterSlotsMenu()
     if (!admin) return;
 
     window->deleteAllListElements();
-    window->setHint("default");
+    window->setHint("wide");
     window->setTitle("Slot configuration");
 
     current_menu = SlotsMenu;
 
     int slot_index = window->addListElement("Back to main menu", "mainmenu", true, false);
     window->addListElement("Add a new slot profile", "new_slotprofile", true, false);
+    window->addListElement("", "Maximum number of slots running at a time: ", "max_slots", true, true);
     window->modifyListSelectionIndex(slot_index);
 
     SP<State> st = state.lock();
@@ -260,6 +261,8 @@ void ConfigurationInterface::enterSlotsMenu()
             window->addListElement(slot_profile->getName(), string("editslotprofile_") + slot_profile->getIDRef().serialize(), true, false);
         }
     }
+
+    checkSlotsMenu(true);
 }
 
 void ConfigurationInterface::enterEditSlotProfileMenu()
@@ -327,6 +330,35 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     window->modifyListSelectionIndex(slot_index);
 
     checkSlotProfileMenu();
+}
+
+void ConfigurationInterface::checkSlotsMenu(bool no_read)
+{
+    if (!window) return;
+
+    ui32 index;
+    string data;
+    for (index = 0; (data = window->getListElementData(index)).size() > 0; index++)
+    {
+        if (data == "max_slots")
+        {
+            SP<State> st = state.lock();
+            if (st)
+            {
+                ui32 max_slots = 0xffffffff;
+                if (!no_read)
+                    max_slots = strtol(window->getListElementUTF8(index).c_str(), 0, 10);
+                else
+                    max_slots = st->getMaximumNumberOfSlots();
+
+                stringstream ss;
+                ss << max_slots;
+                window->modifyListElementTextUTF8(index, ss.str());
+
+                st->setMaximumNumberOfSlots(max_slots);
+            }
+        }
+    }
 }
 
 void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
@@ -506,6 +538,8 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
 {
     if (auxiliary_window) return false;
 
+    checkSlotsMenu();
+
     data1D selection = window->getListElementData(index);
     if (selection == "mainmenu")
     {
@@ -515,6 +549,26 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         edit_slotprofile = SlotProfile();
         enterNewSlotProfileMenu();
+    }
+    else if (selection == "max_slots")
+    {
+        SP<State> st = state.lock();
+        if (!st)
+        {
+            if (user)
+            { LOG(Error, "User " << user->getNameUTF8() << " attempted to configure maximum number of slots but state is null."); }
+            else
+            { LOG(Error, "Null user attempted to configure maximum number of slots but state is null."); };
+        }
+        else
+        {
+            ui32 max_slots = strtol(window->getListElementUTF8(index).c_str(), 0, 10);
+            stringstream ss;
+            ss << max_slots;
+            window->modifyListElementTextUTF8(index, ss.str());
+
+            st->setMaximumNumberOfSlots(max_slots);
+        }
     }
     else if (selection == "disconnect")
     {
