@@ -322,9 +322,6 @@ void DFGlue::thread_function()
     {
         
     }
-    SP<State> s = state.lock();
-    SP<Slot> self_sp = self.lock();
-    s->signalSlotData(self_sp);
     alive = false;
 }
 
