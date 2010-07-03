@@ -85,4 +85,6 @@ ENDIF (PROFILE)
 ENABLE_TESTING()
 
 ADD_EXECUTABLE(lockedresource_test tests/lockedresource_test.cc)
+target_link_libraries(lockedresource_test trankesbel)
 ADD_TEST(lockedresource_test ${EXECUTABLE_OUTPUT_PATH}/lockedresource_test)
+

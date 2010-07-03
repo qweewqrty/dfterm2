@@ -1,10 +1,13 @@
 #include <unistd.h>
 #include <signal.h>
-#include <pty.h>
 #include <sys/wait.h>
 #include <iostream>
 #include <errno.h>
 #include "pty.h"
+#include "bsd_pty.h"
+#include <termios.h>
+#include <stdlib.h>
+#include <sys/ioctl.h>
 
 Pty::Pty()
 {

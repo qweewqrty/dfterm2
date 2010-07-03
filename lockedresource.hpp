@@ -2,6 +2,7 @@
 #define lockedresource_hpp
 
 #include <boost/thread/recursive_mutex.hpp>
+#include "types.hpp"
 
 namespace dfterm {
 
@@ -34,43 +35,43 @@ class LockedResource
            Only one thread will be able to lock the resource
            at a time. When done with it, call LockedObject::release()
            or destroy the object. (locks are released on destructor) */
-        LockedObject<typename T> lock()
+        LockedObject<T> lock()
         {
-            return LockedObject<typename T>(&object, &resource_mutex);
+            return LockedObject<T>(&object, &resource_mutex);
         }
 };
 
 template<class T>
 class LockedObject
 {
-    friend class LockedResource<typename T>;
+    friend class LockedResource<T>;
 
     private:
         T* object;
-        boost::unique_lock<boost::recursive_mutex> object_lock;
-        LockedObject() { };
+        SP<boost::unique_lock<boost::recursive_mutex> > object_lock;
         LockedObject(T* object, boost::recursive_mutex* rmutex)
         {
-            object_lock = boost::unique_lock<boost::recursive_mutex>(*rmutex);
+            object_lock = SP<boost::unique_lock<boost::recursive_mutex> >(new boost::unique_lock<boost::recursive_mutex>(boost::unique_lock<boost::recursive_mutex>(*rmutex)));
             this->object = object;
         }
 
-        LockedObject& operator=(const LockedObject &lo) { abort(); return (*this); };
-
     public:
+        LockedObject()
+        {
+            object = (T*) 0;
+        }
 
-        /* These movers invalidate the object you copy from. */
-        LockedObject(LockedObject &lo) 
-        { 
-            (*this) = lo;
+        LockedObject(const LockedObject &lo) 
+        {
+            object = lo.object;
+            object_lock = lo.object_lock;
         };
-        LockedObject& operator=(LockedObject &lo)
+        LockedObject& operator=(const LockedObject &lo)
         {
             if (this == &lo) return (*this);
 
             object = lo.object;
-            lo.object = (T*) 0;
-            object_lock.swap(lo.object_lock);
+            object_lock = lo.object_lock;
 
             return (*this);
         }
@@ -82,7 +83,7 @@ class LockedObject
         T* operator->() { return object; };
         const T& operator*() const { return (*object); };
         const T* operator->() const { return object; };
-        void release() { object = (T*) 0; object_lock.unlock(); };
+        void release() { object = (T*) 0; if (object_lock) object_lock->unlock(); };
 };
 
 };

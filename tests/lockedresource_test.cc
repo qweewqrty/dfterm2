@@ -44,18 +44,18 @@ int main(int argc, char* argv[])
     {
     LockedObject<data> lo2 = lr.lock();
     for (i1 = 0; i1 < 1000; i1++)
-        lo->mushValue(i1 - 5);
+        lo2->mushValue(i1 - 5);
     }
 
     LockedObject<data> lo3 = lr.lock();
     for (i1 = 0; i1 < 1111; i1++)
-        lo->mushValue( (i1+5)*3 );
+        lo3->mushValue( (i1+5)*3 );
 
-    if (lo->getResult() != -863889368)
+    if (lo3->getResult() != -863889368)
         return 1;
 
-    /* Ownership lose on operator= and copy constructor test. */
 
+    /* Copying tests */
     if (lo3.get() == (data*) 0)
         return 2;
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     /* copy constructor */
     LockedObject<data> lo_copied(lo3);
 
-    if (lo3.get() != (data*) 0)
+    if (lo3.get() == (data*) 0)
         return 3;
 
     if (lo_copied.get() != copy_addr)
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     if (lo3.get() != copy_addr)
         return 5;
 
-    if (lo_copied.get() != (data*) 0)
+    if (lo_copied.get() != copy_addr)
         return 6;
 
     return 0;
