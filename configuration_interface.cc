@@ -746,7 +746,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                     if (selection == "newslot_create")
                     {
                         SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
-                        if (!st->addSlotProfile(slotp))
+                        if (st->addSlotProfile(slotp))
                         {
                             configuration_database->saveSlotProfileData(slotp);
                             edit_slotprofile_sp_target = SP<SlotProfile>();
