@@ -14,6 +14,7 @@
 using namespace dfterm;
 using namespace std;
 using namespace boost;
+using namespace trankesbel;
 
 ConfigurationDatabase::ConfigurationDatabase()
 {
@@ -51,11 +52,30 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
     result = sqlite3_exec(db, "CREATE TABLE Users(Name TEXT, ID TEXT, PasswordSHA512 TEXT, PasswordSalt TEXT, Admin TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, ID TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, AllowedClosers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, ForbiddenClosers TEXT, MaxSlots TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE MOTD(Content TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE GlobalSettings(Key TEXT, Value TEXT);", 0, 0, 0);
+
     /* Create an admin user, if database was created. */
     if (!database_exists)
         return OkCreatedNewDatabase;
 
     return Ok;
+}
+
+int ConfigurationDatabase::maximumSlotsCallback(ui32* maximum, void* v_self, int argc, char** argv, char** colname)
+{
+    int i;
+    for (i = 0; i < argc; i++)
+    {
+        if (!argv[i]) continue;
+        
+        if (!strcmp(colname[i], "MaximumSlots"))
+        {
+            (*maximum) = strtol(argv[i], 0, 10);
+            break;
+        }
+    }
+
+    return 1;
 }
 
 int ConfigurationDatabase::slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname)
@@ -460,6 +480,47 @@ SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(const UnicodeString &
 
     return SP<SlotProfile>(new SlotProfile(sp));
 };
+
+void ConfigurationDatabase::saveMaximumNumberOfSlots(ui32 maximum)
+{
+    if (!db) return;
+
+    string statement = string("DELETE FROM GlobalSettings WHERE Key = \'MaximumSlots\';");
+    int result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
+
+    char* errormsg = (char*) 0;
+
+    stringstream ss;
+    ss << maximum;
+    statement = string("INSERT INTO GlobalSettings(Key, Value) VALUES(\'MaximumSlots\', \'") + escape_sql_string(ss.str()) + string("\');");
+    result = sqlite3_exec(db, statement.c_str(), 0, 0, &errormsg);
+    if (result != SQLITE_OK)
+    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+
+    if (errormsg) sqlite3_free(errormsg);
+}
+
+ui32 ConfigurationDatabase::loadMaximumNumberOfSlots()
+{
+    if (!db) return 0xffffffff;
+
+    ui32 maximum = 0xffffffff;
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = boost::bind(&ConfigurationDatabase::maximumSlotsCallback, this, &maximum, _1, _2, _3, _4);
+
+    string statement = string("SELECT Key, Value FROM GlobalSettings WHERE Key = \'MaximumSlots\'");
+    char* errormsg = (char*) 0;
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
+    if (result != SQLITE_OK)
+    {
+        LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg);
+        if (errormsg) sqlite3_free(errormsg);
+        return 0xffffffff;
+    }
+    if (errormsg) sqlite3_free(errormsg);
+
+    return maximum;
+}
 
 data1D dfterm::escape_sql_string(const data1D &str)
 {

@@ -4,6 +4,8 @@
 #include "nanoclock.hpp"
 #include "logger.hpp"
 
+#include "dfterm2_limits.hpp"
+
 using namespace dfterm;
 using namespace std;
 using namespace boost;
@@ -15,6 +17,7 @@ static ui64 running_counter = 1;
 
 State::State()
 {
+    maximum_slots = 0xffffffff;
     state_initialized = true;
     global_chat = SP<Logger>(new Logger);
     close = false;
@@ -282,9 +285,15 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
             cli[i1]->updateClients();
 }
 
-void State::addSlotProfile(SP<SlotProfile> sp)
+bool State::addSlotProfile(SP<SlotProfile> sp)
 {
+    if (slotprofiles.size() >= MAX_SLOT_PROFILES)
+    {
+        LOG(Error, "Attempted to create a slot profile but compile-time maximum number of slot profiles has been reached.");
+        return false;
+    }
     slotprofiles.push_back(sp);
+    return true;
 };
 
 void State::deleteSlotProfile(SP<SlotProfile> slotprofile)
@@ -519,6 +528,20 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     lock_guard<recursive_mutex> lock2(slots_mutex);
 
     if (!launcher) launcher = SP<User>(new User);
+
+    /* Check for slot limits */
+    if (slots.size() >= MAX_SLOTS) /* hard compile-time limit */
+    {
+        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but maximum number of compile-time slots has been reached.");
+        if (client) client->sendPrivateChatMessageUTF8("Maximum number of slots has been reached.");
+        return false;
+    }
+    else if (slots.size() >= maximum_slots) /* soft configurable limit */
+    {
+        LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but maximum number of slots has been reached.");
+        if (client) client->sendPrivateChatMessageUTF8("Maximum number of slots has been reached.");
+        return false;
+    }
 
     if (!isAllowedLauncher(launcher, slot_profile))
     {
@@ -808,6 +831,12 @@ void State::new_connection(SP<Socket> listening_socket)
         vector<SP<Client> > &cli = *lo_clients.get();
         LockedObject<vector<WP<Client> > > lo_weak_clients = clients_weak.lock();
         vector<WP<Client> > &weak_cli = *lo_weak_clients.get();
+
+        if (cli.size() >= MAX_CONNECTIONS)
+        {
+            new_connection->send("Maximum number of connections reached.\n");
+            return;
+        }
 
         cli.push_back(new_client);
         weak_cli.push_back(new_client);

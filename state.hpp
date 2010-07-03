@@ -34,6 +34,9 @@ class State
         /* The MOTD */
         UnicodeString MOTD;
 
+        /* Maximum slots */
+        trankesbel::ui32 maximum_slots;
+
         std::set<SP<trankesbel::Socket> > listening_sockets;
 
         /* This is the list of connected clients. */
@@ -127,7 +130,7 @@ class State
         WP<SlotProfile> getSlotProfile(const ID &id);
         
         /* Adds a new slot profile to state */
-        void addSlotProfile(SP<SlotProfile> sp);
+        bool addSlotProfile(SP<SlotProfile> sp);
 
         /* Sets ticks per second. */
         void setTicksPerSecond(uint64_t ticks_per_second);

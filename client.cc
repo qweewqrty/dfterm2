@@ -7,6 +7,8 @@
 #include "nanoclock.hpp"
 #include "rng.hpp"
 
+#include "dfterm2_limits.hpp"
+
 using namespace std; 
 using namespace trankesbel;
 using namespace dfterm;
@@ -396,11 +398,21 @@ bool Client::identifySelectFunction(ui32 index)
             return true;
         }
 
+        /* First check if there's room for this user */
+        /* This is quite inefficient */
+        ui32 number_of_users = cdb->loadAllUserData().size();
+        if (number_of_users >= MAX_REGISTERED_USERS)
+        {
+            clientIdentified();
+            return true;
+        }
+
         SP<User> user = cdb->loadUserData(nickname);
         if (!user)
         {
             /* No user information? Then we ask the user whether they want a permanent
              * or non-permanent account. */
+
             identify_window->setTitle("New user - Password");
             identify_window->deleteAllListElements();
             identify_window->addListElementUTF8("If you want to make this a permanent account, enter your password here.", "dummy", false, false);
@@ -503,6 +515,13 @@ bool Client::identifySelectFunction(ui32 index)
         user->setName(nickname);
         user->setAdmin(false);
         user->setPassword(password1);
+
+        ui32 number_of_users = cdb->loadAllUserData().size();
+        if (number_of_users >= MAX_REGISTERED_USERS)
+        {
+            clientIdentified();
+            return true;
+        }
 
         cdb->saveUserData(user);
         clientIdentified();

@@ -692,15 +692,17 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                     if (selection == "newslot_create")
                     {
                         SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
-                        st->addSlotProfile(slotp);
-                        configuration_database->saveSlotProfileData(slotp);
-                        edit_slotprofile_sp_target = SP<SlotProfile>();
+                        if (!st->addSlotProfile(slotp))
+                        {
+                            configuration_database->saveSlotProfileData(slotp);
+                            edit_slotprofile_sp_target = SP<SlotProfile>();
 
-                        if (user)
-                            { LOG(Note, "User " << user->getNameUTF8() << " created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
-                        else
-                            { LOG(Note, "Null user created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
-                        enterSlotsMenu();
+                            if (user)
+                                { LOG(Note, "User " << user->getNameUTF8() << " created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
+                            else
+                                { LOG(Note, "Null user created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
+                            enterSlotsMenu();
+                        }
                     }
                     else
                     {

@@ -31,6 +31,7 @@ class ConfigurationDatabase
         int motdCallback(UnicodeString* us, void* v_self, int argc, char** argv, char** colname);
         int userDataCallback(SP<User>* user, void* v_self, int argc, char** argv, char** colname);
         int userListDataCallback(std::vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
+        int maximumSlotsCallback(trankesbel::ui32* maximum, void* v_self, int argc, char** argv, char** colname);
 
     public:
         ConfigurationDatabase();
@@ -66,6 +67,9 @@ class ConfigurationDatabase
         void saveMOTDUTF8(std::string motd_utf8);
         UnicodeString loadMOTD();
         std::string loadMOTDUTF8();
+
+        trankesbel::ui32 loadMaximumNumberOfSlots();
+        void saveMaximumNumberOfSlots(trankesbel::ui32 maximum);
 };
 
 }
