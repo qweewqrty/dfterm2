@@ -504,6 +504,17 @@ bool State::setUserToSlot(SP<User> user, const ID &slot_id)
 
 bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+    SP<Client> client;
+
+    vector<SP<Client> >::iterator i2;
+    for (i2 = cli.begin(); i2 != cli.end(); i2++)
+        if ( (*i2) && (*i2)->getUser()->getIDRef() == launcher->getIDRef())
+            client = (*i2);
+
+    lo_clients.release();
+
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
     lock_guard<recursive_mutex> lock2(slots_mutex);
 
@@ -512,6 +523,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     if (!isAllowedLauncher(launcher, slot_profile))
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot from slot profile " << slot_profile->getNameUTF8() << " but they are not allowed to do that.");
+        if (client) client->sendPrivateChatMessageUTF8("You are not allowed to launch from this slot profile.");
         return false;
     }
 
@@ -524,6 +536,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     if (num_slots >= slot_profile->getMaxSlots())
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot but maximum number of slots of this slot profile has been reached. Slot profile name " << slot_profile->getNameUTF8());
+        if (client) client->sendPrivateChatMessageUTF8("Maximum number of slots of this slot profile have already been launched.");
         return false;
     }
 
@@ -532,16 +545,18 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     running_counter++;
 
     SP<Slot> slot = Slot::createSlot((SlotType) slot_profile->getSlotType());
+    if (!slot)
+    {
+        LOG(Error, "Slot::createSlot() failed with slot profile " << slot_profile->getNameUTF8());
+        if (client) client->sendPrivateChatMessageUTF8("Internal error while trying to launch a slot.");
+        return false;
+    }
+
     slot->setState(self);
     slot->setSlotProfile(slot_profile);
     slot->setLauncher(launcher);
     string name_utf8 = slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str();
     slot->setNameUTF8(name_utf8);
-    if (!slot)
-    {
-        LOG(Error, "Slot::createSlot() failed with slot profile " << slot_profile->getNameUTF8());
-        return false;
-    }
     slot->setParameter("path", slot_profile->getExecutable());
     slot->setParameter("work", slot_profile->getWorkingPath());
 
