@@ -72,6 +72,10 @@ class State
         void new_connection(SP<trankesbel::Socket> listening_socket);
         void client_signal_function(WP<Client> client, SP<trankesbel::Socket> from_where);
 
+        /* this mutex locked in loop(), to ensure no outside code is called from this class
+           in different threads. */
+        boost::recursive_mutex cycle_mutex;
+
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
         static SP<State> createState();

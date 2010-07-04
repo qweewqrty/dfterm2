@@ -881,13 +881,16 @@ void State::new_connection(SP<Socket> listening_socket)
 
 void State::loop()
 {
+    unique_lock<recursive_mutex> lock(cycle_mutex);
     close = false;
     while(!close)
     {
         pruneInactiveClients();
         pruneInactiveSlots();
         flush_messages();
+        cycle_mutex.unlock();
         SP<Socket> s = socketevents.getEvent(500000000);
+        cycle_mutex.lock();
         if (!s) continue;
 
         /* Test if it's a listening socket */
@@ -916,6 +919,20 @@ void State::loop()
 
 void State::signalSlotData(SP<Slot> who)
 {
-    notifyAllClients();
+    lock_guard<recursive_mutex> lock(cycle_mutex);
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    vector<SP<Client> >::iterator i1;
+    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    {
+        if (!(*i1)) continue;
+        if ((*i1)->getSlot().lock() == who)
+        {
+            (*i1)->cycle();
+            if ((*i1)->shouldShutdown()) close = true;
+            break;
+        }
+    }
 }
 
