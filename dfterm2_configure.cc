@@ -23,7 +23,7 @@ void seedRNG()
     /* Seed random number generator a bit */
     while(!RAND_status() && rng_counter > 0)
     {
-        rng_counter--;
+        --rng_counter;
 
         #ifdef __WIN32
         #define WIN32_LEAN_AND_MEAN
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
     bool make_admin = false;
 
     int i1;
-    for (i1 = 1; i1 < argc; i1++)
+    for (i1 = 1; i1 < argc; ++i1)
     {
         if ((!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "--db")) && i1 < argc-1)
             database_file = argv[++i1];
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
             if (i1 < argc - 3 && !strcmp(argv[i1+3], "admin"))
             {
                 make_admin = true;
-                i1++;
+                ++i1;
             }
                 
             action = AddUser;
@@ -94,19 +94,19 @@ int main(int argc, char* argv[])
         {
             username = UnicodeString::fromUTF8(string(argv[i1+1]));
             action = RemoveUser;
-            i1++;
+            ++i1;
         }
         else if (!strcmp(argv[i1], "--userinfo") && i1 < argc - 1)
         {
             username = UnicodeString::fromUTF8(string(argv[i1+1]));
             action = UserInfo;
-            i1++;
+            ++i1;
         }
         else if (!strcmp(argv[i1], "--setmotd") && i1 < argc - 1)
         {
             motd = UnicodeString::fromUTF8(string(argv[i1+1]));
             action = SetMotd;
-            i1++;
+            ++i1;
         }
         else if (!strcmp(argv[i1], "--motd") || !strcmp(argv[i1], "--getmotd"))
         {

@@ -111,7 +111,7 @@ Client::Client(SP<Socket> client_socket)
     /* Register CP437 to unicode maps */
     initCharacterMappings();
     ui32 i1 = 0;
-    for (i1 = 0; i1 < 256; i1++)
+    for (i1 = 0; i1 < 256; ++i1)
     {
         CursesElement ce(mapCharacter(i1), White, Black, false);
         interface->mapElementIdentifier(i1, (void*) &ce, sizeof(ce));
@@ -230,7 +230,7 @@ void Client::cycle()
         if (buf_size == 0) break;
 
         size_t i1;
-        for (i1 = 0; i1 < buf_size; i1++)
+        for (i1 = 0; i1 < buf_size; ++i1)
             interface->pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
     }
     while(buf_size > 0);
@@ -602,8 +602,8 @@ void Client::updateNicklistWindowForAll()
 {
     { return; }; /* disable nick list for now */
 
-    vector<WP<Client> >::iterator i1;
-    for (i1 = clients->begin(); i1 != clients->end(); i1++)
+    vector<WP<Client> >::iterator i1, clients_end = clients->end();
+    for (i1 = clients->begin(); i1 != clients_end; ++i1)
     {
         SP<Client> c = (*i1).lock();
         if (c)
@@ -624,14 +624,15 @@ void Client::updateNicklistWindow()
     vector<UnicodeString> nicks;
     nicks.reserve(clients->size());
 
-    vector<WP<Client> >::iterator i1;
-    for (i1 = clients->begin(); i1 != clients->end(); i1++)
+    vector<WP<Client> >::iterator i1, clients_end = clients->end();
+    for (i1 = clients->begin(); i1 != clients_end; ++i1)
     {
         SP<Client> c = (*i1).lock();
         if (!c)
         {
             clients->erase(i1);
-            i1--;
+            clients_end = clients->end();
+            --i1;
             continue;
         };
         UnicodeString us = c->nickname;
@@ -641,10 +642,10 @@ void Client::updateNicklistWindow()
     }
     sort(nicks.begin(), nicks.end());
 
-    vector<UnicodeString>::iterator i2;
+    vector<UnicodeString>::iterator i2, nicks_end = nicks.end();
     bool found_index = false;
     int index = 0;
-    for (i2 = nicks.begin(); i2 != nicks.end(); i2++)
+    for (i2 = nicks.begin(); i2 != nicks_end; ++i2)
     {
         index = nicklist_window->addListElement((*i2), "", true);
         if ((ui32) index == nicklist_window_index) found_index = true;

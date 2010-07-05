@@ -154,7 +154,7 @@ void TerminalGlue::thread_function()
             parameters.find("h") != parameters.end())
             break;
         lock.unlock();
-        counter--;
+        --counter;
         sleep(1);
     }
     if (counter == 0)
@@ -282,8 +282,8 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     ui32 i1, i2;
     ui32 cursor_x = game_terminal.getCursorX();
     ui32 cursor_y = game_terminal.getCursorY();
-    for (i1 = 0; i1 < t_w; i1++)
-        for (i2 = 0; i2 < t_h; i2++)
+    for (i1 = 0; i1 < t_w; ++i1)
+        for (i2 = 0; i2 < t_h; ++i2)
         {
             const TerminalTile &t = game_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();

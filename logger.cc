@@ -113,8 +113,8 @@ void dfterm::flush_messages()
 void Logger::logMessage(const UnicodeString &message)
 {
     lock_guard<recursive_mutex> lock(logmutex);
-    vector<WP<LoggerReader> >::iterator i1;
-    for (i1 = readers.begin(); i1 != readers.end(); i1++)
+    vector<WP<LoggerReader> >::iterator i1, readers_end = readers.end();
+    for (i1 = readers.begin(); i1 != readers_end; ++i1)
     {
         SP<LoggerReader> reader = (*i1).lock();
         if (!reader)
@@ -122,14 +122,19 @@ void Logger::logMessage(const UnicodeString &message)
         reader->logMessage(message);
     }
     /* Remove null readers */
-    for (i1 = readers.begin(); i1 != readers.end(); i1++)
+    bool repeat = true;
+    while (repeat)
     {
-        SP<LoggerReader> reader = (*i1).lock();
-        if (!reader)
+        repeat = false;
+        for (i1 = readers.begin(); i1 != readers_end; ++i1)
         {
+            SP<LoggerReader> reader = (*i1).lock();
+            if (reader) continue;
+
             readers.erase(i1);
-            i1 = readers.begin() - 1;
-            continue;
+            readers_end = readers.end();
+            repeat = true;
+            break;
         }
     }
 }

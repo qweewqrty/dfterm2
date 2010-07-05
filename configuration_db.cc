@@ -67,7 +67,7 @@ int ConfigurationDatabase::maximumSlotsCallback(ui32* maximum, void* v_self, int
     bool correct_key = false;
 
     int i;
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; ++i)
     {
         if (!argv[i]) continue;
         
@@ -91,7 +91,7 @@ int ConfigurationDatabase::slotprofileNameListDataCallback(vector<UnicodeString>
     if (!name_list) return 0;
 
     int i;
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; ++i)
     {
         if (!argv[i]) continue;
         
@@ -110,7 +110,7 @@ int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self
     if (!sp) return 0;
 
     int i;
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; ++i)
     {
         if (!argv[i]) continue;
 
@@ -163,7 +163,7 @@ int ConfigurationDatabase::userDataCallback(SP<User>* user, void* v_self, int ar
 
     string password_salt, password_hash;
     int i;
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; ++i)
     {
         if (!argv[i]) continue;
 
@@ -196,7 +196,7 @@ int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, vo
     bool admin = false;
 
     int i;
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; ++i)
     {
         if (!argv[i]) continue;
 
@@ -229,7 +229,7 @@ int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, vo
 int ConfigurationDatabase::motdCallback(UnicodeString* us, void* v_self, int argc, char** argv, char** colname)
 {
     int i;
-    for (i = 0; i < argc; i++)
+    for (i = 0; i < argc; ++i)
     {
         if (!argv[i]) continue;
 
@@ -537,7 +537,7 @@ data1D dfterm::escape_sql_string(const data1D &str)
     size_t str_size = str.size();
 
     size_t i1;
-    for (i1 = 0; i1 < str_size; i1++)
+    for (i1 = 0; i1 < str_size; ++i1)
     {
         if (str[i1] == '\'')
             result.append("\'\'");

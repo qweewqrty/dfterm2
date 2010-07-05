@@ -59,7 +59,7 @@ void PointerPath::enumModules(HANDLE df_handle)
     WCHAR namebuf[1000];
     namebuf[999] = 0;
 
-    for (i1 = 0; i1 < num_modules; i1++)
+    for (i1 = 0; i1 < num_modules; ++i1)
     {
         MODULEINFO mi;
 
@@ -103,7 +103,7 @@ ptrdiff_t PointerPath::getFinalAddress(HANDLE df_handle)
     map<string, pair<ptrdiff_t, ptrdiff_t> >::iterator i2;
 
     int i1, len = address.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
     {
         if (needs_search && search_address[i1].first.getSize() > 0 && module[i1].size() > 0)
         {

@@ -38,8 +38,8 @@ SP<User> State::getUser(const ID& id)
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ( (*i1) && (*i1)->getUser()->getID() == id)
             return (*i1)->getUser();
     lo_clients.release();
@@ -75,8 +75,8 @@ bool State::forceCloseSlotOfUser(SP<User> user)
     SP<Slot> slot;
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ( (*i1) && (*i1)->getUser()->getID() == user->getID() )
         {
             slot = (*i1)->getSlot().lock();
@@ -95,8 +95,8 @@ bool State::forceCloseSlotOfUser(SP<User> user)
 
     /* Find the slot from slot list */
     bool found_slot = false;
-    vector<SP<Slot> >::iterator i2;
-    for (i2 = slots.begin(); i2 != slots.end(); i2++)
+    vector<SP<Slot> >::iterator i2, slots_end = slots.end();
+    for (i2 = slots.begin(); i2 != slots_end; ++i2)
         if ((*i2) == slot)
         {
             slots.erase(i2);
@@ -140,8 +140,8 @@ WP<SlotProfile> State::getSlotProfile(const ID &id)
 {
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
 
-    vector<SP<SlotProfile> >::iterator i1;
-    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         if ((*i1) && (*i1)->getIDRef() == id)
             return (*i1);
     return WP<SlotProfile>();
@@ -151,8 +151,8 @@ WP<Slot> State::getSlot(const ID &id)
 {
     lock_guard<recursive_mutex> lock(slots_mutex);
 
-    vector<SP<Slot> >::iterator i1;
-    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+    vector<SP<Slot> >::iterator i1, slots_end = slots.end();
+    for (i1 = slots.begin(); i1 != slots_end; ++i1)
     {
         if ((*i1))
         {
@@ -169,8 +169,8 @@ vector<WP<Slot> > State::getSlots()
     lock_guard<recursive_mutex> lock(slots_mutex);
 
     vector<WP<Slot> > wp_slots;
-    vector<SP<Slot> >::iterator i1;
-    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+    vector<SP<Slot> >::iterator i1, slots_end = slots.end();
+    for (i1 = slots.begin(); i1 != slots_end; ++i1)
         wp_slots.push_back(*i1);
     return wp_slots;
 }
@@ -180,8 +180,8 @@ vector<WP<SlotProfile> > State::getSlotProfiles()
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
 
     vector<WP<SlotProfile> > wp_slots;
-    vector<SP<SlotProfile> >::iterator i1;
-    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         wp_slots.push_back(*i1);
     return wp_slots;
 }
@@ -240,8 +240,8 @@ bool State::setDatabaseUTF8(string database_file)
     slotprofiles.clear();
 
     vector<UnicodeString> profile_list = configuration->loadSlotProfileNames();
-    vector<UnicodeString>::iterator i1;
-    for (i1 = profile_list.begin(); i1 != profile_list.end(); i1++)
+    vector<UnicodeString>::iterator i1, profile_list_end = profile_list.end();
+    for (i1 = profile_list.begin(); i1 != profile_list_end; ++i1)
     {
         SP<SlotProfile> sp = configuration->loadSlotProfileData(*i1);
         if (!sp) continue;
@@ -283,7 +283,7 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
     vector<WP<Client> > &weak_cli = *lo_weak_clients.get();
 
     size_t i1, len = cli.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
     {
         if (cli[i1] == exclude) continue;
 
@@ -300,7 +300,7 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
     if (!update_nicklists) return;
 
     len = cli.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
         if (cli[i1])
             cli[i1]->updateClients();
 }
@@ -321,7 +321,7 @@ void State::deleteSlotProfile(SP<SlotProfile> slotprofile)
     if (!slotprofile) return;
 
     size_t i1, len = slots.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
     {
         if (!slots[i1]) continue;
 
@@ -329,18 +329,18 @@ void State::deleteSlotProfile(SP<SlotProfile> slotprofile)
         if (!sp || slotprofile != sp) continue;
 
         slots.erase(slots.begin() + i1);
-        len--;
-        i1--;
+        --len;
+        --i1;
     };
 
     len = slotprofiles.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
     {
         if (slotprofiles[i1] == slotprofile)
         {
             slotprofiles.erase(slotprofiles.begin() + i1);
-            i1--;
-            len--;
+            --i1;
+            --len;
         }
     }
 }
@@ -352,7 +352,7 @@ void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
     (*target.get()) = source;
 
     size_t i1, len = slots.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
     {
         if (!slots[i1]) continue;
 
@@ -363,7 +363,7 @@ void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
         vector<SP<Client> > &cli = *lo_clients.get();
 
         size_t i2, len2 = cli.size();
-        for (i2 = 0; i2 < len2; i2++)
+        for (i2 = 0; i2 < len2; ++i2)
         {
             if (!cli[i2]) continue;
 
@@ -381,8 +381,8 @@ void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
 
 bool State::hasSlotProfile(const ID& id)
 {
-    vector<SP<SlotProfile> >::iterator i1;
-    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         if ((*i1)->getIDRef() == id) return true;
     return false;
 }
@@ -488,8 +488,8 @@ bool State::setUserToSlot(SP<User> user, const ID &slot_id)
     vector<SP<Client> > &cli = *lo_clients.get();
 
     SP<Client> client;
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ( (*i1)->getUser() == user)
         {
             client = (*i1);
@@ -537,8 +537,8 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     vector<SP<Client> > &cli = *lo_clients.get();
     SP<Client> client;
 
-    vector<SP<Client> >::iterator i2;
-    for (i2 = cli.begin(); i2 != cli.end(); i2++)
+    vector<SP<Client> >::iterator i2, cli_end = cli.end();
+    for (i2 = cli.begin(); i2 != cli_end; ++i2)
         if ( (*i2) && (*i2)->getUser()->getIDRef() == launcher->getIDRef())
             client = (*i2);
 
@@ -575,10 +575,10 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 
     /* Check that there are not too many slots of this slot profile */
     ui32 num_slots = 0;
-    vector<SP<Slot> >::iterator i1;
-    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+    vector<SP<Slot> >::iterator i1, slots_end = slots.end();
+    for (i1 = slots.begin(); i1 != slots_end; ++i1)
         if ((*i1) && (*i1)->getSlotProfile().lock() == slot_profile)
-            num_slots++;
+            ++num_slots;
     if (num_slots >= slot_profile->getMaxSlots())
     {
         LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot but maximum number of slots of this slot profile has been reached. Slot profile name " << slot_profile->getNameUTF8());
@@ -589,7 +589,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 
     stringstream rcs;
     rcs << running_counter;
-    running_counter++;
+    ++running_counter;
 
     SP<Slot> slot = Slot::createSlot((SlotType) slot_profile->getSlotType());
     if (!slot)
@@ -653,8 +653,8 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
         return false;
     }
 
-    vector<SP<SlotProfile> >::iterator i1;
-    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         if ((*i1) == slot_profile)
             return launchSlotNoCheck(*i1, launcher);
     if (launcher)
@@ -666,8 +666,8 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
 
 bool State::launchSlot(const ID &slot_id, SP<User> launcher)
 {
-    vector<SP<SlotProfile> >::iterator i1;
-    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         if ((*i1) && (*i1)->getIDRef() == slot_id)
             return launchSlotNoCheck(*i1, launcher);
     string utf8_name = slot_id.serialize();
@@ -683,8 +683,8 @@ void State::notifyAllClients()
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if (*i1 && (*i1)->getSocket())
             socketevents.forceEvent((*i1)->getSocket());
 }
@@ -696,8 +696,8 @@ void State::notifyClient(SP<Client> client)
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ((*i1) == client)
         {
             socketevents.forceEvent(client->getSocket());
@@ -713,8 +713,8 @@ void State::notifyClient(SP<User> user)
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ((*i1) && (*i1)->getUser()->getIDRef() == user->getIDRef())
         {
             socketevents.forceEvent((*i1)->getSocket());
@@ -733,7 +733,7 @@ void State::pruneInactiveSlots()
 
     /* Prune inactive slots */
     size_t i2, len = slots.size();
-    for (i2 = 0; i2 < len; i2++)
+    for (i2 = 0; i2 < len; ++i2)
     {
         if (!slots[i2] || !slots[i2]->isAlive())
         {
@@ -760,8 +760,8 @@ void State::pruneInactiveSlots()
                 
             LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
             vector<SP<Client> > &cli = *lo_clients.get();
-            vector<SP<Client> >::iterator i1;
-            for (i1 = cli.begin(); i1 != cli.end(); i1++)
+            vector<SP<Client> >::iterator i1, cli_end = cli.end();
+            for (i1 = cli.begin(); i1 != cli_end; ++i1)
             {
                 if (!(*i1)) continue;
 
@@ -774,8 +774,8 @@ void State::pruneInactiveSlots()
             lo_clients.release();
 
             slots.erase(slots.begin() + i2);
-            len--;
-            i2--;
+            --len;
+            --i2;
             continue;
         }
     }
@@ -792,7 +792,7 @@ void State::pruneInactiveClients()
 
     /* Prune inactive clients */
     size_t i2, len = cli.size();
-    for (i2 = 0; i2 < len; i2++)
+    for (i2 = 0; i2 < len; ++i2)
     {
         if (!cli[i2]->isActive())
         {
@@ -815,8 +815,8 @@ void State::pruneInactiveClients()
 
             cli.erase(cli.begin() + i2);
             weak_cli.erase(weak_cli.begin() + i2);
-            len--;
-            i2--;
+            --len;
+            --i2;
             LOG(Note, "Pruned an inactive connection.");
             changes = true;
             continue;
@@ -826,7 +826,7 @@ void State::pruneInactiveClients()
     if (!changes) return;
 
     len = cli.size();
-    for (i2 = 0; i2 < len; i2++)
+    for (i2 = 0; i2 < len; ++i2)
         cli[i2]->updateClients();
     notifyAllClients();
 }
@@ -873,7 +873,7 @@ void State::new_connection(SP<Socket> listening_socket)
         new_client->sendPrivateChatMessage(MOTD);
         
         size_t i1, len = cli.size();
-        for (i1 = 0; i1 < len; i1++)
+        for (i1 = 0; i1 < len; ++i1)
             if (cli[i1])
                 cli[i1]->updateClients();
     }
@@ -903,8 +903,8 @@ void State::loop()
         LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
         vector<SP<Client> > &cli = *lo_clients.get();
 
-        vector<SP<Client> >::iterator i1;
-        for (i1 = cli.begin(); i1 != cli.end(); i1++)
+        vector<SP<Client> >::iterator i1, cli_end = cli.end();
+        for (i1 = cli.begin(); i1 != cli_end; ++i1)
         {
             if (!(*i1)) continue;
             if ((*i1)->getSocket() == s)
@@ -923,8 +923,8 @@ void State::signalSlotData(SP<Slot> who)
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
-    vector<SP<Client> >::iterator i1;
-    for (i1 = cli.begin(); i1 != cli.end(); i1++)
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
     {
         if (!(*i1)) continue;
         if ((*i1)->getSlot().lock() == who)

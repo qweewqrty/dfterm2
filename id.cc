@@ -115,7 +115,7 @@ void ID::unSerialize(const std::string &s)
 bool ID::operator==(const ID& id_value) const
 {
     ui32 i1;
-    for (i1 = 0; i1 < 64; i1++)
+    for (i1 = 0; i1 < 64; ++i1)
         if (this->id_value[i1] != id_value.id_value[i1])
             return false;
     return true;

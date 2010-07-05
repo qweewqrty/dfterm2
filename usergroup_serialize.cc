@@ -12,13 +12,13 @@ data1D UserGroup::serialize() const
     ss << (has_anybody ? 'Y' : 'N');
     ss << (has_launcher ? 'Y' : 'N');
 
-    set<ID>::iterator i1;
-    for (i1 = has_user.begin(); i1 != has_user.end(); i1++)
+    set<ID>::iterator i1, has_user_end = has_user.end();
+    for (i1 = has_user.begin(); i1 != has_user_end; ++i1)
     {
         string user_utf8 = (*i1).serialize();
 
         size_t i2, len = user_utf8.size();
-        for (i2 = 0; i2 < len; i2++)
+        for (i2 = 0; i2 < len; ++i2)
             if (user_utf8[i2] != ';' && user_utf8[i2] != '\\')
                 ss << user_utf8[i2];
             else if (user_utf8[i2] == ';')
@@ -44,13 +44,13 @@ UserGroup UserGroup::unSerialize(data1D data)
 
     size_t i1, len = data.size();
     string name_utf8;
-    for (i1 = 3; i1 < len; i1++)
+    for (i1 = 3; i1 < len; ++i1)
     {
         char c = data[i1];
         if (c == '\\' && i1 < len-1)
         {
             name_utf8.push_back(data[i1+1]);
-            i1++;
+            ++i1;
             continue;
         }
         if (c == ';')

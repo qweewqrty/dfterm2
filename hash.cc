@@ -10,7 +10,7 @@ data1D dfterm::bytes_to_hex(const data1D &bytes)
     result.reserve(bytes.size() * 2);
 
     unsigned int i1;
-    for (i1 = 0; i1 < bytes.size(); i1++)
+    for (i1 = 0; i1 < bytes.size(); ++i1)
     {
         unsigned char c1 = ((bytes[i1] & 0xf0) >> 4) + '0';
         if (c1 > '9') c1 = c1 - '9' + 'A' - 1;

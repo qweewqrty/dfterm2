@@ -56,12 +56,12 @@ void dfterm::initCharacterMappings()
 
     int i1;
     // By default, just map 1:1
-    for (i1 = 32; i1 < 127; i1++)
+    for (i1 = 32; i1 < 127; ++i1)
         character_mappings[i1] = i1;
     // Map other characters to '?'
-    for (i1 = 0; i1 < 32; i1++)
+    for (i1 = 0; i1 < 32; ++i1)
         character_mappings[i1] = ' ';
-    for (i1 = 127; i1 < 256; i1++)
+    for (i1 = 127; i1 < 256; ++i1)
         character_mappings[i1] = '?';
     // Remap characters below 32 to unicode characters.
     character_mappings[1] = 0x263A;

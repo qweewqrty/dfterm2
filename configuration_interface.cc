@@ -160,8 +160,8 @@ void ConfigurationInterface::enterJoinSlotsMenu()
     window->addListElementUTF8("None", "join_none", true, false);
 
     vector<WP<Slot> > slots = st->getSlots();
-    vector<WP<Slot> >::iterator i1;
-    for (i1 = slots.begin(); i1 != slots.end(); i1++)
+    vector<WP<Slot> >::iterator i1, slots_end = slots.end();
+    for (i1 = slots.begin(); i1 != slots_end; ++i1)
     {
         SP<Slot> sp = (*i1).lock();
         if (!sp) continue;
@@ -199,8 +199,8 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     slot_index = window->addListElementUTF8("Back to main menu", "mainmenu", true, false);
 
     vector<WP<SlotProfile> > slotprofiles = st->getSlotProfiles();
-    vector<WP<SlotProfile> >::iterator i1;
-    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+    vector<WP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); ++i1)
     {
         SP<SlotProfile> sp = (*i1).lock();
         if (!sp) continue;
@@ -252,8 +252,8 @@ void ConfigurationInterface::enterSlotsMenu()
     if (st)
     {
         vector<WP<SlotProfile> > slotprofiles = st->getSlotProfiles();
-        vector<WP<SlotProfile> >::iterator i1;
-        for (i1 = slotprofiles.begin(); i1 != slotprofiles.end(); i1++)
+        vector<WP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+        for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         {
             SP<SlotProfile> slot_profile = (*i1).lock();
             if (!slot_profile) continue;
@@ -338,7 +338,7 @@ void ConfigurationInterface::checkSlotsMenu(bool no_read)
 
     ui32 index;
     string data;
-    for (index = 0; (data = window->getListElementData(index)).size() > 0; index++)
+    for (index = 0; (data = window->getListElementData(index)).size() > 0; ++index)
     {
         if (data == "max_slots")
         {
@@ -367,7 +367,7 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
 
     ui32 index;
     string data;
-    for (index = 0; (data = window->getListElementData(index)).size() > 0; index++)
+    for (index = 0; (data = window->getListElementData(index)).size() > 0; ++index)
     {
         UserGroup ug;
         if (data == "newslot_watchers")
@@ -895,7 +895,7 @@ void ConfigurationInterface::auxiliaryEnterSpecificUsersWindow()
 
     vector<SP<User> > users = configuration_database->loadAllUserData();
     ui32 i1, len = users.size();
-    for (i1 = 0; i1 < len; i1++)
+    for (i1 = 0; i1 < len; ++i1)
     {
         if (!users[i1]) continue;
         string element = string("\"") + users[i1]->getNameUTF8() + string("\"");
@@ -930,7 +930,7 @@ void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
      * (where * denotes selected users) */
     ui32 index;
     string data;
-    for (index = 0; (data = auxiliary_window->getListElementData(index)).size() > 0; index++)
+    for (index = 0; (data = auxiliary_window->getListElementData(index)).size() > 0; ++index)
     {
         if (data == "usergroup_nobody")
         {

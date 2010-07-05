@@ -23,15 +23,15 @@ using namespace trankesbel;
 
 void PostMessage(const vector<HWND> &windows, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    vector<HWND>::const_iterator i1;
-    for (i1 = windows.begin(); i1 != windows.end(); i1++)
+    vector<HWND>::const_iterator i1, windows_end = windows.end();
+    for (i1 = windows.begin(); i1 != windows_end; ++i1)
         PostMessage(*i1, msg, wparam, lparam);
 }
 
 void SendMessage(const vector<HWND> &windows, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    vector<HWND>::const_iterator i1;
-    for (i1 = windows.begin(); i1 != windows.end(); i1++)
+    vector<HWND>::const_iterator i1, windows_end = windows.end();
+    for (i1 = windows.begin(); i1 != windows_end; ++i1)
         SendMessage(*i1, msg, wparam, lparam);
 }
 
@@ -40,7 +40,7 @@ static ui32 checksum(const char* buf, size_t buflen)
 {
     ui32 a = 1, b = buflen;
     size_t i1;
-    for (i1 = 0; i1 < buflen; i1++)
+    for (i1 = 0; i1 < buflen; ++i1)
     {
         a += buf[i1];
         b += (buflen - i1) * (ui32) buf[i1];
@@ -371,8 +371,8 @@ void DFGlue::updateDFWindowTerminal()
         if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
             df_terminal.resize(df_w, df_h);
         ui32 i1, i2;
-        for (i2 = 0; i2 < df_h; i2++)
-            for (i1 = 0; i1 < df_w; i1++)
+        for (i2 = 0; i2 < df_h; ++i2)
+            for (i1 = 0; i1 < df_w; ++i1)
             {
                 ui32 offset = i1 * df_h + i2;
                 Color f_color, b_color;
@@ -426,8 +426,8 @@ void DFGlue::updateDFWindowTerminal()
         if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
             df_terminal.resize(df_w, df_h);
         ui32 i1, i2;
-        for (i2 = 0; i2 < df_h; i2++)
-            for (i1 = 0; i1 < df_w; i1++)
+        for (i2 = 0; i2 < df_h; ++i2)
+            for (i1 = 0; i1 < df_w; ++i1)
             {
                 ui32 offset = i1 * df_h + i2;
                 Color f_color, b_color;
@@ -499,7 +499,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
             parameters.find("work") != parameters.end())
             break;
         lock.unlock();
-        counter--;
+        --counter;
         try
         {
             this_thread::sleep(posix_time::time_duration(posix_time::microseconds(1000000LL)));
@@ -583,7 +583,7 @@ bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 
     // Check if Dwarf Fortress is running
     int i1;
-    for (i1 = 0; i1 < (int) num_processes; i1++)
+    for (i1 = 0; i1 < (int) num_processes; ++i1)
     {
         HANDLE h_p = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_VM_WRITE|PROCESS_VM_OPERATION|PROCESS_QUERY_INFORMATION|PROCESS_VM_READ, FALSE, processes[i1]);
         if (!h_p)
@@ -827,8 +827,8 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 
     CursesElement elements[256*256];
     ui32 i1, i2;
-    for (i1 = 0; i1 < t_w; i1++)
-        for (i2 = 0; i2 < t_h; i2++)
+    for (i1 = 0; i1 < t_w; ++i1)
+        for (i2 = 0; i2 < t_h; ++i2)
         {
             const TerminalTile &t = df_terminal.getTile(i1, i2);
             ui32 symbol = t.getSymbol();

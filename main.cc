@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
     boost::bind(resolve_success, &succeeded_resolve, &listen_address, &error_message, _1, _2, _3);
 
     int i1;
-    for (i1 = 1; i1 < argc; i1++)
+    for (i1 = 1; i1 < argc; ++i1)
     {
         if ((!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p")) && i1 < argc-1)
             port = argv[++i1];
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
         else if (!strcmp(argv[i1], "--logfile") && i1 < argc-1)
         {
             log_file = TO_UNICODESTRING(string(argv[i1+1]));
-            i1++;
+            ++i1;
         }
         else if (!strcmp(argv[i1], "--help") || !strcmp(argv[i1], "-h") || !strcmp(argv[i1], "-?"))
         {

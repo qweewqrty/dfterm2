@@ -14,7 +14,7 @@ SP<Slot> Slot::createSlot(string slottype)
 {
     ui32 num_slots = (ui32) InvalidSlotType;
     ui32 i1;
-    for (i1 = 0; i1 < num_slots; i1++)
+    for (i1 = 0; i1 < num_slots; ++i1)
         if (slottype == SlotNames[i1])
             break;
     if (i1 >= num_slots) return SP<Slot>();
