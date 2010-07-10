@@ -156,6 +156,10 @@ class State
         
         /* Gets the user that corresponds to the given id */
         SP<User> getUser(const ID& id);
+
+        /* Gets all users or clients */
+        void getAllUsers(std::vector<SP<User> >* users);
+        LockedObject<std::vector<SP<Client> > > getAllClients();
         
         /* Force closes slot user is currently watching. 
            Returns true if that succeeded and false if it did not. */

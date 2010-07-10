@@ -127,6 +127,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Join a running game", "joingame", true, false);
     window->addListElement("Configure slots", "slots", true, false);
     window->addListElement("Set MotD", "motd", true, false);
+    window->addListElement("Manage users", "manage_users", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
@@ -212,6 +213,47 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     }
 
     window->modifyListSelectionIndex(slot_index);
+}
+
+void ConfigurationInterface::enterManageUsersMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    window->setHint("chat");
+    window->setTitle("Managing users");
+
+    current_menu = ManageUsersMenu;
+
+    int back_index = window->addListElement("Back to main menu", "mainmenu", true, false);
+    window->modifyListSelectionIndex(back_index);
+    window->addListElement("Show connections", "showconnections", true, false);
+
+    SP<State> st = state.lock();
+    if (!st)
+    {
+        LOG(Error, "Attempt to fill manage users menu but state is null.");
+        return;
+    }
+
+    LockedObject<vector<SP<Client> > > lo_clients = st->getAllClients();
+    vector<SP<Client> > &clients = *lo_clients.get();
+
+    vector<SP<Client> >::iterator i1, clients_end = clients.end();
+    for (i1 = clients.begin(); i1 != clients_end; ++i1)
+    {
+        if ( !(*i1) ) continue;
+        if ( !(*i1)->isActive() ) continue;
+
+        string userstring;
+
+        if ( !(*i1)->getUser() || (*i1)->getUser()->getName().length() == 0)
+            userstring = "(Unidentified)";
+        else
+            userstring = string("\"") + (*i1)->getUser()->getNameUTF8() + string("\"");
+
+        string datastring = string("manageusers_") + (*i1)->getIDRef().serialize();
+    }
 }
 
 void ConfigurationInterface::enterMotdMenu()
@@ -607,6 +649,10 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
             st->forceCloseSlotOfUser(user);
+    }
+    else if (selection == "manage_users")
+    {
+        enterManageUsersMenu();
     }
     /* Motd */
     else if (selection == "motd")

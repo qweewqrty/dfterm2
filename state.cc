@@ -33,6 +33,22 @@ State::~State()
     state_initialized = false;
 };
 
+void State::getAllUsers(vector<SP<User> >* users)
+{
+    if (!users) return;
+
+    vector<SP<User > > &u = (*users);
+    u.clear();
+
+    if (configuration)
+        u = configuration->loadAllUserData();
+}
+
+LockedObject<vector<SP<Client> > > State::getAllClients()
+{
+    return clients.lock();
+}
+
 SP<User> State::getUser(const ID& id)
 {
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();

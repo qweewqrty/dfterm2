@@ -16,6 +16,7 @@ namespace dfterm
 #include "configuration_interface.hpp"
 #include "configuration_primitives.hpp"
 #include "state.hpp"
+#include "id.hpp"
 
 namespace dfterm
 {
@@ -41,6 +42,8 @@ class ClientTelnetSession : public trankesbel::TelnetSession
 class Client
 {
     private:
+        ID id;
+
         ClientTelnetSession ts;
         SP<trankesbel::Socket> client_socket;
         SP<trankesbel::InterfaceTermemu> interface;
@@ -187,6 +190,10 @@ class Client
 
         /* Cycle the client connection */
         void cycle();
+
+       void setID(const ID& i) { id = i; };
+       ID getID() const { return id; };
+       const ID& getIDRef() const { return id; };
 };
 
 }
