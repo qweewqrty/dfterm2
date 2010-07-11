@@ -50,7 +50,7 @@ ptrdiff_t last_read_address = 0;
 
 int WINAPI hooked_SDLNumJoysticks()
 {
-    if (set_buffer_address && buffer_address == 3109)
+    if (set_buffer_address && (buffer_address == 3109 || buffer_address == 3110))
     {
         unsigned int w = 1, h = 1;
         ReadProcessMemory(me_process, (void*) (0x1419144+dwarfort_base), &w, sizeof(unsigned int), NULL);
