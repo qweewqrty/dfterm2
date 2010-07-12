@@ -81,7 +81,7 @@ class State
         static SP<State> createState();
         ~State();
 
-        /* Disconnects a user with the given nickname. Unless it corresponds to the client 'exclude' */
+        /* Disconnects a user with the given D. Unless it corresponds to the client 'exclude'. Both user ID and client IDs work. */
         void destroyClient(const ID &id, SP<Client> exclude = SP<Client>());
 
         /* Notify client or user to do I/O */

@@ -76,6 +76,9 @@ class ConfigurationInterface
          * when done with it. ("watchers", "launchers", "etc.") */
         std::string edit_slotprofile_target;
 
+        /* Target of a client in connection management menus. */
+        ID client_target;
+
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;
 

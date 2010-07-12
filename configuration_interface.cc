@@ -229,6 +229,7 @@ void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
     
     int first_index = window->addListElementUTF8("Back to manage users menu", "manage_users", true, false);
     window->modifyListSelectionIndex(first_index);
+    window->addListElementUTF8("Force disconnect", "forcedisconnect", true, false);
 
     string userstring = string("User: \"");
     if (u)
@@ -257,6 +258,8 @@ void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
 
     window->addListElementUTF8(ip_address, "", false, false);
     window->addListElementUTF8(hostname, "", false, false);
+
+    client_target = c->getID();
 }
 
 void ConfigurationInterface::enterManageUsersMenu()
@@ -695,6 +698,24 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
             st->forceCloseSlotOfUser(user);
+    }
+    else if (selection == "forcedisconnect")
+    {
+        SP<State> st = state.lock();
+        if (!st)
+        {
+            if (user)
+            { LOG(Error, "User " << user->getNameUTF8() << " attempted to kick out client ID " << client_target.serialize() << " but state is null."); }
+            else
+            { LOG(Error, "Null user attempted to kick out client ID " << client_target.serialize() << " but state is null."); };
+        }
+        else
+        {
+            SP<Client> c = st->getClient(client_target);
+            if (c && c->getUser())
+                c->getUser()->kill();
+        }
+        enterManageUsersMenu();
     }
     else if (selection == "manage_users")
     {

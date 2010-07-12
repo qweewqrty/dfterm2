@@ -317,11 +317,11 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
     {
         if (cli[i1] == exclude) continue;
 
-        if (cli[i1] && cli[i1]->getUser()->getIDRef() == user_id)
+        if (cli[i1] && (cli[i1]->getUser()->getIDRef() == user_id || cli[i1]->getIDRef() == user_id))
         {
             cli.erase(cli.begin() + i1);
             weak_cli.erase(weak_cli.begin() + i1);
-            LOG(Note, "Disconnected a duplicate connection for user " << cli[i1]->getUser()->getNameUTF8());
+            LOG(Note, "Disconnected connection for user " << cli[i1]->getUser()->getNameUTF8());
             update_nicklists = true;
             break;
         }
