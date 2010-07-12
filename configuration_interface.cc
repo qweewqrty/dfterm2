@@ -227,7 +227,7 @@ void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
     SP<User> u = c->getUser();
     SP<Socket> s = c->getSocket();
     
-    int first_index = window->addListElementUTF8("Back to manage users menu", "manageusers", true, false);
+    int first_index = window->addListElementUTF8("Back to manage users menu", "manage_users", true, false);
     window->modifyListSelectionIndex(first_index);
 
     string userstring = string("User: \"");

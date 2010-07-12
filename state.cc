@@ -877,6 +877,8 @@ void State::new_connection(SP<Socket> listening_socket)
     bool got_connection = listening_socket->accept(new_connection.get());
     if (got_connection)
     {
+        new_connection->startAsynchronousReverseResolve();
+
         SP<Client> new_client = Client::createClient(new_connection);
         new_client->setState(self);
         new_client->setConfigurationDatabase(configuration);
@@ -897,7 +899,6 @@ void State::new_connection(SP<Socket> listening_socket)
         weak_cli.push_back(new_client);
         
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
-
         socketevents.addSocket(new_connection);
         
         new_client->sendPrivateChatMessage(MOTD);
