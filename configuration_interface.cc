@@ -253,6 +253,8 @@ void ConfigurationInterface::enterManageUsersMenu()
             userstring = string("\"") + (*i1)->getUser()->getNameUTF8() + string("\"");
 
         string datastring = string("manageusers_") + (*i1)->getIDRef().serialize();
+
+        window->addListElementUTF8(userstring, datastring, true, false);
     }
 }
 
