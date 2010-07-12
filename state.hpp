@@ -156,6 +156,8 @@ class State
         
         /* Gets the user that corresponds to the given id */
         SP<User> getUser(const ID& id);
+        /* Gets the client that corresponds to the given id */
+        SP<Client> getClient(const ID& id);
 
         /* Gets all users or clients */
         void getAllUsers(std::vector<SP<User> >* users);

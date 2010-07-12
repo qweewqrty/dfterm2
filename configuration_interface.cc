@@ -215,6 +215,50 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     window->modifyListSelectionIndex(slot_index);
 }
 
+void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
+{
+    if (!admin) return;
+    if (!c) return;
+
+    window->deleteAllListElements();
+    window->setHint("default");
+    window->setTitle("Connection information");
+
+    SP<User> u = c->getUser();
+    SP<Socket> s = c->getSocket();
+    
+    int first_index = window->addListElementUTF8("Back to manage users menu", "manageusers", true, false);
+    window->modifyListSelectionIndex(first_index);
+
+    string userstring = string("User: \"");
+    if (u)
+        userstring += u->getNameUTF8() + string("\"");
+    else
+        userstring += "(Unidentified)";
+
+    window->addListElementUTF8(userstring, "", false, false);
+
+    string ip_address, hostname;
+    if (s && s->active())
+    {
+        SocketAddress sa = s->getAddress();
+        ip_address = string("IP-address: ") + sa.getHumanReadablePlainUTF8();
+        hostname = sa.getHostnameUTF8();
+    }
+    else
+    {
+        ip_address = string("IP-address: No connection");
+    }
+
+    if (hostname.size() == 0)
+        hostname = string("Host name: (Unknown)");
+    else
+        hostname = string("Host name: \"") + hostname + string("\"");
+
+    window->addListElementUTF8(ip_address, "", false, false);
+    window->addListElementUTF8(hostname, "", false, false);
+}
+
 void ConfigurationInterface::enterManageUsersMenu()
 {
     if (!admin) return;
@@ -227,7 +271,7 @@ void ConfigurationInterface::enterManageUsersMenu()
 
     int back_index = window->addListElement("Back to main menu", "mainmenu", true, false);
     window->modifyListSelectionIndex(back_index);
-    window->addListElement("Show connections", "showconnections", true, false);
+    window->addListElement("Show user accounts", "showaccounts", true, false);
 
     SP<State> st = state.lock();
     if (!st)
@@ -252,7 +296,7 @@ void ConfigurationInterface::enterManageUsersMenu()
         else
             userstring = string("\"") + (*i1)->getUser()->getNameUTF8() + string("\"");
 
-        string datastring = string("manageusers_") + (*i1)->getIDRef().serialize();
+        string datastring = string("client_") + (*i1)->getIDRef().serialize();
 
         window->addListElementUTF8(userstring, datastring, true, false);
     }
@@ -655,6 +699,31 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "manage_users")
     {
         enterManageUsersMenu();
+    }
+    else if (!selection.compare(0, min(selection.size(), (size_t) 7), "client_", 7))
+    {
+        ID client_id = ID::getUnSerialized(selection.substr(7));
+        SP<State> st = state.lock();
+        if (!st)
+        {
+            if (user)
+            { LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but state is null."); }
+            else
+            { LOG(Error, "Null user attempted to view connection information for client ID " << client_id.serialize() << " but state is null."); };
+        }
+        else
+        {
+            SP<Client> client = st->getClient(client_id);
+            if (!client)
+            {
+                if (user)
+                { LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but no such client is in state."); }
+                else
+                { LOG(Error, "Null user attempted to view connection information for client ID " << client_id.serialize() << " but no such client is in state."); };
+            }
+            else
+                enterShowClientInformationMenu(client);
+        }
     }
     /* Motd */
     else if (selection == "motd")

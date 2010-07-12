@@ -56,6 +56,7 @@ class ConfigurationInterface
         void enterJoinSlotsMenu();
         void enterMotdMenu();
         void enterManageUsersMenu();
+        void enterShowClientInformationMenu(SP<Client> c);
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
 

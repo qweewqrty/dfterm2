@@ -49,6 +49,20 @@ LockedObject<vector<SP<Client> > > State::getAllClients()
     return clients.lock();
 }
 
+SP<Client> State::getClient(const ID& id)
+{
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
+        if ( (*i1) && (*i1)->getIDRef() == id)
+            return (*i1);
+    lo_clients.release();
+    
+    return SP<Client>();
+}
+
 SP<User> State::getUser(const ID& id)
 {
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
