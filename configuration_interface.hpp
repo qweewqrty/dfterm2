@@ -57,6 +57,7 @@ class ConfigurationInterface
         void enterMotdMenu();
         void enterManageUsersMenu();
         void enterShowClientInformationMenu(SP<Client> c);
+        void enterShowAccountsMenu();
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
 

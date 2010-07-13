@@ -262,13 +262,50 @@ void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
     client_target = c->getID();
 }
 
+void ConfigurationInterface::enterShowAccountsMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    window->setHint("chat");
+    window->setTitle("User list");
+
+    int back_index = window->addListElement("Back to connection list", "manage_users", true, false);
+    window->modifyListSelectionIndex(back_index);
+
+    SP<State> st = state.lock();
+    if (!st)
+    {
+        LOG(Error, "Attempt to fill user list in account menu but state is null.");
+        return;
+    }
+
+    vector<SP<User> > users;
+    st->getAllUsers(&users);
+
+    vector<SP<User> >::iterator i1, users_end = users.end();
+    for (i1 = users.begin(); i1 != users_end; ++i1)
+    {
+        if ( !(*i1) ) continue;
+
+        string userstring = (*i1)->getNameUTF8();
+        if (userstring.size() == 0)
+            userstring = string("(Anonymous)");
+        else
+            userstring = string("\"") + userstring + string("\"");
+
+        string datastring = "user_" + (*i1)->getIDRef().serialize();
+        window->addListElementUTF8(userstring, datastring, true, false);
+    }
+}
+
 void ConfigurationInterface::enterManageUsersMenu()
 {
     if (!admin) return;
 
     window->deleteAllListElements();
     window->setHint("chat");
-    window->setTitle("Managing users");
+    window->setTitle("Connection list");
 
     current_menu = ManageUsersMenu;
 
@@ -279,7 +316,7 @@ void ConfigurationInterface::enterManageUsersMenu()
     SP<State> st = state.lock();
     if (!st)
     {
-        LOG(Error, "Attempt to fill manage users menu but state is null.");
+        LOG(Error, "Attempt to fill connection list in manage users menu but state is null.");
         return;
     }
 
@@ -720,6 +757,10 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "manage_users")
     {
         enterManageUsersMenu();
+    }
+    else if (selection == "showaccounts")
+    {
+        enterShowAccountsMenu();
     }
     else if (!selection.compare(0, min(selection.size(), (size_t) 7), "client_", 7))
     {
