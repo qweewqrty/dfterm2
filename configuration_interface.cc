@@ -299,6 +299,40 @@ void ConfigurationInterface::enterShowAccountsMenu()
     }
 }
 
+void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    window->setHint("chat");
+    window->setTitle("User information");
+
+    int back_index = window->addListElement("Back to manage user accounts menu", "showaccounts", true, false);
+    window->modifyListSelectionIndex(back_index);
+
+    SP<State> st = state.lock();
+    if (!st)
+    {
+        LOG(Error, "Attempt to show user information for user ID " << user_id.serialize() << " but state is null.");
+        return;
+    }
+
+    SP<User> user = st->getUser(user_id);
+    if (!user)
+    {
+        LOG(Error, "Attempt to show user information for user ID " << user_id.serialize() << " but no such user exists.");
+        window->addListElement("This user does not exist.", "", true, true);
+        return;
+    }
+
+    window->addListElementUTF8(string("Name: \"") + user->getNameUTF8() + string("\""), "", true, false);
+    window->addListElementUTF8(string("ID: ") + user->getIDRef().serialize(), "", true, false);
+    window->addListElementUTF8(string("Password hash: ") + user->getPasswordHash(), "", true, false);
+    window->addListElementUTF8(string("Password salt: ") + user->getPasswordSalt(), "", true, false);
+    window->addListElementUTF8("Set new password", "setuserpassword", true, false);
+    window->addListElementUTF8("Delete user", "deleteuser", true, false);
+}
+
 void ConfigurationInterface::enterManageUsersMenu()
 {
     if (!admin) return;
@@ -753,6 +787,12 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                 c->getUser()->kill();
         }
         enterManageUsersMenu();
+    }
+    /* in show user accounts menu */
+    else if (!selection.compare(0, min(selection.size(), (size_t) 5), "user_", 5))
+    {
+        user_target = ID::getUnSerialized(selection.substr(5));
+        enterManageAccountMenu(user_target);
     }
     else if (selection == "manage_users")
     {

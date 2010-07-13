@@ -56,6 +56,7 @@ class ConfigurationInterface
         void enterJoinSlotsMenu();
         void enterMotdMenu();
         void enterManageUsersMenu();
+        void enterManageAccountMenu(const ID &user_id);
         void enterShowClientInformationMenu(SP<Client> c);
         void enterShowAccountsMenu();
         void checkSlotProfileMenu(bool no_read = false);
@@ -79,6 +80,8 @@ class ConfigurationInterface
 
         /* Target of a client in connection management menus. */
         ID client_target;
+        /* And same for user */
+        ID user_target;
 
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;
