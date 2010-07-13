@@ -83,6 +83,9 @@ class State
 
         /* Disconnects a user with the given D. Unless it corresponds to the client 'exclude'. Both user ID and client IDs work. */
         void destroyClient(const ID &id, SP<Client> exclude = SP<Client>());
+        /* This one also removes the user from database, effectively
+           removing the user entirely. The ID can be a client id or a user id. */
+        void destroyClientAndUser(const ID& id, SP<Client> exclude = SP<Client>());
 
         /* Notify client or user to do I/O */
         void notifyClient(SP<Client> client);

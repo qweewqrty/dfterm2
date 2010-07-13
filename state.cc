@@ -302,6 +302,22 @@ bool State::addTelnetService(SocketAddress address)
     return true;
 }
 
+void State::destroyClientAndUser(const ID& id, SP<Client> exclude)
+{
+    SP<User> u = getUser(id);
+    if (!u)
+    {
+        SP<Client> c = getClient(id);
+        if (c == exclude) return;
+
+        u = c->getUser();
+    }
+
+    destroyClient(id, exclude);
+    if (configuration && u && u->getNameUTF8().size() > 0)
+        configuration->deleteUserData(u->getName());
+}
+
 void State::destroyClient(const ID &user_id, SP<Client> exclude)
 {
     bool update_nicklists = false;
@@ -932,7 +948,7 @@ void State::loop()
             continue;
         }
         LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
-        vector<SP<Client> > &cli = *lo_clients.get();
+        vector<SP<Client> > cli = *lo_clients.get();
 
         vector<SP<Client> >::iterator i1, cli_end = cli.end();
         for (i1 = cli.begin(); i1 != cli_end; ++i1)

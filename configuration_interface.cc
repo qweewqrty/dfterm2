@@ -794,6 +794,22 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         user_target = ID::getUnSerialized(selection.substr(5));
         enterManageAccountMenu(user_target);
     }
+    else if (selection == "deleteuser")
+    {
+        SP<State> st = state.lock();
+        if (!st)
+        {
+            if (user)
+            { LOG(Error, "User " << user->getNameUTF8() << " attempted to delete user with ID " << user_target.serialize() << " but state is null."); }
+            else
+            { LOG(Error, "Null user attempted to delete user with ID " << user_target.serialize() << " but state is null."); };
+        }
+        else
+        {
+            st->destroyClientAndUser(user_target);
+            enterShowAccountsMenu();
+        }
+    }
     else if (selection == "manage_users")
     {
         enterManageUsersMenu();
