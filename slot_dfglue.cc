@@ -13,6 +13,7 @@
 #include "interface_ncurses.hpp"
 #include "cp437_to_unicode.hpp"
 #include <algorithm>
+#include <cstring>
 
 #include "state.hpp"
 
@@ -672,7 +673,17 @@ bool DFGlue::detectDFVersion()
     /* Find the DF executable, open it, and calculate checksum for it. */
     WCHAR image_file_name[1001];
     memset(image_file_name, 0, 1001);
+    WCHAR image_base_name[1001];
+    memset(image_base_name, 0, 1001);
+
     GetModuleFileNameExW(df_handle, NULL, image_file_name, 1000);
+    WCHAR* last_p = wcsrchr(image_file_name, L'\\');
+    if (!last_p)
+        memcpy(image_base_name, image_file_name, 1000 * sizeof(WCHAR));
+    else
+        wcscpy(image_base_name, last_p + 1);
+    string utf8_image_base_name = TO_UTF8(image_base_name);
+
     FILE* f = _wfopen(image_file_name, L"rb");
     if (!f)
         return false;
@@ -692,40 +703,40 @@ bool DFGlue::detectDFVersion()
     {
     case 0xdb942094:
     af.pushAddress(0x00004060, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x01419144, "Dwarf Fortress.exe");
+    sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3110, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.10 SDL version)");
     break;
     case 0xc58b306c:  /* DF 0.31.09 (SDL) */
     af.pushAddress(0x00004060, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x01419144, "Dwarf Fortress.exe");
+    sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3109, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.09 SDL version)");
     break;
     case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
     af.pushAddress(0x00004060, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x140C11C, "Dwarf Fortress.exe");
+    sz.pushAddress(0x140C11C, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3108, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.08 SDL version)");
     break;
     case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
     af.pushAddress(0x00004060, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x0140B11C, "Dwarf Fortress.exe");
+    sz.pushAddress(0x0140B11C, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3106, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.06 SDL version)");
     break;
     case 0x9404d33d:  /* DF 0.31.03 */
-    af.pushAddress(0x0106FE7C, "dwarfort.exe");
+    af.pushAddress(0x0106FE7C, utf8_image_base_name);
     af.pushAddress(0);
     af.pushAddress(0);
     af.pushAddress(0xC);
-    sz.pushAddress(0x013F6B00, "dwarfort.exe");
+    sz.pushAddress(0x013F6B00, utf8_image_base_name);
     red_pp.reset();
-    red_pp.pushAddress(0x0106FE7C, "dwarfort.exe");
+    red_pp.pushAddress(0x0106FE7C, utf8_image_base_name);
     red_pp.pushAddress(0);
     red_pp.pushAddress(0);
     blue_pp = red_pp;
@@ -744,14 +755,14 @@ bool DFGlue::detectDFVersion()
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.03)");
     break;
     case 0xa0b99a67:  /* DF v0.31.02 */
-    af.pushAddress(0x0106EE7C, "dwarfort.exe");
+    af.pushAddress(0x0106EE7C, utf8_image_base_name);
     af.pushAddress(0);
     af.pushAddress(0);
     af.pushAddress(0xC);
-    sz.pushAddress(0x013F5AC0, "dwarfort.exe");
+    sz.pushAddress(0x013F5AC0, utf8_image_base_name);
 
     red_pp.reset();
-    red_pp.pushAddress(0x0106EE7C, "dwarfort.exe");
+    red_pp.pushAddress(0x0106EE7C, utf8_image_base_name);
     red_pp.pushAddress(0);
     red_pp.pushAddress(0);
     blue_pp = red_pp;
@@ -770,14 +781,14 @@ bool DFGlue::detectDFVersion()
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.02)");
     break;
     case 0xdf6285d3: /* DF v.0.31.01 */
-    af.pushAddress(0x0106EE7C, "dwarfort.exe");
+    af.pushAddress(0x0106EE7C, utf8_image_base_name);
     af.pushAddress(0);
     af.pushAddress(0);
     af.pushAddress(0xC);
-    sz.pushAddress(0x013F5AC0, "dwarfort.exe");
+    sz.pushAddress(0x013F5AC0, utf8_image_base_name);
 
     red_pp.reset();
-    red_pp.pushAddress(0x0106EE7C, "dwarfort.exe");
+    red_pp.pushAddress(0x0106EE7C, utf8_image_base_name);
     red_pp.pushAddress(0);
     red_pp.pushAddress(0);
     blue_pp = red_pp;
@@ -796,23 +807,23 @@ bool DFGlue::detectDFVersion()
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.01)");
     break;
     case 0x0b6bf445:  /* DF 40d19.2 */
-    af.pushAddress(0x00F32B68, "dwarfort.exe");
+    af.pushAddress(0x00F32B68, utf8_image_base_name);
     af.pushAddress(0);
-    sz.pushAddress(0x0129BF28, "dwarfort.exe");
+    sz.pushAddress(0x0129BF28, utf8_image_base_name);
     data_format = PackedVarying;
 
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d19.2)");
     break;
     case 0xb548e1b3: /* DF 40d19 */
-    af.pushAddress(0x00F31B68, "dwarfort.exe");
+    af.pushAddress(0x00F31B68, utf8_image_base_name);
     af.pushAddress(0);
-    sz.pushAddress(0x0129AF28, "dwarfort.exe");
+    sz.pushAddress(0x0129AF28, utf8_image_base_name);
     data_format = PackedVarying;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d19)");
     break;
     case 0x04b75394: /* DF 40d18 */
-    af.pushAddress(0x0101D240, "dwarfort.exe");
-    sz.pushAddress(0x01417EE8, "dwarfort.exe");
+    af.pushAddress(0x0101D240, utf8_image_base_name);
+    sz.pushAddress(0x01417EE8, utf8_image_base_name);
     data_format = Packed256x256;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d18)");
     break;

@@ -131,7 +131,7 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
             set_buffer_address = true;
             if (!hooked_erase)
             {
-                HMODULE df_module = GetModuleHandleW(L"Dwarf Fortress.exe");
+                HMODULE df_module = GetModuleHandleW(NULL);
                 if (df_module)
                 {
                     MODULEINFO mi;
