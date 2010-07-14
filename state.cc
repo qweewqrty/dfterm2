@@ -33,6 +33,57 @@ State::~State()
     state_initialized = false;
 };
 
+void State::saveUser(SP<User> user)
+{
+    if (!configuration)
+        LOG(Note, "saveUser() called with user reference but there is no configuration database. Can't save information.");
+
+    if (configuration)
+        configuration->saveUserData(user);
+}
+
+void State::saveUser(const ID& user_id)
+{
+    if (!configuration)
+        LOG(Note, "saveUser() called with user reference but there is no configuration database. Can't save information.");
+
+    SP<User> user = getUser(user_id);
+    if (!user)
+    { LOG(Note, "saveUser() called with user ID but there is no such user. (" << user_id.serialize() << ")."); }
+
+    configuration->saveUserData(user);
+}
+
+void State::getAllUsers(vector<SP<User> >* users)
+{
+    if (!users) return;
+
+    vector<SP<User > > &u = (*users);
+    u.clear();
+
+    if (configuration)
+        u = configuration->loadAllUserData();
+}
+
+LockedObject<vector<SP<Client> > > State::getAllClients()
+{
+    return clients.lock();
+}
+
+SP<Client> State::getClient(const ID& id)
+{
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
+        if ( (*i1) && (*i1)->getIDRef() == id)
+            return (*i1);
+    lo_clients.release();
+    
+    return SP<Client>();
+}
+
 SP<User> State::getUser(const ID& id)
 {
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
@@ -272,6 +323,22 @@ bool State::addTelnetService(SocketAddress address)
     return true;
 }
 
+void State::destroyClientAndUser(const ID& id, SP<Client> exclude)
+{
+    SP<User> u = getUser(id);
+    if (!u)
+    {
+        SP<Client> c = getClient(id);
+        if (c == exclude) return;
+
+        u = c->getUser();
+    }
+
+    destroyClient(id, exclude);
+    if (configuration && u && u->getNameUTF8().size() > 0)
+        configuration->deleteUserData(u->getName());
+}
+
 void State::destroyClient(const ID &user_id, SP<Client> exclude)
 {
     bool update_nicklists = false;
@@ -287,11 +354,11 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
     {
         if (cli[i1] == exclude) continue;
 
-        if (cli[i1] && cli[i1]->getUser()->getIDRef() == user_id)
+        if (cli[i1] && (cli[i1]->getUser()->getIDRef() == user_id || cli[i1]->getIDRef() == user_id))
         {
             cli.erase(cli.begin() + i1);
             weak_cli.erase(weak_cli.begin() + i1);
-            LOG(Note, "Disconnected a duplicate connection for user " << cli[i1]->getUser()->getNameUTF8());
+            LOG(Note, "Disconnected connection for user " << cli[i1]->getUser()->getNameUTF8());
             update_nicklists = true;
             break;
         }
@@ -847,6 +914,8 @@ void State::new_connection(SP<Socket> listening_socket)
     bool got_connection = listening_socket->accept(new_connection.get());
     if (got_connection)
     {
+        new_connection->startAsynchronousReverseResolve();
+
         SP<Client> new_client = Client::createClient(new_connection);
         new_client->setState(self);
         new_client->setConfigurationDatabase(configuration);
@@ -867,7 +936,6 @@ void State::new_connection(SP<Socket> listening_socket)
         weak_cli.push_back(new_client);
         
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
-
         socketevents.addSocket(new_connection);
         
         new_client->sendPrivateChatMessage(MOTD);
@@ -901,7 +969,7 @@ void State::loop()
             continue;
         }
         LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
-        vector<SP<Client> > &cli = *lo_clients.get();
+        vector<SP<Client> > cli = *lo_clients.get();
 
         vector<SP<Client> >::iterator i1, cli_end = cli.end();
         for (i1 = cli.begin(); i1 != cli_end; ++i1)

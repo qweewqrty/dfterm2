@@ -28,7 +28,9 @@ enum Menu { /* These are menus for all of us! */
             /* And the following are admin-only menus. */
             AdminMainMenu, 
             MotdMenu,
-            SlotsMenu };
+            SlotsMenu, 
+            ManageUsersMenu,
+            };
 
 /* Handles windows for easy online editing of configuration */
 class ConfigurationInterface
@@ -53,6 +55,11 @@ class ConfigurationInterface
         void enterLaunchSlotsMenu();
         void enterJoinSlotsMenu();
         void enterMotdMenu();
+        void enterManageUsersMenu();
+        void enterManageAccountMenu(const ID &user_id);
+        void enterShowClientInformationMenu(SP<Client> c);
+        void enterShowAccountsMenu();
+        void enterSetPasswordMenu(const ID &user_id, bool admin_menu);
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
 
@@ -71,6 +78,17 @@ class ConfigurationInterface
         /* And this is where the currently edited user group should be copied
          * when done with it. ("watchers", "launchers", "etc.") */
         std::string edit_slotprofile_target;
+
+        /* Target of a client in connection management menus. */
+        ID client_target;
+        /* And same for user */
+        ID user_target;
+
+        /* When changing passwords, these indices are set to the elements
+           that user edits, and then they are checked. */
+        trankesbel::ui32 old_password_index;
+        trankesbel::ui32 password_index;
+        trankesbel::ui32 retype_password_index;
 
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;

@@ -81,8 +81,11 @@ class State
         static SP<State> createState();
         ~State();
 
-        /* Disconnects a user with the given nickname. Unless it corresponds to the client 'exclude' */
+        /* Disconnects a user with the given D. Unless it corresponds to the client 'exclude'. Both user ID and client IDs work. */
         void destroyClient(const ID &id, SP<Client> exclude = SP<Client>());
+        /* This one also removes the user from database, effectively
+           removing the user entirely. The ID can be a client id or a user id. */
+        void destroyClientAndUser(const ID& id, SP<Client> exclude = SP<Client>());
 
         /* Notify client or user to do I/O */
         void notifyClient(SP<Client> client);
@@ -156,6 +159,16 @@ class State
         
         /* Gets the user that corresponds to the given id */
         SP<User> getUser(const ID& id);
+        /* Gets the client that corresponds to the given id */
+        SP<Client> getClient(const ID& id);
+
+        /* Gets all users or clients */
+        void getAllUsers(std::vector<SP<User> >* users);
+        LockedObject<std::vector<SP<Client> > > getAllClients();
+
+        /* Saves user information to the database. */
+        void saveUser(SP<User> user);
+        void saveUser(const ID& user_id);
         
         /* Force closes slot user is currently watching. 
            Returns true if that succeeded and false if it did not. */
