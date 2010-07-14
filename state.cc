@@ -822,8 +822,10 @@ void State::pruneInactiveSlots()
             #endif
             stringstream ss;
             if (slots[i2])
+            {
                 ss << time_c << " Slot " << slots[i2]->getNameUTF8() << " has closed.";
-            global_chat->logMessageUTF8(ss.str());
+                global_chat->logMessageUTF8(ss.str());
+            }
                 
             LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
             vector<SP<Client> > &cli = *lo_clients.get();
@@ -877,14 +879,16 @@ void State::pruneInactiveClients()
 
             stringstream ss;
             if (cli[i2]->getUser()->getNameUTF8().size() > 0)
+            {
                 ss << time_c << " " << cli[i2]->getUser()->getNameUTF8() << " has disconnected from the server.";
-            global_chat->logMessageUTF8(ss.str());
+                global_chat->logMessageUTF8(ss.str());
+            }
 
             cli.erase(cli.begin() + i2);
             weak_cli.erase(weak_cli.begin() + i2);
             --len;
             --i2;
-            LOG(Note, "Pruned an inactive connection.");
+            LOG(Note, "Removed an inactive client from memory.");
             changes = true;
             continue;
         }
