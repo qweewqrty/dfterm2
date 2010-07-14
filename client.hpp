@@ -105,7 +105,7 @@ class Client
         SP<trankesbel::InterfaceElementWindow> identify_window;
 
         /* Used to keep nick list up to date. */
-        std::vector<WP<Client> >* clients;
+        std::vector<WP<Client> > clients;
         void updateNicklistWindow();
         /* This one calls updateNicklistWindow for all clients in that vector. */
         void updateNicklistWindowForAll();
@@ -178,12 +178,7 @@ class Client
         void sendPrivateChatMessageUTF8(const std::string &s)
         { sendPrivateChatMessage(TO_UNICODESTRING(s)); };
 
-        /* Sets the vector of clients that are connected. This is used
-           to fill nicklist window, if set. */
-        void setClientVector(std::vector<WP<Client> >* clients);
-        /* Tells this client that client list has been updated. 
-           No effect if client vector has not been set with above call. */
-        void updateClients() { updateNicklistWindow(); };
+        void updateClientNicklist(std::vector<SP<Client> >* clients);
 
         /* Returns true if the entire server should close. */
         bool shouldShutdown() const;

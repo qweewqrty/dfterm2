@@ -103,7 +103,6 @@ Client::Client(SP<Socket> client_socket)
     slot_active_in_last_cycle = true;
 
     identified = false;
-    clients = (vector<WP<Client> >*) 0;
 
     interface = SP<InterfaceTermemu>(new InterfaceTermemu);
     interface->initialize();
@@ -600,41 +599,53 @@ bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 
 void Client::updateNicklistWindowForAll()
 {
-    { return; }; /* disable nick list for now */
-
-    vector<WP<Client> >::iterator i1, clients_end = clients->end();
-    for (i1 = clients->begin(); i1 != clients_end; ++i1)
+    size_t i1, len = clients.size();
+    for (i1 = 0; i1 < len; ++i1)
     {
-        SP<Client> c = (*i1).lock();
+        SP<Client> c = clients[i1].lock();
         if (c)
             c->updateNicklistWindow();
+        else
+        {
+            clients.erase(clients.begin() + i1);
+            i1--;
+            len--;
+        }
     }
+}
+
+void Client::updateClientNicklist(std::vector<SP<Client> >* new_clients)
+{
+    clients.clear();
+    size_t i1, len = new_clients->size();
+    for (i1 = 0; i1 < len; ++i1)
+        clients.push_back( (*new_clients)[i1] );
+
+    updateNicklistWindow();
 }
 
 void Client::updateNicklistWindow()
 {
     if (!nicklist_window) return;
 
-    { return; }; /* disable nick list window for now */
-
     ui32 nicklist_window_index = nicklist_window->getListSelectionIndex();
     nicklist_window->deleteAllListElements();
-    if (!clients) return;
 
     vector<UnicodeString> nicks;
-    nicks.reserve(clients->size());
+    nicks.reserve(clients.size());
 
-    vector<WP<Client> >::iterator i1, clients_end = clients->end();
-    for (i1 = clients->begin(); i1 != clients_end; ++i1)
+    size_t i1, len = clients.size();
+    for (i1 = 0; i1 < len; ++i1)
     {
-        SP<Client> c = (*i1).lock();
+        SP<Client> c = clients[i1].lock();
         if (!c)
         {
-            clients->erase(i1);
-            clients_end = clients->end();
+            clients.erase(clients.begin() + i1);
             --i1;
+            --len;
             continue;
         };
+
         UnicodeString us = c->nickname;
         if (us.countChar32() == 0) continue;
 
@@ -662,7 +673,7 @@ void Client::clientIdentified()
     st->destroyClient(user->getIDRef(), self.lock());
 
     game_window = interface->createInterface2DWindow();
-    // nicklist_window = interface->createInterfaceElementWindow();
+    nicklist_window = interface->createInterfaceElementWindow();
     chat_window = interface->createInterfaceElementWindow();
 
     chat_window->setHint("chat");
@@ -691,10 +702,8 @@ void Client::clientIdentified()
 
     identified = true;
 
-    /*
     nicklist_window->setTitle("Local players");
     nicklist_window->setHint("nicklist");
-    */
 
     updateNicklistWindowForAll();
     identify_window = SP<InterfaceElementWindow>();
@@ -716,11 +725,6 @@ void Client::clientIdentified()
     stringstream ss;
     ss << time_c << " " << TO_UTF8(nickname) << " has connected to the server.";
     global_chat->logMessageUTF8(ss.str());
-}
-
-void Client::setClientVector(vector<WP<Client> >* clients)
-{
-    this->clients = clients;
 }
 
 void Client::setConfigurationDatabase(WP<ConfigurationDatabase> configuration_database)

@@ -369,7 +369,7 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
     len = cli.size();
     for (i1 = 0; i1 < len; ++i1)
         if (cli[i1])
-            cli[i1]->updateClients();
+            cli[i1]->updateClientNicklist(&cli);
 }
 
 bool State::addSlotProfile(SP<SlotProfile> sp)
@@ -898,7 +898,7 @@ void State::pruneInactiveClients()
 
     len = cli.size();
     for (i2 = 0; i2 < len; ++i2)
-        cli[i2]->updateClients();
+        cli[i2]->updateClientNicklist(&cli);
     notifyAllClients();
 }
 
@@ -947,7 +947,7 @@ void State::new_connection(SP<Socket> listening_socket)
         size_t i1, len = cli.size();
         for (i1 = 0; i1 < len; ++i1)
             if (cli[i1])
-                cli[i1]->updateClients();
+                cli[i1]->updateClientNicklist(&cli);
     }
 }
 
