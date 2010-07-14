@@ -851,11 +851,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             { LOG(Error, "Null user attempted to kick out client ID " << client_target.serialize() << " but state is null."); };
         }
         else
-        {
-            SP<Client> c = st->getClient(client_target);
-            if (c && c->getUser())
-                c->getUser()->kill();
-        }
+            st->destroyClient(client_target);
         enterManageUsersMenu();
     }
     /* in show user accounts menu */
