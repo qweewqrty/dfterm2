@@ -33,6 +33,27 @@ State::~State()
     state_initialized = false;
 };
 
+void State::saveUser(SP<User> user)
+{
+    if (!configuration)
+        LOG(Note, "saveUser() called with user reference but there is no configuration database. Can't save information.");
+
+    if (configuration)
+        configuration->saveUserData(user);
+}
+
+void State::saveUser(const ID& user_id)
+{
+    if (!configuration)
+        LOG(Note, "saveUser() called with user reference but there is no configuration database. Can't save information.");
+
+    SP<User> user = getUser(user_id);
+    if (!user)
+    { LOG(Note, "saveUser() called with user ID but there is no such user. (" << user_id.serialize() << ")."); }
+
+    configuration->saveUserData(user);
+}
+
 void State::getAllUsers(vector<SP<User> >* users)
 {
     if (!users) return;

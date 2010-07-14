@@ -165,6 +165,10 @@ class State
         /* Gets all users or clients */
         void getAllUsers(std::vector<SP<User> >* users);
         LockedObject<std::vector<SP<Client> > > getAllClients();
+
+        /* Saves user information to the database. */
+        void saveUser(SP<User> user);
+        void saveUser(const ID& user_id);
         
         /* Force closes slot user is currently watching. 
            Returns true if that succeeded and false if it did not. */

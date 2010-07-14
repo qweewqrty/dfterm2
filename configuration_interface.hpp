@@ -59,6 +59,7 @@ class ConfigurationInterface
         void enterManageAccountMenu(const ID &user_id);
         void enterShowClientInformationMenu(SP<Client> c);
         void enterShowAccountsMenu();
+        void enterSetPasswordMenu(const ID &user_id, bool admin_menu);
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
 
@@ -82,6 +83,12 @@ class ConfigurationInterface
         ID client_target;
         /* And same for user */
         ID user_target;
+
+        /* When changing passwords, these indices are set to the elements
+           that user edits, and then they are checked. */
+        trankesbel::ui32 old_password_index;
+        trankesbel::ui32 password_index;
+        trankesbel::ui32 retype_password_index;
 
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;

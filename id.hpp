@@ -51,6 +51,9 @@ class ID
         void unSerialize(const std::string &s);
         
         bool operator==(const ID& id_value) const;
+        bool operator!=(const ID& id_value) const
+        { return !((*this) == id_value); };
+
         bool operator<(const ID& id) const
         {
             for (trankesbel::ui8 i1 = 0; i1 < 64; i1++)

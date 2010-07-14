@@ -5,6 +5,17 @@
 #include <cstdio>
 #include "logger.hpp"
 
+/*
+TODO:
+This whole interface thing is a sort of mess, compared
+to other code. There's some duplicate log message stuff
+that irritates me but I can't be bothered to fix it, 
+when it works.
+
+ It should not directly interface with ConfigurationDatabase.
+ Only the State.
+*/
+
 using namespace dfterm;
 using namespace boost;
 using namespace std;
@@ -109,6 +120,7 @@ void ConfigurationInterface::enterMainMenu()
     ui32 slot_index = window->addListElement("Launch a new game", "launchgame", true, false);
     window->addListElement("Join a running game", "joingame", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
+    window->addListElement("Change your password", "setpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false);
     window->modifyListSelectionIndex(slot_index);
 }
@@ -129,6 +141,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Manage users", "manage_users", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
+    window->addListElement("Change your password", "setpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
     window->modifyListSelectionIndex(slot_index);
@@ -213,6 +226,63 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
     }
 
     window->modifyListSelectionIndex(slot_index);
+}
+
+void ConfigurationInterface::enterSetPasswordMenu(const ID &user_id, bool admin_menu)
+{
+    user_target = user_id;
+
+    old_password_index = 0xffffffff;
+    password_index = 0xffffffff;
+    retype_password_index = 0xffffffff;
+
+    bool admin_password_change = false;
+    if (admin && admin_menu)
+        admin_password_change = true;
+
+    SP<State> st = state.lock();
+    if (!st)
+    {
+        if (user)
+        { LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password but state is null."); }
+        else
+        { LOG(Error, "Null user attempted to set a password but state is null."); };
+        return;
+    }
+    if (!user)
+    {
+        LOG(Error, "Null user tried to set a password.");
+        return;
+    }
+    if (!admin && user->getIDRef() != user_id)
+    {
+        LOG(Error, "Non-admin user tried to set a password for a user that is not themselves.");
+        return;
+    }
+
+    int back_index = 0;
+
+    window->deleteAllListElements();
+    window->setHint("wide");
+    window->setTitle("Set password");
+
+    if (admin_password_change)
+    {
+        back_index = window->addListElementUTF8("Back to user accounts menu", "showaccounts", true, false);
+        password_index = window->addListElementUTF8("", "Password: ", "password", true, true);
+        retype_password_index = window->addListElementUTF8("", "Retype password: ", "retype_password", true, true);
+        window->addListElementUTF8("Save", "savepassword", true, false);
+    }
+    else
+    {
+        back_index = window->addListElementUTF8("Back to main menu", "mainmenu", true, false);
+        old_password_index = window->addListElementUTF8("", "Old password: ", "old_password", true, true);
+        password_index = window->addListElementUTF8("", "Password: ", "password", true, true);
+        retype_password_index = window->addListElementUTF8("", "Retype password: ", "retype_password", true, true);
+        window->addListElementUTF8("Save", "savepassword", true, false);
+    }
+
+    window->modifyListSelectionIndex(back_index);
 }
 
 void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
@@ -793,6 +863,82 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         user_target = ID::getUnSerialized(selection.substr(5));
         enterManageAccountMenu(user_target);
+    }
+    else if (selection == "savepassword")
+    {
+        SP<State> st = state.lock();
+        if (!st)
+        {
+            if (user)
+            { LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password for user ID " << user_target.serialize() << " but state is null."); }
+            else
+            { LOG(Error, "Null user attempted to set a password for user ID " << user_target.serialize() << " but state is null."); };
+        }
+        else
+        {
+            SP<User> user_sp = st->getUser(user_target);
+            if (!user_sp)
+            {
+                if (user)
+                { LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password for user ID " << user_target.serialize() << " but there is no such user."); }
+                else
+                { LOG(Error, "Null user attempted to set a password for user ID " << user_target.serialize() << " but there is no such user."); }
+            }
+            else
+            {
+                bool old_password_ok = false;
+                if (old_password_index == -1) old_password_ok = true;
+
+
+                if (!old_password_ok)
+                {
+                    UnicodeString old_password = window->getListElement(old_password_index);
+                    old_password_ok = user_sp->verifyPassword(old_password);
+
+                    if (!old_password_ok)
+                    {
+                        window->modifyListElementTextUTF8(old_password_index, "");
+                        window->modifyListSelectionIndex(old_password_index);
+                    }
+                }
+
+                if (old_password_ok)
+                {
+                    string password = window->getListElementUTF8(password_index);
+                    string retype_password = window->getListElementUTF8(retype_password_index);
+
+                    if (password != retype_password)
+                    {
+                        window->modifyListElementTextUTF8(password_index, "");
+                        window->modifyListElementTextUTF8(retype_password_index, "");
+                        window->modifyListSelectionIndex(password_index);
+                    }
+                    else
+                    {
+                        user_sp->setPassword(password);
+                        st->saveUser(user_sp);
+                        if (old_password_index != -1)
+                            enterMainMenu();
+                        else
+                            enterManageAccountMenu(user_target);
+                    }
+                }
+            }
+        }
+    }
+    else if (selection == "setpassword")
+    {
+        if (user)
+        {
+            user_target = user->getIDRef();
+            enterSetPasswordMenu(user_target, true);
+        }
+        else
+        { LOG(Error, "Null user attempted to set their password."); };
+    }
+    else if (selection == "setuserpassword")
+    {
+        enterSetPasswordMenu(user_target, true);
     }
     else if (selection == "deleteuser")
     {
