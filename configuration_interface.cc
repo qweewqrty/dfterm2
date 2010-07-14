@@ -120,7 +120,7 @@ void ConfigurationInterface::enterMainMenu()
     ui32 slot_index = window->addListElement("Launch a new game", "launchgame", true, false);
     window->addListElement("Join a running game", "joingame", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
-    window->addListElement("Change your password", "setpassword", true, false);
+    window->addListElement("Change your password", "setuserpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false);
     window->modifyListSelectionIndex(slot_index);
 }
@@ -141,7 +141,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Manage users", "manage_users", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
-    window->addListElement("Change your password", "setpassword", true, false);
+    window->addListElement("Change your password", "setuserpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
     window->addListElement("Shutdown server", "shutdown", true, false);
     window->modifyListSelectionIndex(slot_index);
@@ -399,7 +399,7 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->addListElementUTF8(string("ID: ") + user->getIDRef().serialize(), "", true, false);
     window->addListElementUTF8(string("Password hash: ") + user->getPasswordHash(), "", true, false);
     window->addListElementUTF8(string("Password salt: ") + user->getPasswordSalt(), "", true, false);
-    window->addListElementUTF8("Set new password", "setuserpassword", true, false);
+    window->addListElementUTF8("Set new password", "setpassword", true, false);
     window->addListElementUTF8("Delete user", "deleteuser", true, false);
 }
 
@@ -928,17 +928,17 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (selection == "setpassword")
     {
-        if (user)
-        {
-            user_target = user->getIDRef();
-            enterSetPasswordMenu(user_target, true);
-        }
-        else
-        { LOG(Error, "Null user attempted to set their password."); };
+        enterSetPasswordMenu(user_target, true);
     }
     else if (selection == "setuserpassword")
     {
-        enterSetPasswordMenu(user_target, true);
+        if (user)
+        {
+            user_target = user->getIDRef();
+            enterSetPasswordMenu(user_target, false);
+        }
+        else
+        { LOG(Error, "Null user attempted to set their password."); };
     }
     else if (selection == "deleteuser")
     {
