@@ -106,7 +106,7 @@ class Slot
         virtual void unloadToWindow(SP<trankesbel::Interface2DWindow> target_window) = 0;
 
         /* Sends input to the slot. */
-        virtual void feedInput(trankesbel::ui32 keycode, bool special_key) = 0;
+        virtual void feedInput(const trankesbel::KeyPress &kp) = 0;
 };
 
 /* Lists slot types. */

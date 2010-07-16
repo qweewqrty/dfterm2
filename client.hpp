@@ -134,7 +134,7 @@ class Client
         bool chatRestrictFunction(trankesbel::ui32* keycode, trankesbel::ui32* cursor);
         bool chatSelectFunction(trankesbel::ui32 index);
         bool identifySelectFunction(trankesbel::ui32 index);
-        void gameInputFunction(trankesbel::ui32 keycode, bool special_key);
+        void gameInputFunction(const trankesbel::KeyPress &kp);
 
     public:
         static SP<Client> createClient(SP<trankesbel::Socket> client_socket);

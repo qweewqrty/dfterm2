@@ -156,6 +156,10 @@ void DFGlue::initVkeyMappings()
     vkey_mappings[ADown] = VK_DOWN;
     vkey_mappings[ALeft] = VK_LEFT;
     vkey_mappings[ARight] = VK_RIGHT;
+    vkey_mappings[AltUp] = VK_UP;
+    vkey_mappings[AltDown] = VK_DOWN;
+    vkey_mappings[AltLeft] = VK_LEFT;
+    vkey_mappings[AltRight] = VK_RIGHT;
     vkey_mappings[CtrlUp] = VK_UP;
     vkey_mappings[CtrlDown] = VK_DOWN;
     vkey_mappings[CtrlLeft] = VK_LEFT;
@@ -180,6 +184,8 @@ void DFGlue::initVkeyMappings()
 
     vkey_mappings[InsertChar] = VK_INSERT;
     vkey_mappings[DeleteChar] = VK_DELETE;
+
+    vkey_mappings[Enter] = VK_RETURN;
 }
 
 void DFGlue::thread_function()
@@ -244,8 +250,12 @@ void DFGlue::thread_function()
                 esc_down = false;
 
                 DWORD vkey;
-                ui32 keycode = input_queue.front().first;
-                bool special_key = input_queue.front().second;
+                ui32 keycode = input_queue.front().getKeyCode();
+                bool special_key = input_queue.front().isSpecialKey();
+                if (input_queue.front().isAltDown()) esc_down_now = true;
+                if (input_queue.front().isShiftDown()) shift_down_now = true;
+                if (input_queue.front().isCtrlDown()) ctrl_down_now = true;
+
                 input_queue.pop_front();
 
                 if (!special_key)
@@ -288,18 +298,14 @@ void DFGlue::thread_function()
                 }
 
                 if (shift_down_now)
-                {
                     PostMessage(df_windows, WM_USER, 1, 0);
-                }
                 if (ctrl_down_now)
                     PostMessage(df_windows, WM_USER, 1, 1);
                 if (esc_down_now)
                     PostMessage(df_windows, WM_USER, 1, 2);
                 PostMessage(df_windows, WM_USER, vkey, 3);
                 if (shift_down_now)
-                {
                     PostMessage(df_windows, WM_USER, 0, 0);
-                }
                 if (ctrl_down_now)
                     PostMessage(df_windows, WM_USER, 0, 1);
                 if (esc_down_now)
@@ -886,10 +892,10 @@ bool DFGlue::injectDLL(string dllname)
     return true;
 }
 
-void DFGlue::feedInput(ui32 keycode, bool special_key)
+void DFGlue::feedInput(const KeyPress &kp)
 {
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    input_queue.push_back(pair<ui32, bool>(keycode, special_key));
+    input_queue.push_back(kp);
 }
 
 bool DFGlue::isDFClosed()

@@ -23,7 +23,7 @@ namespace dfterm
 
 enum SearchCompare { Equal, NotEqual, Greater, GreaterOrEqual, Less, LessOrEqual, Any };
 
-template<class T> bool inline max_comp(const T& a, const T& b)
+template<class T> T inline max_comp(const T& a, const T& b)
 {
     return (a > b) ? a : b;
 };
@@ -163,7 +163,7 @@ class DFGlue : public Slot
         trankesbel::ui32 df_w, df_h;
 
         /* Input deque */
-        std::deque<std::pair<trankesbel::ui32, bool> > input_queue;
+        std::deque<trankesbel::KeyPress> input_queue;
 
         HANDLE df_handle;
         std::vector<HWND> df_windows;
@@ -245,7 +245,7 @@ class DFGlue : public Slot
         void getSize(trankesbel::ui32* width, trankesbel::ui32* height);
         bool isAlive();
         void unloadToWindow(SP<trankesbel::Interface2DWindow> target_window);
-        void feedInput(trankesbel::ui32 keycode, bool special_key);
+        void feedInput(const trankesbel::KeyPress &kp);
 };
 
 }

@@ -230,7 +230,10 @@ void Client::cycle()
 
         size_t i1;
         for (i1 = 0; i1 < buf_size; ++i1)
-            interface->pushKeyPress((ui32) ((unsigned char) buf[i1]), false);
+        {
+            KeyPress kp((KeyCode) buf[i1], false);
+            interface->pushKeyPress(kp);
+        }
     }
     while(buf_size > 0);
 
@@ -570,7 +573,7 @@ bool Client::chatSelectFunction(ui32 index)
 };
 
 /* Callback for game window input */
-void Client::gameInputFunction(ui32 keycode, bool special_key)
+void Client::gameInputFunction(const KeyPress &kp)
 {
     SP<Slot> sp_slot = slot.lock();
     if (sp_slot)
@@ -579,7 +582,7 @@ void Client::gameInputFunction(ui32 keycode, bool special_key)
         if (!st) return;
 
         if (!st->isAllowedPlayer(user, sp_slot)) return;
-        sp_slot->feedInput(keycode, special_key);
+        sp_slot->feedInput(kp);
         sp_slot->setLastUser(user);
     }
 }
@@ -685,7 +688,7 @@ void Client::clientIdentified()
     chat_window->setListCallback(bound_select_callback);
 
     /* And for game window */
-    function2<void, ui32, bool> bound_function2 = boost::bind(&Client::gameInputFunction, this, _1, _2);
+    function1<void, const KeyPress&> bound_function2 = boost::bind(&Client::gameInputFunction, this, _1);
     game_window->setInputCallback(bound_function2);
 
     /* 10x10 is small, and a good default. */
