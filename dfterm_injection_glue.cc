@@ -4,6 +4,10 @@
 #include <windows.h>
 #include <psapi.h>
 #include <sstream>
+#include <stdint.h>
+#include <map>
+#include <set>
+#include <deque>
 
 using namespace std;
 
@@ -36,6 +40,149 @@ volatile int control_state = 0;
 volatile int alt_state = 0;
 
 HANDLE me_process;
+set<HWND> hwnds;
+
+struct KeySym
+{
+    unsigned char scancode;
+    uint32_t keycode;
+    uint32_t mod;
+    uint16_t unicode;
+};
+
+const int KEYDOWN = 2;
+const int KEYUP = 3;
+
+const int RELEASED = 0;
+const int PRESSED = 1;
+
+const int SDLK_KP0 = 256;
+const int SDLK_KP1 = 257;
+const int SDLK_KP2 = 258;
+const int SDLK_KP3 = 259;
+const int SDLK_KP4 = 260;
+const int SDLK_KP5 = 261;
+const int SDLK_KP6 = 262;
+const int SDLK_KP7 = 263;
+const int SDLK_KP8 = 264;
+const int SDLK_KP9 = 265;
+const int SDLK_KP_PERIOD = 266;
+const int SDLK_KP_DIVIDE = 267;
+const int SDLK_KP_MULTIPLY = 268;
+const int SDLK_KP_MINUS = 269;
+const int SDLK_KP_PLUS = 270;
+const int SDLK_KP_ENTER = 271;
+const int SDLK_KP_EQUALS = 272;
+const int SDLK_UP = 273;
+const int SDLK_DOWN = 274;
+const int SDLK_RIGHT = 275;
+const int SDLK_LEFT = 276;
+const int SDLK_INSERT = 277;
+const int SDLK_HOME = 278;
+const int SDLK_END = 279;
+const int SDLK_PAGEUP = 280;
+const int SDLK_PAGEDOWN = 281;
+const int SDLK_F1 = 282;
+const int SDLK_F2 = 283;
+const int SDLK_F3 = 284;
+const int SDLK_F4 = 285;
+const int SDLK_F5 = 286;
+const int SDLK_F6 = 287;
+const int SDLK_F7 = 288;
+const int SDLK_F8 = 289;
+const int SDLK_F9 = 290;
+const int SDLK_F10 = 291;
+const int SDLK_F11 = 292;
+const int SDLK_F12 = 293;
+const int SDLK_F13 = 294;
+const int SDLK_F14 = 295;
+const int SDLK_F15 = 296;
+const int SDLK_RSHIFT = 303;
+const int SDLK_LSHIFT = 304;
+const int SDLK_RCTRL = 305;
+const int SDLK_LCTRL = 306;
+const int SDLK_RALT	= 307;
+const int SDLK_LALT = 308;
+
+struct KeyboardEvent
+{
+    unsigned char type;
+    unsigned char state;
+    KeySym keysym;
+
+    bool is_windows_key;
+    HWND hwnd;
+    UINT msg;
+    WPARAM wparam;
+    LPARAM lparam;
+    char dummy[2000]; /* To pad the structure size a little */
+    
+    KeyboardEvent()
+    {
+        is_windows_key = false;
+    }
+    KeyboardEvent(const KeyboardEvent &ke)
+    {
+        (*this) = ke;
+    }
+    KeyboardEvent& operator=(const KeyboardEvent &ke)
+    {
+        if (this == &ke) return (*this);
+
+        type = ke.type;
+        state = ke.state;
+        keysym = ke.keysym;
+        is_windows_key = ke.is_windows_key;
+        msg = ke.msg;
+        wparam = ke.wparam;
+        lparam = ke.lparam;
+        memcpy(dummy, ke.dummy, 2000);
+    }
+};
+
+map<DWORD, uint32_t> vk_to_keycode;
+
+int (*__cdecl SDL_PushEvent)(KeyboardEvent* ke);
+
+void initialize_vk_to_keycode_map()
+{
+    /* Letters are their ASCII equivalents,
+       uppercase in MSDN virtual key codes,
+       lowercase in SDL virtual key codes. */
+    uint32_t i1;
+    for (i1 = 'A'; i1 <= 'Z'; ++i1)
+        vk_to_keycode[i1] = i1 - 'A' + 'a';
+
+    /* Same for numbers */
+    for (i1 = '0'; i1 <= '9'; i1++)
+        vk_to_keycode[i1] = i1;
+
+    vk_to_keycode[VK_PRIOR] = SDLK_PAGEUP;
+    vk_to_keycode[VK_NEXT] = SDLK_PAGEDOWN;
+    vk_to_keycode[VK_LEFT] = SDLK_LEFT;
+    vk_to_keycode[VK_RIGHT] = SDLK_RIGHT;
+    vk_to_keycode[VK_UP] = SDLK_UP;
+    vk_to_keycode[VK_DOWN] = SDLK_DOWN;
+
+    vk_to_keycode[VK_F1] = SDLK_F1;
+    vk_to_keycode[VK_F2] = SDLK_F2;
+    vk_to_keycode[VK_F3] = SDLK_F3;
+    vk_to_keycode[VK_F4] = SDLK_F4;
+    vk_to_keycode[VK_F5] = SDLK_F5;
+    vk_to_keycode[VK_F6] = SDLK_F6;
+    vk_to_keycode[VK_F7] = SDLK_F7;
+    vk_to_keycode[VK_F8] = SDLK_F8;
+    vk_to_keycode[VK_F9] = SDLK_F9;
+    vk_to_keycode[VK_F10] = SDLK_F10;
+    vk_to_keycode[VK_F11] = SDLK_F11;
+    vk_to_keycode[VK_F12] = SDLK_F12;
+
+    vk_to_keycode[VK_RETURN] = '\r';
+    vk_to_keycode[VK_TAB] = 9;
+    vk_to_keycode[VK_PAUSE] = 19;
+    vk_to_keycode[VK_ESCAPE] = 27;
+    vk_to_keycode[VK_SPACE] = ' ';
+}
 
 void patch_function(ptrdiff_t p1, ptrdiff_t p2, char* p3);
 
@@ -48,8 +195,24 @@ unsigned char buffer[500*500];
 
 ptrdiff_t last_read_address = 0;
 
+deque<KeyboardEvent> events;
+HANDLE events_mutex;
+
 int WINAPI hooked_SDLNumJoysticks()
 {
+    DWORD ownership = WaitForSingleObject(events_mutex, INFINITE);
+    while (!events.empty())
+    {
+        KeyboardEvent ke = events.front();
+        events.pop_front();
+
+        if (ke.is_windows_key == false)
+            SDL_PushEvent(&ke);
+        else
+            SendMessage(ke.hwnd, ke.msg, ke.wparam, ke.lparam);
+    }
+    ReleaseMutex(events_mutex);
+
     if (set_buffer_address && (buffer_address == 3109 || buffer_address == 3110))
     {
         unsigned int w = 1, h = 1;
@@ -94,6 +257,8 @@ int WINAPI hooked_SDLNumJoysticks()
 
 LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+    hwnds.insert(hwnd);
+
     restore_old_function(DefWindowProc_addr, DefWindowProc_patch);
     LRESULT result = DefWindowProc(hwnd, msg, wparam, lparam);
     patch_function(DefWindowProc_addr, (ptrdiff_t) hooked_DefWindowProc, NULL);
@@ -120,10 +285,99 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
             else
                 alt_state = 0;
         }
-        else if (lparam == 3)
+        else if ((lparam & 0x0000ffff) == 3)
         {
-            SendMessage(hwnd, WM_KEYDOWN, wparam, 0x0);
-            SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
+            DWORD ownership = WaitForSingleObject(events_mutex, INFINITE);
+            
+            unsigned short unicode_symbol = (lparam & 0xffff0000) >> 16;
+            switch(buffer_address)
+            {
+                case 3106:
+                case 3108:
+                case 3109:
+                case 3110:
+                {
+                    KeyboardEvent ke;
+                    memset(&ke, 0, sizeof(ke));
+                    ke.is_windows_key = false;
+                    ke.keysym.unicode = unicode_symbol;
+                    ke.type = KEYDOWN;
+                    ke.state = PRESSED;
+                    ke.keysym.scancode = 0;
+
+                    bool shift_state_now = (bool) shift_state;
+                    if (shift_state_now)
+                    {
+                        ke.keysym.keycode = SDLK_LSHIFT;
+                        events.push_back(ke);
+                    }
+                    if (control_state)
+                    {
+                        ke.keysym.keycode = SDLK_LCTRL;
+                        events.push_back(ke);
+                    }
+                    if (alt_state)
+                    {
+                        ke.keysym.keycode = SDLK_LALT;
+                        events.push_back(ke);
+                    }
+
+                    map<DWORD, uint32_t>::iterator i1 = vk_to_keycode.find(wparam);
+                    if (i1 == vk_to_keycode.end())
+                    {
+                        SendMessage(hwnd, WM_KEYDOWN, wparam, 0);
+                        SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
+                        ke.is_windows_key = false;
+                        ke.type = KEYUP;
+                        ke.state = RELEASED;
+                        if (shift_state_now)
+                        {
+                            ke.keysym.keycode = SDLK_LSHIFT;
+                            events.push_back(ke);
+                        }
+                        if (control_state)
+                        {
+                            ke.keysym.keycode = SDLK_LCTRL;
+                            events.push_back(ke);
+                        }
+                        if (alt_state)
+                        {
+                            ke.keysym.keycode = SDLK_LALT;
+                            events.push_back(ke);
+                        }
+                        break;
+                    }
+
+                    ke.keysym.keycode = i1->second;
+                    events.push_back(ke);
+
+                    ke.type = KEYUP;
+                    ke.state = RELEASED;
+                    events.push_back(ke);
+
+                    if (shift_state_now)
+                    {
+                        ke.keysym.keycode = SDLK_LSHIFT;
+                        events.push_back(ke);
+                    }
+                    if (control_state)
+                    {
+                        ke.keysym.keycode = SDLK_LCTRL;
+                        events.push_back(ke);
+                    }
+                    if (alt_state)
+                    {
+                        ke.keysym.keycode = SDLK_LALT;
+                        events.push_back(ke);
+                    }
+                }
+                break;
+                default:
+                SendMessage(hwnd, WM_KEYDOWN, wparam, 0x0);
+                SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
+            }
+
+            ReleaseMutex(events_mutex);
         }
         else if (lparam == 4)
         {
@@ -222,6 +476,9 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     if (reason != DLL_PROCESS_ATTACH)
         return FALSE;
 
+    initialize_vk_to_keycode_map();
+    events_mutex = CreateMutex(NULL, FALSE, NULL);
+
     me_process = GetCurrentProcess();
 
     /* Hook GetAsyncKeyState and friends */
@@ -236,6 +493,7 @@ BOOL WINAPI DllMain(HINSTANCE hi, DWORD reason, LPVOID reserved)
     
     HMODULE module5 = GetModuleHandleW(L"SDL");
     LPCVOID gaks5 = GetProcAddress(module5, "SDL_NumJoysticks");
+    SDL_PushEvent = (int (__cdecl*)(KeyboardEvent*)) GetProcAddress(module5, "SDL_PushEvent");
 
     GetKeyState_addr = (ptrdiff_t) gaks;
     DefWindowProc_addr = (ptrdiff_t) dwp;
