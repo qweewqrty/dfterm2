@@ -57,6 +57,7 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
 {
     switch(special_key)
     {
+        case Enter:      input_buf.append("\r"); break;
         case AUp:        input_buf.append("\x1b\x4f\x41"); break;
         case ADown:      input_buf.append("\x1b\x4f\x42"); break;
         case ARight:     input_buf.append("\x1b\x4f\x43"); break;
