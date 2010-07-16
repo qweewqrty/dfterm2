@@ -1,6 +1,7 @@
 #ifndef slot_terminal_hpp
 #define slot_terminal_hpp
 
+#include "interface.hpp"
 #include "slot.hpp"
 #include "types.hpp"
 #include <boost/thread/thread.hpp>
@@ -26,7 +27,7 @@ class TerminalGlue : public Slot
 
         std::map<std::string, UnicodeString> parameters;
 
-        std::deque<std::pair<trankesbel::ui32, bool> > input_queue;
+        std::deque<trankesbel::KeyPress> input_queue;
         void flushInput(Pty* program_pty);
 
         trankesbel::ui32 terminal_w, terminal_h;
@@ -46,7 +47,7 @@ class TerminalGlue : public Slot
         void getSize(trankesbel::ui32* width, trankesbel::ui32* height);
         bool isAlive();
         void unloadToWindow(SP<trankesbel::Interface2DWindow> target_window);
-        void feedInput(trankesbel::ui32 keycode, bool special_key);
+        void feedInput(const trankesbel::KeyPress &kp);
 };
 
 }; /* namespace */

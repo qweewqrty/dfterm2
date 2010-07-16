@@ -61,6 +61,10 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
         case ADown:      input_buf.append("\x1b\x4f\x42"); break;
         case ARight:     input_buf.append("\x1b\x4f\x43"); break;
         case ALeft:      input_buf.append("\x1b\x4f\x44"); break;
+        case AltUp:      input_buf.append("\x1b\x1b\x4f\x41"); break;
+        case AltDown:    input_buf.append("\x1b\x1b\x4f\x42"); break;
+        case AltRight:   input_buf.append("\x1b\x1b\x4f\x43"); break;
+        case AltLeft:    input_buf.append("\x1b\x1b\x4f\x44"); break;
         case CtrlUp:     input_buf.append("\x1b\x4f\x41"); break;
         case CtrlDown:   input_buf.append("\x1b\x4f\x42"); break;
         case CtrlRight:  input_buf.append("\x1b\x4f\x43"); break;
@@ -97,8 +101,8 @@ void TerminalGlue::flushInput(Pty* program_pty)
 
     while(input_queue.size() > 0)
     {
-        ui32 keycode = input_queue.front().first;
-        bool special_key = input_queue.front().second;
+        ui32 keycode = (ui32) input_queue.front().getKeyCode();
+        bool special_key = input_queue.front().isSpecialKey();
         input_queue.pop_front();
 
         if (special_key) { pushEscapeSequence((KeyCode) keycode, input_buf); continue; }
@@ -256,10 +260,10 @@ void TerminalGlue::setParameter(string key, UnicodeString value)
         parameters[key] = value;
 }
 
-void TerminalGlue::feedInput(ui32 keycode, bool special_key)
+void TerminalGlue::feedInput(const KeyPress &kp)
 {
     lock_guard<recursive_mutex> lock(glue_mutex);
-    input_queue.push_back(pair<ui32, bool>(keycode, special_key));
+    input_queue.push_back(kp);
 }
 
 void TerminalGlue::getSize(ui32* width, ui32* height)
