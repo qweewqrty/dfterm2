@@ -205,6 +205,7 @@ void DFGlue::thread_function()
             return;
         }
     }
+    else
     // Launch a new DF process
     {
         if (!launchDFProcess(&df_process, &df_windows))

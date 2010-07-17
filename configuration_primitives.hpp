@@ -190,7 +190,7 @@ class SlotProfile
         trankesbel::ui32 w, h;           /* width and height of the game inside slot */
         UnicodeString path;              /* path to game executable */
         UnicodeString working_path;      /* working directory for the game. */
-        trankesbel::ui32 slot_type;       /* slot type (should be type SlotType, is ui32 for header dependency reasons) */
+        trankesbel::ui32 slot_type;      /* slot type (should be type SlotType, is ui32 for header dependency reasons) */
         UserGroup allowed_watchers;      /* who may watch */
         UserGroup allowed_launchers;     /* who may launch */
         UserGroup allowed_players;       /* who may play */

@@ -662,7 +662,7 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
                 if (!no_read)
                 {
                     #ifdef _WIN32
-                    if (st != DFGrab || st != DFLaunch) st = DFLaunch;
+                    if (st != DFGrab && st != DFLaunch) st = DFLaunch;
                     #else
                     if (st != TerminalLaunch) st = TerminalLaunch;
                     #endif
@@ -1010,6 +1010,15 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
             }
         }
         enterMainMenu();
+    }
+    else if (selection == "newslot_method")
+    {
+        #ifdef _WIN32
+        if ((SlotType) edit_slotprofile.getSlotType() == DFGrab)
+            edit_slotprofile.setSlotType((ui32) DFLaunch);
+        else
+            edit_slotprofile.setSlotType((ui32) DFGrab);
+        #endif
     }
     /* The new slot profile menu */
     else if (selection == "newslot_watchers")
