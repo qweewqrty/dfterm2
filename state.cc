@@ -312,7 +312,7 @@ bool State::addTelnetService(SocketAddress address)
     bool result = s->listen(address);
     if (!result)
     {
-        LOG(Error, "Listening on telnet service " << address.getHumanReadablePlainUTF8() << " failed.");
+        LOG(Error, "Listening on telnet service " << address.getHumanReadablePlainUTF8() << " failed. " << s->getError());
         return false;
     }
     LOG(Note, "Telnet service started on address " << address.getHumanReadablePlainUTF8());
