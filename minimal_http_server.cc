@@ -151,6 +151,11 @@ void HTTPClient::cycle()
                 waiting_for_request = false;
             }
         }
+        else
+        {
+            s->close();
+            return;
+        }
     }
 
     if (!waiting_for_request)
@@ -185,7 +190,6 @@ void HTTPClient::cycle()
                 s->close();
                 return;
             }
-
         }
     }
 }
