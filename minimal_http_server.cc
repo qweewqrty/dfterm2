@@ -61,6 +61,22 @@ void HTTPClient::cycle()
         return;
     }
 
+    if (!plain_document.empty())
+    {
+        if (waiting_for_request)
+        {
+            map<string, Document>::iterator i1 = served_content->find(plain_document);
+            if (i1 == served_content->end())
+            {
+                s->close();
+                return;
+            }
+
+            waiting_for_request = false;
+            response_string = i1->second.document;
+        }
+    }
+
     if (waiting_for_request)
     {
         size_t result = 1;
@@ -103,7 +119,8 @@ void HTTPClient::cycle()
 
         if (get || head)
         {
-            if (document == string("/"))
+            map<string, Document>::iterator i1 = served_content->find(document);
+            if (i1 != served_content->end())
             {
                 LOG(Note, "A connection from " << s->getAddress().getHumanReadablePlainUTF8() << " " << get_or_head << " requested page \"" << document << "\" (200)");
 
@@ -111,9 +128,9 @@ void HTTPClient::cycle()
                 response << "HTTP/1.1 200 OK\r\n";
                 response << "Server: Dfterm2 minimal HTTP server\r\n";
                 response << "Connection: close\r\n";
-                response << "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+                response << "Content-Type: " << i1->second.contenttype << "\r\n\r\n";
                 if (get)
-                    response << "Go to hell\r\n";
+                    response << i1->second.document;
 
                 response_string = response.str();
                 waiting_for_request = false;
@@ -211,10 +228,43 @@ SP<Socket> HTTPServer::cycle()
             }
 
             SP<HTTPClient> hc(new HTTPClient);
+            hc->setServedContent(&served_content);
             hc->setSocket(http_client);
             http_clients.insert(hc);
 
             LOG(Note, "Got HTTP connection from " << http_client->getAddress().getHumanReadablePlainUTF8());
+            return http_client;
+        };
+
+        SP<Socket> plain_http_client(new Socket);
+        set<pair<SP<Socket>, string> >::iterator i2, plain_listening_sockets_end = plain_listening_sockets.end();
+        for (i2 = plain_listening_sockets.begin(); i2 != plain_listening_sockets_end; ++i2)
+        {
+            if (!(i2->first) || !(i2->first)->active())
+                continue;
+
+            bool got_connection = (i2->first)->accept(http_client.get());
+            if (!got_connection) continue;
+
+            if (http_clients.size() >= MAX_HTTP_CONNECTIONS)
+            {
+                repeat = true;
+                pruneUnusedSockets();
+                if (http_clients.size() >= MAX_HTTP_CONNECTIONS)
+                {
+                    LOG(Note, "Got plain connection from " << http_client->getAddress().getHumanReadablePlainUTF8() << " but closed it immediately, as maximum number (" << MAX_HTTP_CONNECTIONS << ") of HTTP connections has been reached.");
+                    http_client->close();
+                    break;
+                }
+            }
+
+            SP<HTTPClient> hc(new HTTPClient);
+            hc->setServedContent(&served_content);
+            hc->setPlain(i2->second);
+            hc->setSocket(http_client);
+            http_clients.insert(hc);
+
+            LOG(Note, "Got plain connection from " << http_client->getAddress().getHumanReadablePlainUTF8());
             return http_client;
         };
     }
@@ -236,4 +286,107 @@ void HTTPServer::addListeningSocket(SP<Socket> listening_socket)
         return;
 
     listening_sockets.insert(listening_socket);
+}
+
+void HTTPServer::addPlainListeningSocket(SP<Socket> listening_socket, const string &serviceaddress)
+{
+    if (!listening_socket || !listening_socket->active())
+        return;
+
+    plain_listening_sockets.insert(pair<SP<Socket>, string>(listening_socket, serviceaddress));
+}
+
+void HTTPServer::serveContentUTF8(string buffer, string contenttype, string serviceaddress)
+{
+    served_content[serviceaddress] = Document(buffer, contenttype);
+}
+
+void HTTPServer::serveFileUTF8(string filename, string contenttype, string serviceaddress, const map<string, string> &replacors)
+{
+    wchar_t* wc = (wchar_t*) 0;
+    size_t wc_size = 0;
+    TO_WCHAR_STRING(filename, wc, &wc_size);
+    if (wc_size == 0)
+    {
+        LOG(Error, "Tried to serve a file from disk in HTTP server but filename \"" << filename << "\" is malformed.");
+        return;
+    }
+
+    wc = new wchar_t[wc_size+1];
+    memset(wc, 0, (wc_size+1) * sizeof(wchar_t));
+
+    TO_WCHAR_STRING(filename, wc, &wc_size);
+
+    #ifdef _WIN32
+    FILE* f = _wfopen(wc, L"rb");
+    #else
+    FILE* f = fopen(TO_UTF8(filename).c_str(), "rb");
+    #endif
+    delete[] wc;
+
+    if (!f)
+    {
+        LOG(Error, "Attempted to serve file \"" << filename << "\" but opening it for reading failed.");
+        return;
+    }
+
+    // Calculate the size of the file
+    
+    
+    #ifdef _WIN32
+    __int64 fsize = 0;
+    _fseeki64(f, 0, SEEK_END);
+    fsize = _ftelli64(f);
+    if (fsize == -1)
+    #else
+    off64_t fsize = 0;
+    fseeko64(f, 0, SEEK_END);
+    fsize = ftello64(f);
+    if (fsize < (off64_t) 0)
+    #endif
+    {
+        LOG(Error, "Attempted to serve file \"" << filename << "\" but calculating file size failed.");
+        fclose(f);
+        return;
+    }
+    #ifdef _WIN32
+    _fseeki64(f, 0, SEEK_SET);
+    #else
+    fseeko64(f, 0, SEEK_SET);
+    #endif
+
+    if (fsize > MAX_HTTP_FILE_SIZE)
+    {
+        LOG(Error, "Attempted to serve file \"" << filename << "\" but it is larger (" << fsize << " bytes) than the compile time limit (" << MAX_HTTP_FILE_SIZE << " bytes) on file sizes.");
+        fclose(f);
+        return;
+    }
+
+    char* buf = new char[fsize];
+    size_t result = fread(buf, 1, fsize, f);
+    if (result != fsize)
+    {
+        LOG(Error, "Attempted to serve file \"" << filename << "\" but there was a read error.");
+        delete[] buf;
+        return;
+    }
+    fclose(f);
+
+    string document_copy = string(buf, fsize);
+    map<string, string>::const_iterator i1, replacors_end = replacors.end();
+    for (i1 = replacors.begin(); i1 != replacors_end; ++i1)
+    {
+        while(true)
+        {
+            size_t index = document_copy.find(i1->first);
+            if (index == string::npos) break;
+
+            document_copy.erase(index, i1->first.size());
+            document_copy.insert(index, i1->second);
+        }
+    }
+
+    served_content[serviceaddress] = Document(document_copy, contenttype);
+
+    delete[] buf;
 }

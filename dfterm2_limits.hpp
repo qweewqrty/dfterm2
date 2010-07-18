@@ -26,6 +26,9 @@ const trankesbel::ui32 MAX_CONNECTIONS = 50;
 /* Maximum number of HTTP connections at a time. */
 const trankesbel::ui32 MAX_HTTP_CONNECTIONS = 50;
 
+/* Maximum size for a file served through HTTP. */
+const trankesbel::ui64 MAX_HTTP_FILE_SIZE = 1000000;
+
 };
 
 #endif

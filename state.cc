@@ -305,8 +305,22 @@ bool State::setDatabaseUTF8(string database_file)
     return true;
 }
 
-bool State::addHTTPService(SocketAddress address)
+bool State::addHTTPService(SocketAddress address, SocketAddress flashpolicy_address, const string &httpconnectaddress)
 {
+    if (listening_sockets.begin() == listening_sockets.end())
+    {
+        LOG(Error, "Cannot start an HTTP service without a Telnet service.");
+        return false;
+    }
+    SP<Socket> ls = *listening_sockets.begin();
+    if (!ls || !ls->active())
+    {
+        LOG(Error, "Cannot start an HTTP service without a Telnet service.");
+        return false;
+    }
+
+    ui16 telnet_port = ls->getAddress().getPort();
+
     SP<Socket> s(new Socket);
     bool result = s->listen(address);
     if (!result)
@@ -316,8 +330,49 @@ bool State::addHTTPService(SocketAddress address)
     }
     LOG(Note, "HTTP service started on address " << address.getHumanReadablePlainUTF8());
 
+    /* We need the Telnet service to make HTTP service work */
+
+    /* Add flash policy file */
+    stringstream flashpolicy;
+    flashpolicy << "<?xml version=\"1.0\"?>" << endl;
+    flashpolicy << "<!DOCTYPE cross-domain-policy SYSTEM \"/xml/dtds/cross-domain-policy.dtd\">" << endl;
+    flashpolicy << "<cross-domain-policy>" << endl;
+    flashpolicy << "<site-control permitted-cross-domain-policies=\"master-only\"/>" << endl;
+    flashpolicy << "<allow-access-from domain=\"*\" to-ports=\"" << telnet_port << "\" />" << endl;
+    flashpolicy << "</cross-domain-policy>" << endl;
+    http_server.serveContentUTF8(flashpolicy.str(), "text/x-cross-domain-policy", "/crossdomain.xml");
+
+    stringstream ss;
+    ss << telnet_port;
+
+    map<string, string> replacors;
+    replacors["##LOCALADDRESS##"] = httpconnectaddress;
+    replacors["##LOCALPORT##"] = ss.str();
+    stringstream ss2;
+    ss2 << flashpolicy_address.getPort();
+    replacors["##FLASHPOLICYPORT##"] = ss2.str();
+
+    http_server.serveFileUTF8("soiled/soiled.swf", "application/x-shockwave-flash", "/soiled.swf");
+    http_server.serveFileUTF8("soiled/soiled.html", "text/html", "/", replacors);
+    http_server.serveFileUTF8("soiled/soiled.txt", "text/plain; charset=UTF-8", "/soiled.txt");
+    http_server.serveFileUTF8("soiled/beep.mp3", "audio/mp3", "/beep.mp3");
+    http_server.serveFileUTF8("soiled/AC_OETags.js", "application/javascript", "/AC_OETags.js");
+
     http_server.addListeningSocket(s);
+
     socketevents.addSocket(s);
+
+    SP<Socket> s2(new Socket);
+    result = s2->listen(flashpolicy_address);
+    if (!result)
+    {
+        LOG(Error, "Listening as flashpolicy.xml service at address " << flashpolicy_address.getHumanReadablePlainUTF8() << " failed. " << s->getError());
+        return true; // intentionally returns non-error value
+    }
+    LOG(Note, "flashpolicy.xml service started on address " << flashpolicy_address.getHumanReadablePlainUTF8());
+
+    http_server.addPlainListeningSocket(s2, "/crossdomain.xml");
+    socketevents.addSocket(s2);
 
     return true;
 }

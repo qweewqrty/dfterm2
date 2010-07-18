@@ -49,12 +49,16 @@ int main(int argc, char* argv[])
 
     string httpport("8080");
     string httpaddress("0.0.0.0");
+    string httpconnectaddress("255.255.255.255");
+
+    string flashpolicyport("8081");
+    string flashpolicyaddress("0.0.0.0");
 
     bool use_http_service = false;
 
     string database_file("dfterm2_database.sqlite3");
 
-    SocketAddress listen_address, http_listen_address;
+    SocketAddress listen_address, http_listen_address, flash_policy_listen_address;
     bool succeeded_resolve = false;
     string error_message;
 
@@ -62,6 +66,8 @@ int main(int argc, char* argv[])
     boost::bind(resolve_success, &succeeded_resolve, &listen_address, &error_message, _1, _2, _3);
     function3<void, bool, SocketAddress, string> http_resolve_binding = 
     boost::bind(resolve_success, &succeeded_resolve, &http_listen_address, &error_message, _1, _2, _3);
+    function3<void, bool, SocketAddress, string> flash_resolve_binding = 
+    boost::bind(resolve_success, &succeeded_resolve, &flash_policy_listen_address, &error_message, _1, _2, _3);
 
     int i1;
     for (i1 = 1; i1 < argc; ++i1)
@@ -76,6 +82,12 @@ int main(int argc, char* argv[])
             address = argv[++i1];
         else if ((!strcmp(argv[i1], "--httpaddress") || !strcmp(argv[i1], "-ha")) && i1 < argc-1)
             httpaddress = argv[++i1];
+        else if ((!strcmp(argv[i1], "--httpconnectaddress") || !strcmp(argv[i1], "-hca")) && i1 < argc-1)
+            httpconnectaddress = argv[++i1];
+        else if ((!strcmp(argv[i1], "--flashpolicyaddress") || !strcmp(argv[i1], "-fpa")) && i1 < argc-1)
+            flashpolicyaddress = argv[++i1];
+        else if ((!strcmp(argv[i1], "--flashpolicyport") || !strcmp(argv[i1], "-fpp")) && i1 < argc-1)
+            flashpolicyport = argv[++i1];
         else if (!strcmp(argv[i1], "--http"))
             use_http_service = true;
         else if (!strcmp(argv[i1], "--version") || !strcmp(argv[i1], "-v"))
@@ -107,7 +119,16 @@ int main(int argc, char* argv[])
             cout << "--httpport (port number)" << endl;
             cout << "-hp (port number)     Set the port where dfterm2 will listen for HTTP connections. Defaults to 8080." << endl << endl;
             cout << "--httpaddress (address)" << endl;
-            cout << "--ha                  Set the address on which dfterm2 will listen for HTTP connectionso. Defaults to 0.0.0.0." << endl << endl;
+            cout << "--ha (address)        Set the address on which dfterm2 will listen for HTTP connections. Defaults to 0.0.0.0." << endl << endl;
+            cout << "--httpconnectaddress (address)" << endl;
+            cout << "-hca (address)" << endl;
+            cout << "                      Set the address reported in the flash program for dfterm2 server. You should" << endl;
+            cout << "                      set this to your IP as it appears to outside world. Defaults to 255.255.255.255" << endl;
+            cout << "--flashpolicyaddress (address)" << endl;
+            cout << "-fpa (address)        Set the address from where flash policy file is served. Defaults to 0.0.0.0" << endl;
+            cout << "                      Flash policy serving is turned on whenever HTTP service is turned on." << endl;
+            cout << "--flashpolicyport (port)" << endl;
+            cout << "-fpp (port)           Set the port from where flash policy file is served. Defaults to 8081" << endl;
             cout << "--http                Enable HTTP service." << endl;
             cout << "--version" << endl;
             cout << "-v                    Show version information and exit." << endl << endl;
@@ -155,6 +176,13 @@ int main(int argc, char* argv[])
             cerr << "Resolving [" << httpaddress << "]:" << httpport << " failed. Check your listening address settings for HTTP." << endl;
             return -1;
         }
+        SocketAddress::resolve(flashpolicyaddress, flashpolicyport, flash_resolve_binding, true);
+        if (!succeeded_resolve)
+        {
+            flush_messages();
+            cerr << "Resolving [" << flashpolicyaddress << "]:" << flashpolicyport << " failed. Check your listening address settings for flash policy." << endl;
+            return -1;
+        }
     }
 
     SP<State> state = State::createState();
@@ -171,7 +199,7 @@ int main(int argc, char* argv[])
         cerr << "Could not add a telnet service. " << endl;
         return -1;
     }
-    if (use_http_service && !state->addHTTPService(http_listen_address))
+    if (use_http_service && !state->addHTTPService(http_listen_address, flash_policy_listen_address, httpconnectaddress))
     {
         flush_messages();
         cerr << "Could not add an HTTP service. " << endl;

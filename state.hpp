@@ -150,8 +150,11 @@ class State
 
         /* Add a new telnet port to listen to. */
         bool addTelnetService(trankesbel::SocketAddress address);
-        /* Add a new HTTP/Flash plugin serving port to listen to. */
-        bool addHTTPService(trankesbel::SocketAddress address);
+        /* Add a new HTTP/Flash plugin serving port to listen to. 
+           The second address is from where flash policy file should be served.
+           Set the httpconnectaddress to IP or hostname that points
+           to the listening machine in the outside world. */
+        bool addHTTPService(trankesbel::SocketAddress address, trankesbel::SocketAddress flashpolicy_address, const std::string &httpconnectaddress);
 
         /* Sets and gets the maximum number of slots that can run at a time. */
         void setMaximumNumberOfSlots(trankesbel::ui32 max_slots);

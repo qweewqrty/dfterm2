@@ -148,3 +148,6 @@ OPENSSL:
  */
 -------------------------------------------------------------
 
+Soiled uses GPLv3 and the license is under soiled/soiled_LICENSE
+
+

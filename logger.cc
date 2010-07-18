@@ -105,6 +105,7 @@ void dfterm::flush_messages()
                 continue;
             }
             fclose(f);
+            delete[] wc;
         }
         
     } while(msg);
