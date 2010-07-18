@@ -1089,7 +1089,6 @@ void State::signalSlotData(SP<Slot> who)
         {
             (*i1)->cycle();
             if ((*i1)->shouldShutdown()) close = true;
-            break;
         }
     }
 }
