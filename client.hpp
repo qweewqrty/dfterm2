@@ -135,6 +135,7 @@ class Client
         bool chatSelectFunction(trankesbel::ui32 index);
         bool identifySelectFunction(trankesbel::ui32 index);
         void gameInputFunction(const trankesbel::KeyPress &kp);
+        void gameResizeFunction(trankesbel::ui32 w, trankesbel::ui32 h);
 
     public:
         static SP<Client> createClient(SP<trankesbel::Socket> client_socket);

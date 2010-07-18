@@ -669,6 +669,13 @@ void Client::updateNicklistWindow()
     state.lock()->notifyClient(self.lock());
 }
 
+void Client::gameResizeFunction(ui32 w, ui32 h)
+{
+    SP<State> st = state.lock();
+    if (st)
+        st->notifyClient(self.lock());
+}
+
 void Client::clientIdentified()
 {
     SP<State> st = state.lock();
@@ -680,6 +687,9 @@ void Client::clientIdentified()
     chat_window = interface->createInterfaceElementWindow();
 
     chat_window->setHint("chat");
+
+    function2<void, ui32, ui32> resize_game_function = boost::bind(&Client::gameResizeFunction, this, _1, _2);
+    game_window->setResizeCallback(resize_game_function);
 
     /* Set callbacks for chat window */
     function2<bool, ui32*, ui32*> bound_function = boost::bind(&Client::chatRestrictFunction, this, _1, _2);
