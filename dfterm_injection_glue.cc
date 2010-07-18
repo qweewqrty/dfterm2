@@ -142,7 +142,7 @@ struct KeyboardEvent
 
 map<DWORD, uint32_t> vk_to_keycode;
 
-int (*__cdecl SDL_PushEvent)(KeyboardEvent* ke);
+int (__cdecl *SDL_PushEvent)(KeyboardEvent* ke);
 
 void initialize_vk_to_keycode_map()
 {
@@ -200,7 +200,7 @@ HANDLE events_mutex;
 
 int WINAPI hooked_SDLNumJoysticks()
 {
-    DWORD ownership = WaitForSingleObject(events_mutex, INFINITE);
+    /*DWORD ownership = WaitForSingleObject(events_mutex, INFINITE);
     while (!events.empty())
     {
         KeyboardEvent ke = events.front();
@@ -211,7 +211,7 @@ int WINAPI hooked_SDLNumJoysticks()
         else
             SendMessage(ke.hwnd, ke.msg, ke.wparam, ke.lparam);
     }
-    ReleaseMutex(events_mutex);
+    ReleaseMutex(events_mutex);*/
 
     if (set_buffer_address && (buffer_address == 3109 || buffer_address == 3110))
     {
@@ -249,10 +249,11 @@ int WINAPI hooked_SDLNumJoysticks()
         last_read_address = final_address;
     }
 
+    /* Don't patch SDLNumJoystics back */
     restore_old_function(SDLNumJoysticks_addr, SDLNumJoysticks_patch);
     int result = ((int (*)()) SDLNumJoysticks_addr)();
     patch_function(SDLNumJoysticks_addr, (ptrdiff_t) hooked_SDLNumJoysticks, NULL);
-    return result;
+    return 0;
 }
 
 LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -287,97 +288,22 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
         }
         else if ((lparam & 0x0000ffff) == 3)
         {
-            DWORD ownership = WaitForSingleObject(events_mutex, INFINITE);
-            
-            unsigned short unicode_symbol = (lparam & 0xffff0000) >> 16;
-            switch(buffer_address)
-            {
-                case 3106:
-                case 3108:
-                case 3109:
-                case 3110:
-                {
-                    KeyboardEvent ke;
-                    memset(&ke, 0, sizeof(ke));
-                    ke.is_windows_key = false;
-                    ke.keysym.unicode = unicode_symbol;
-                    ke.type = KEYDOWN;
-                    ke.state = PRESSED;
-                    ke.keysym.scancode = 0;
+            if (alt_state)
+                SendMessage(hwnd, WM_KEYDOWN, VK_LMENU, 0);
+            if (control_state)
+                SendMessage(hwnd, WM_KEYDOWN, VK_LCONTROL, 0);
+            if (shift_state)
+                SendMessage(hwnd, WM_KEYDOWN, VK_LSHIFT, 0);
 
-                    bool shift_state_now = (bool) shift_state;
-                    if (shift_state_now)
-                    {
-                        ke.keysym.keycode = SDLK_LSHIFT;
-                        events.push_back(ke);
-                    }
-                    if (control_state)
-                    {
-                        ke.keysym.keycode = SDLK_LCTRL;
-                        events.push_back(ke);
-                    }
-                    if (alt_state)
-                    {
-                        ke.keysym.keycode = SDLK_LALT;
-                        events.push_back(ke);
-                    }
+            SendMessage(hwnd, WM_KEYDOWN, wparam, 0);
+            SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
 
-                    map<DWORD, uint32_t>::iterator i1 = vk_to_keycode.find(wparam);
-                    if (i1 == vk_to_keycode.end())
-                    {
-                        SendMessage(hwnd, WM_KEYDOWN, wparam, 0);
-                        SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
-                        ke.is_windows_key = false;
-                        ke.type = KEYUP;
-                        ke.state = RELEASED;
-                        if (shift_state_now)
-                        {
-                            ke.keysym.keycode = SDLK_LSHIFT;
-                            events.push_back(ke);
-                        }
-                        if (control_state)
-                        {
-                            ke.keysym.keycode = SDLK_LCTRL;
-                            events.push_back(ke);
-                        }
-                        if (alt_state)
-                        {
-                            ke.keysym.keycode = SDLK_LALT;
-                            events.push_back(ke);
-                        }
-                        break;
-                    }
-
-                    ke.keysym.keycode = i1->second;
-                    events.push_back(ke);
-
-                    ke.type = KEYUP;
-                    ke.state = RELEASED;
-                    events.push_back(ke);
-
-                    if (shift_state_now)
-                    {
-                        ke.keysym.keycode = SDLK_LSHIFT;
-                        events.push_back(ke);
-                    }
-                    if (control_state)
-                    {
-                        ke.keysym.keycode = SDLK_LCTRL;
-                        events.push_back(ke);
-                    }
-                    if (alt_state)
-                    {
-                        ke.keysym.keycode = SDLK_LALT;
-                        events.push_back(ke);
-                    }
-                }
-                break;
-                default:
-                SendMessage(hwnd, WM_KEYDOWN, wparam, 0x0);
-                SendMessage(hwnd, WM_KEYUP, wparam, 0xC0000001);
-            }
-
-            ReleaseMutex(events_mutex);
+            if (alt_state)
+                SendMessage(hwnd, WM_KEYUP, VK_LMENU, 0xC0000001);
+            if (control_state)
+                SendMessage(hwnd, WM_KEYUP, VK_LCONTROL, 0xC0000001);
+            if (shift_state)
+                SendMessage(hwnd, WM_KEYUP, VK_LSHIFT, 0xC0000001);
         }
         else if (lparam == 4)
         {
