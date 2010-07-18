@@ -8,6 +8,7 @@
 #include <vector>
 #include <queue>
 #include <unicode/unistr.h>
+#include <unicode/ustring.h>
 #include <time.h>
 
 namespace dfterm

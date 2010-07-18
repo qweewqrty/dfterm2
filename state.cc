@@ -305,14 +305,30 @@ bool State::setDatabaseUTF8(string database_file)
     return true;
 }
 
-bool State::addTelnetService(SocketAddress address)
+bool State::addHTTPService(SocketAddress address)
 {
-    stringstream ss;
     SP<Socket> s(new Socket);
     bool result = s->listen(address);
     if (!result)
     {
-        LOG(Error, "Listening on telnet service " << address.getHumanReadablePlainUTF8() << " failed. " << s->getError());
+        LOG(Error, "Listening as HTTP service at address " << address.getHumanReadablePlainUTF8() << " failed. " << s->getError());
+        return false;
+    }
+    LOG(Note, "HTTP service started on address " << address.getHumanReadablePlainUTF8());
+
+    http_server.addListeningSocket(s);
+    socketevents.addSocket(s);
+
+    return true;
+}
+
+bool State::addTelnetService(SocketAddress address)
+{
+    SP<Socket> s(new Socket);
+    bool result = s->listen(address);
+    if (!result)
+    {
+        LOG(Error, "Listening as telnet service at address " << address.getHumanReadablePlainUTF8() << " failed. " << s->getError());
         return false;
     }
     LOG(Note, "Telnet service started on address " << address.getHumanReadablePlainUTF8());
@@ -975,6 +991,8 @@ void State::loop()
         LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
         vector<SP<Client> > cli = *lo_clients.get();
 
+        bool got_socket = false;
+
         vector<SP<Client> >::iterator i1, cli_end = cli.end();
         for (i1 = cli.begin(); i1 != cli_end; ++i1)
         {
@@ -983,9 +1001,22 @@ void State::loop()
             {
                 (*i1)->cycle();
                 if ((*i1)->shouldShutdown()) close = true;
+                got_socket = true;
                 break;
             }
         }
+
+        if (!got_socket)
+        {
+            while(true)
+            {
+                SP<Socket> s = http_server.cycle();
+                if (!s)
+                    break;
+                socketevents.addSocket(s);
+            }
+        };
+
     }
 }
 

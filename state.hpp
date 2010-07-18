@@ -14,6 +14,7 @@ class State;
 #include "configuration_primitives.hpp"
 #include <sstream>
 #include "lockedresource.hpp"
+#include "minimal_http_server.hpp"
 
 namespace dfterm {
 
@@ -38,6 +39,7 @@ class State
         trankesbel::ui32 maximum_slots;
 
         std::set<SP<trankesbel::Socket> > listening_sockets;
+        HTTPServer http_server;
 
         /* This is the list of connected clients. */
         LockedResource<std::vector<SP<Client> > > clients;
@@ -148,6 +150,8 @@ class State
 
         /* Add a new telnet port to listen to. */
         bool addTelnetService(trankesbel::SocketAddress address);
+        /* Add a new HTTP/Flash plugin serving port to listen to. */
+        bool addHTTPService(trankesbel::SocketAddress address);
 
         /* Sets and gets the maximum number of slots that can run at a time. */
         void setMaximumNumberOfSlots(trankesbel::ui32 max_slots);

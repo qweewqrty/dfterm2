@@ -10,10 +10,10 @@ SET(NO_CURSES 1)
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
 IF (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc)
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc)
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.c configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc)
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.c configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc)
     target_link_libraries(dfterm2 dl)
 ENDIF (WIN32)
 

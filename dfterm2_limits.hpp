@@ -20,8 +20,11 @@ const trankesbel::ui32 MAX_SLOT_PROFILES = 30;
 /* Maximum number of registered users */
 const trankesbel::ui32 MAX_REGISTERED_USERS = 50;
 
-/* Maximum number of connections at a time */
+/* Maximum number of (telnet) connections at a time */
 const trankesbel::ui32 MAX_CONNECTIONS = 50;
+
+/* Maximum number of HTTP connections at a time. */
+const trankesbel::ui32 MAX_HTTP_CONNECTIONS = 50;
 
 };
 
