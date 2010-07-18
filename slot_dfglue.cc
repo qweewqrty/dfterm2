@@ -709,28 +709,28 @@ bool DFGlue::detectDFVersion()
     switch(csum)
     {
     case 0xdb942094:
-    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3110, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.10 SDL version)");
     break;
     case 0xc58b306c:  /* DF 0.31.09 (SDL) */
-    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3109, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.09 SDL version)");
     break;
     case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
-    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x140C11C, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3108, 4);
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.08 SDL version)");
     break;
     case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
-    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, utf8_image_base_name);
     data_format = PackedVarying;
     SendMessage(df_windows, WM_USER, 3106, 4);
@@ -852,23 +852,38 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     ui32 t_w, t_h;
+    ui32 actual_window_w, actual_window_h;
     t_w = min(df_w, (ui32) df_terminal.getWidth());
     t_h = min(df_h, (ui32) df_terminal.getHeight());
     t_w = min(t_w, (ui32) 256);
     t_h = min(t_h, (ui32) 256);
     target_window->setMinimumSize(t_w, t_h);
+    target_window->getSize(&actual_window_w, &actual_window_h);
 
-    CursesElement elements[256*256];
+    ui32 game_offset_x = 0;
+    ui32 game_offset_y = 0;
+    if (actual_window_w > t_w)
+        game_offset_x = (actual_window_w - t_w) / 2;
+    if (actual_window_h > t_h)
+        game_offset_y = (actual_window_h - t_h) / 2;
+
+    CursesElement* elements = new CursesElement[actual_window_w * actual_window_h];
     ui32 i1, i2;
-    for (i1 = 0; i1 < t_w; ++i1)
-        for (i2 = 0; i2 < t_h; ++i2)
+    for (i1 = 0; i1 < actual_window_w; ++i1)
+        for (i2 = 0; i2 < actual_window_h; ++i2)
         {
-            const TerminalTile &t = df_terminal.getTile(i1, i2);
+            TerminalTile t;
+            if (i1 < game_offset_x || i2 < game_offset_y || (i1 - game_offset_x) >= t_w || (i2 - game_offset_y) >= t_h)
+                t = TerminalTile(' ', 7, 0, false, false);
+            else
+                t = df_terminal.getTile(i1 - game_offset_x, i2 - game_offset_y);
+
             ui32 symbol = t.getSymbol();
             if (symbol > 255) symbol = symbol % 256;
-            elements[i1 + i2 * 256] = CursesElement(mapCharacter(symbol), (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
+            elements[i1 + i2 * actual_window_w] = CursesElement(mapCharacter(symbol), (Color) t.getForegroundColor(), (Color) t.getBackgroundColor(), t.getBold());
         }
-    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), 256, t_w, t_h, 0, 0);
+    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), actual_window_w, actual_window_w, actual_window_h, 0, 0);
+    delete[] elements;
 }
 
 bool DFGlue::injectDLL(string dllname)
