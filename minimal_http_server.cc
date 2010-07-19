@@ -1,6 +1,7 @@
 #include "logger.hpp"
 #include "minimal_http_server.hpp"
 #include <iostream>
+#include <cstdio>
 
 using namespace dfterm;
 using namespace std;
