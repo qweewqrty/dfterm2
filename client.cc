@@ -222,6 +222,7 @@ void Client::cycle()
 
     char buf[500];
     size_t buf_size = 500;
+    bool pushed_something = false;
     do
     {
         buf_size = 500;
@@ -233,9 +234,17 @@ void Client::cycle()
         {
             KeyPress kp((KeyCode) buf[i1], false);
             interface->pushKeyPress(kp);
+            pushed_something = true;
         }
     }
     while(buf_size > 0);
+
+    if (pushed_something)
+    {
+        SP<State> s = state.lock();
+        if (s) 
+            s->delayedNotifyClient(self.lock(), 1000000000LL);
+    }
 
     cycleChat();
 

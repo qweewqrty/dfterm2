@@ -865,6 +865,22 @@ void State::notifyClient(SP<Socket> socket)
     socketevents.forceEvent(socket);
 }
 
+void State::delayedNotifyClient(SP<Client> c, ui64 nanoseconds)
+{
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    /* Check that this client is ours */
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
+        if ((*i1) && (*i1) == c)
+            break;
+
+    if (i1 == cli_end) return;
+
+    pending_delayed_notifications[nanoclock() + nanoseconds] = c;
+}
+
 void State::pruneInactiveSlots()
 {
     lock_guard<recursive_mutex> lock(slots_mutex);
@@ -1028,13 +1044,32 @@ void State::loop()
     close = false;
     while(!close)
     {
+        ui64 next_event_time = 5000000000LL; // 5 seconds
+        if (!pending_delayed_notifications.empty())
+        {
+            next_event_time = pending_delayed_notifications.begin()->first - nanoclock();
+            if (next_event_time > 5000000000LL)
+                next_event_time = 0;
+        }
+
         pruneInactiveClients();
         pruneInactiveSlots();
         flush_messages();
         cycle_mutex.unlock();
-        SP<Socket> s = socketevents.getEvent(500000000);
+        SP<Socket> s = socketevents.getEvent(next_event_time);
         cycle_mutex.lock();
-        if (!s) continue;
+        if (!s) 
+        {
+            if (pending_delayed_notifications.empty()) continue;
+
+            if (nanoclock() > pending_delayed_notifications.begin()->first)
+            {
+                SP<Client> c = pending_delayed_notifications.begin()->second.lock();
+                pending_delayed_notifications.erase(pending_delayed_notifications.begin());
+                if (!c || !c->getSocket()) continue;
+                s = c->getSocket();
+            }
+        }
 
         /* Test if it's a listening socket */
         set<SP<Socket> >::iterator i2 = listening_sockets.find(s);

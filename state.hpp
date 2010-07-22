@@ -78,6 +78,10 @@ class State
            in different threads. */
         boost::recursive_mutex cycle_mutex;
 
+        /* Pending delayed notifications. In here, order matters. */
+        std::map<trankesbel::ui64, WP<Client> > pending_delayed_notifications;
+
+
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
         static SP<State> createState();
@@ -94,6 +98,9 @@ class State
         void notifyClient(SP<User> user);
         void notifyClient(SP<trankesbel::Socket> socket);
         void notifyAllClients();
+
+        /* Make client notify itself after a time period (in nanoseconds) */
+        void delayedNotifyClient(SP<Client> client, trankesbel::ui64 nanoseconds);
 
         /* Called by slots to inform the state that slot has new data on it. */
         void signalSlotData(SP<Slot> who);

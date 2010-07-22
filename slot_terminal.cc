@@ -104,6 +104,8 @@ void TerminalGlue::flushInput(Pty* program_pty)
     {
         ui32 keycode = (ui32) input_queue.front().getKeyCode();
         bool special_key = input_queue.front().isSpecialKey();
+        cout << keycode << " " << special_key << endl;
+
         input_queue.pop_front();
 
         if (special_key) { pushEscapeSequence((KeyCode) keycode, input_buf); continue; }
@@ -134,6 +136,7 @@ void TerminalGlue::flushInput(Pty* program_pty)
         ui8 k = (ui8) keycode;
         input_buf.push_back(k);
     }
+
 
     if (input_buf.size() > 0)
         program_pty->feed(input_buf.c_str(), input_buf.size());
