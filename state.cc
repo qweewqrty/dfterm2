@@ -35,17 +35,13 @@ State::~State()
 
 void State::saveUser(SP<User> user)
 {
-    if (!configuration)
-        LOG(Note, "saveUser() called with user reference but there is no configuration database. Can't save information.");
-
-    if (configuration)
-        configuration->saveUserData(user);
+    assert(configuration);
+    configuration->saveUserData(user);
 }
 
 void State::saveUser(const ID& user_id)
 {
-    if (!configuration)
-        LOG(Note, "saveUser() called with user reference but there is no configuration database. Can't save information.");
+    assert(configuration);
 
     SP<User> user = getUser(user_id);
     if (!user)
@@ -56,13 +52,13 @@ void State::saveUser(const ID& user_id)
 
 void State::getAllUsers(vector<SP<User> >* users)
 {
-    if (!users) return;
+    assert(users);
+    assert(configuration);
 
     vector<SP<User > > &u = (*users);
     u.clear();
 
-    if (configuration)
-        u = configuration->loadAllUserData();
+    u = configuration->loadAllUserData();
 }
 
 LockedObject<vector<SP<Client> > > State::getAllClients()
@@ -103,12 +99,11 @@ SP<User> State::getUser(const ID& id)
 
 void State::setMaximumNumberOfSlots(trankesbel::ui32 max_slots)
 {
+    assert(configuration);
+
     maximum_slots = max_slots;
     if (maximum_slots >= MAX_SLOTS)
         maximum_slots = MAX_SLOTS;
-
-    if (configuration)
-        configuration->saveMaximumNumberOfSlots(maximum_slots);
 }
 
 trankesbel::ui32 State::getMaximumNumberOfSlots() const
@@ -118,8 +113,7 @@ trankesbel::ui32 State::getMaximumNumberOfSlots() const
 
 bool State::forceCloseSlotOfUser(SP<User> user)
 {
-    if (!user)
-        return false;
+    assert(user);
     
     /* Find the slot and the corresponding slot profile this user is watching */
     
@@ -177,9 +171,10 @@ bool State::forceCloseSlotOfUser(SP<User> user)
 
 void State::setMOTD(UnicodeString motd)
 {
+    assert(configuration);
     this->MOTD = motd;
-    if (configuration)
-        configuration->saveMOTD(motd);
+
+    configuration->saveMOTD(motd);
 }
 
 UnicodeString State::getMOTD()
@@ -239,7 +234,8 @@ vector<WP<SlotProfile> > State::getSlotProfiles()
 
 SP<State> State::createState()
 {
-    if (state_initialized) return SP<State>();
+    assert(!state_initialized);
+
     SP<State> newstate(new State);
     newstate->self = newstate;
 
@@ -445,6 +441,8 @@ void State::destroyClient(const ID &user_id, SP<Client> exclude)
 
 bool State::addSlotProfile(SP<SlotProfile> sp)
 {
+    assert(sp);
+
     if (slotprofiles.size() >= MAX_SLOT_PROFILES)
     {
         LOG(Error, "Attempted to create a slot profile but compile-time maximum number of slot profiles has been reached.");
@@ -456,7 +454,7 @@ bool State::addSlotProfile(SP<SlotProfile> sp)
 
 void State::deleteSlotProfile(SP<SlotProfile> slotprofile)
 {
-    if (!slotprofile) return;
+    assert(slotprofile);
 
     size_t i1, len = slots.size();
     for (i1 = 0; i1 < len; ++i1)
@@ -485,7 +483,7 @@ void State::deleteSlotProfile(SP<SlotProfile> slotprofile)
 
 void State::updateSlotProfile(SP<SlotProfile> target, const SlotProfile &source)
 {
-    if (!target) return;
+    assert(target);
 
     (*target.get()) = source;
 
@@ -621,6 +619,8 @@ bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
 
 bool State::setUserToSlot(SP<User> user, const ID &slot_id)
 {
+    assert(user);
+
     /* Find the user from client list */
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
@@ -671,6 +671,8 @@ bool State::setUserToSlot(SP<User> user, const ID &slot_id)
 
 bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
+    assert(slot_profile && launcher);
+
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
     SP<Client> client;
@@ -684,8 +686,6 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
     lock_guard<recursive_mutex> lock2(slots_mutex);
-
-    if (!launcher) launcher = SP<User>(new User);
 
     /* Check for slot limits */
     if (slots.size() >= MAX_SLOTS) /* hard compile-time limit */
@@ -782,28 +782,21 @@ bool State::launchSlot(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     lock_guard<recursive_mutex> lock(slotprofiles_mutex);
 
-    if (!slot_profile)
-    {
-        if (launcher)
-            { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a null slot profile."); }
-        else
-            { LOG(Error, "Null user attempted to launch a null slot profile."); }
-        return false;
-    }
+    assert(slot_profile && launcher);
 
     vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
     for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         if ((*i1) == slot_profile)
             return launchSlotNoCheck(*i1, launcher);
-    if (launcher)
-        { LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile that does not exist in slot profile list."); }
-    else
-        { LOG(Error, "Null user attempted to launch a slot profile that does not exist in slot profile list."); }
+    LOG(Error, "User " << launcher->getNameUTF8() << " attempted to launch a slot profile that does not exist in slot profile list.");
+
     return false;
 }
 
 bool State::launchSlot(const ID &slot_id, SP<User> launcher)
 {
+    assert(launcher);
+
     vector<SP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
     for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
         if ((*i1) && (*i1)->getIDRef() == slot_id)
@@ -829,7 +822,7 @@ void State::notifyAllClients()
 
 void State::notifyClient(SP<Client> client)
 {
-    if (!client) return;
+    assert(client);
 
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
@@ -846,7 +839,7 @@ void State::notifyClient(SP<Client> client)
 
 void State::notifyClient(SP<User> user)
 {
-    if (!user) return;
+    assert(user);
 
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
@@ -862,11 +855,14 @@ void State::notifyClient(SP<User> user)
 
 void State::notifyClient(SP<Socket> socket)
 {
+    assert(socket);
     socketevents.forceEvent(socket);
 }
 
 void State::delayedNotifyClient(SP<Client> c, ui64 nanoseconds)
 {
+    assert(c);
+
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
@@ -1000,6 +996,8 @@ void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
 
 void State::new_connection(SP<Socket> listening_socket)
 {
+    assert(listening_socket);
+
     /* Check for incoming connections. */
     SP<Socket> new_connection(new Socket);
     bool got_connection = listening_socket->accept(new_connection.get());
@@ -1069,6 +1067,8 @@ void State::loop()
                 if (!c || !c->getSocket()) continue;
                 s = c->getSocket();
             }
+
+            if (!s) continue;
         }
 
         /* Test if it's a listening socket */
@@ -1112,6 +1112,8 @@ void State::loop()
 
 void State::signalSlotData(SP<Slot> who)
 {
+    assert(who);
+
     lock_guard<recursive_mutex> lock(cycle_mutex);
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();

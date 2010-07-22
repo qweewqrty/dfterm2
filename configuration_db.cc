@@ -63,6 +63,8 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
 
 int ConfigurationDatabase::maximumSlotsCallback(ui32* maximum, void* v_self, int argc, char** argv, char** colname)
 {
+    assert(maximum && v_self);
+
     ui32 value = 0xffffffff;
     bool correct_key = false;
 
@@ -88,7 +90,7 @@ int ConfigurationDatabase::maximumSlotsCallback(ui32* maximum, void* v_self, int
 
 int ConfigurationDatabase::slotprofileNameListDataCallback(vector<UnicodeString>* name_list, void* v_self, int argc, char** argv, char** colname)
 {
-    if (!name_list) return 0;
+    assert(name_list && v_self);
 
     int i;
     for (i = 0; i < argc; ++i)
@@ -107,7 +109,7 @@ int ConfigurationDatabase::slotprofileNameListDataCallback(vector<UnicodeString>
 
 int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self, int argc, char** argv, char** colname)
 {
-    if (!sp) return 0;
+    assert(sp && v_self);
 
     int i;
     for (i = 0; i < argc; ++i)
@@ -158,8 +160,8 @@ int ConfigurationDatabase::slotprofileDataCallback(SlotProfile* sp, void* v_self
 };
 
 int ConfigurationDatabase::userDataCallback(SP<User>* user, void* v_self, int argc, char** argv, char** colname)
-{
-    if (!user || !(*user)) return 1;
+{   
+    assert(user && (*user));
 
     string password_salt, password_hash;
     int i;
@@ -191,6 +193,8 @@ int ConfigurationDatabase::userDataCallback(SP<User>* user, void* v_self, int ar
 
 int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname)
 {
+    assert(user_list && v_self);
+
     string name, password_hash, password_salt;
     ID id;
     bool admin = false;
@@ -228,6 +232,8 @@ int ConfigurationDatabase::userListDataCallback(vector<SP<User> >* user_list, vo
 
 int ConfigurationDatabase::motdCallback(UnicodeString* us, void* v_self, int argc, char** argv, char** colname)
 {
+    assert(us && v_self);
+
     int i;
     for (i = 0; i < argc; ++i)
     {
@@ -245,7 +251,7 @@ static int c_callback(void* a, int b, char** c, char** d)
     function4<int, void*, int, char**, char**>* sql_callback_function = 
     (function4<int, void*, int, char**, char**>*) a;
 
-    return (*sql_callback_function)((void*) 0, b, c, d);
+    return (*sql_callback_function)((void*) 0x1, b, c, d);
 }
 
 void ConfigurationDatabase::saveMOTD(UnicodeString motd)
@@ -255,7 +261,7 @@ void ConfigurationDatabase::saveMOTD(UnicodeString motd)
 
 void ConfigurationDatabase::saveMOTDUTF8(string motd_utf8)
 {
-    if (!db) return;
+    assert(db);
     
     string motd_escaped = escape_sql_string(motd_utf8);
     
@@ -285,7 +291,7 @@ string ConfigurationDatabase::loadMOTDUTF8()
 
 UnicodeString ConfigurationDatabase::loadMOTD()
 {
-    if (!db) return UnicodeString();
+    assert(db);
     
     UnicodeString motd;
     
@@ -305,7 +311,7 @@ UnicodeString ConfigurationDatabase::loadMOTD()
 
 vector<SP<User> > ConfigurationDatabase::loadAllUserData()
 {
-    if (!db) return vector<SP<User> >();
+    assert(db);
 
     vector<SP<User> > result_users;
 
@@ -322,7 +328,7 @@ vector<SP<User> > ConfigurationDatabase::loadAllUserData()
 
 void ConfigurationDatabase::deleteSlotProfileData(const UnicodeString &name)
 {
-    if (!db) return;
+    assert(db);
 
     string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return;
@@ -333,7 +339,7 @@ void ConfigurationDatabase::deleteSlotProfileData(const UnicodeString &name)
 
 void ConfigurationDatabase::deleteUserData(const UnicodeString &name)
 {
-    if (!db) return;
+    assert(db);
 
     string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return;
@@ -344,7 +350,7 @@ void ConfigurationDatabase::deleteUserData(const UnicodeString &name)
 
 SP<User> ConfigurationDatabase::loadUserData(const ID& id)
 {
-    if (!db) return SP<User>();
+    assert(db);
 
     string id_str = escape_sql_string(id.serialize());
     
@@ -363,7 +369,7 @@ SP<User> ConfigurationDatabase::loadUserData(const ID& id)
 
 SP<User> ConfigurationDatabase::loadUserData(const UnicodeString &name)
 {
-    if (!db) return SP<User>();
+    assert(db);
 
     string name_utf8 = TO_UTF8(name);
     if (escape_sql_string(name_utf8).size() < 1) return SP<User>();
@@ -383,8 +389,7 @@ SP<User> ConfigurationDatabase::loadUserData(const UnicodeString &name)
 
 void ConfigurationDatabase::saveUserData(User* user)
 {
-    if (!db) return;
-    if (!user) return;
+    assert(db && user);
 
     string name_utf8 = TO_UTF8(user->getName());
     if (escape_sql_string(name_utf8).size() < 1) return;
@@ -402,8 +407,7 @@ void ConfigurationDatabase::saveUserData(User* user)
 
 void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
 {
-    if (!db) return;
-    if (!slotprofile) return;
+    assert(db && slotprofile);
 
     string name = slotprofile->getNameUTF8();
 
@@ -439,7 +443,7 @@ void ConfigurationDatabase::saveSlotProfileData(SlotProfile* slotprofile)
 
 vector<UnicodeString> ConfigurationDatabase::loadSlotProfileNames()
 {
-    if (!db) return vector<UnicodeString>();
+    assert(db);
 
     vector<UnicodeString> name_list;
 
@@ -464,7 +468,7 @@ vector<UnicodeString> ConfigurationDatabase::loadSlotProfileNames()
 
 SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(const UnicodeString &name)
 {
-    if (!db) return SP<SlotProfile>();
+    assert(db);
 
     string name_utf8 = TO_UTF8(name);
 
@@ -491,7 +495,7 @@ SP<SlotProfile> ConfigurationDatabase::loadSlotProfileData(const UnicodeString &
 
 void ConfigurationDatabase::saveMaximumNumberOfSlots(ui32 maximum)
 {
-    if (!db) return;
+    assert(db);
 
     string statement = string("DELETE FROM GlobalSettings WHERE Key = \'MaximumSlots\';");
     int result = sqlite3_exec(db, statement.c_str(), 0, 0, 0);
@@ -510,7 +514,7 @@ void ConfigurationDatabase::saveMaximumNumberOfSlots(ui32 maximum)
 
 ui32 ConfigurationDatabase::loadMaximumNumberOfSlots()
 {
-    if (!db) return 0xffffffff;
+    assert(db);
 
     ui32 maximum = 0xffffffff;
     function4<int, void*, int, char**, char**> sql_callback_function;

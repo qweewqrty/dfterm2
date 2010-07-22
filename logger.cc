@@ -30,8 +30,7 @@ void dfterm::initialize_logger()
 /* Flush admin messages */
 void dfterm::flush_messages()
 {
-    if (!admin_logger) return;
-    if (!admin_messages_reader) return;
+    assert(admin_logger && admin_messages_reader);
 
     bool msg;
     do
@@ -175,6 +174,8 @@ void LoggerReader::logMessage(UnicodeString message)
 
 UnicodeString LoggerReader::getLogMessage(bool* got_message)
 {
+    assert(got_message);
+
     lock_guard<recursive_mutex> lock(logmutex);
     (*got_message) = false;
     if (messages.empty()) return UnicodeString("");

@@ -199,16 +199,7 @@ void ConfigurationInterface::enterLaunchSlotsMenu()
 
     ui32 slot_index = 0;
     SP<State> st = state.lock();
-    if (!st)
-    {
-        if (user)
-            { LOG(Error, "ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu, user " << user->getNameUTF8()); }
-        else
-            { LOG(Error, "ConfigurationInterface::enterLaunchSlotsMenu(), null state in menu and the user is null too."); }
-        slot_index = window->addListElementUTF8("No slots available at the moment", "mainmenu", true, false);
-        window->modifyListSelectionIndex(slot_index);
-        return;
-    }
+    assert(st && user);
 
     slot_index = window->addListElementUTF8("Back to main menu", "mainmenu", true, false);
 
@@ -241,19 +232,7 @@ void ConfigurationInterface::enterSetPasswordMenu(const ID &user_id, bool admin_
         admin_password_change = true;
 
     SP<State> st = state.lock();
-    if (!st)
-    {
-        if (user)
-        { LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password but state is null."); }
-        else
-        { LOG(Error, "Null user attempted to set a password but state is null."); };
-        return;
-    }
-    if (!user)
-    {
-        LOG(Error, "Null user tried to set a password.");
-        return;
-    }
+    assert(st && user);
     if (!admin && user->getIDRef() != user_id)
     {
         LOG(Error, "Non-admin user tried to set a password for a user that is not themselves.");
@@ -287,8 +266,8 @@ void ConfigurationInterface::enterSetPasswordMenu(const ID &user_id, bool admin_
 
 void ConfigurationInterface::enterShowClientInformationMenu(SP<Client> c)
 {
+    assert(c);
     if (!admin) return;
-    if (!c) return;
 
     window->deleteAllListElements();
     window->setHint("default");
@@ -344,11 +323,7 @@ void ConfigurationInterface::enterShowAccountsMenu()
     window->modifyListSelectionIndex(back_index);
 
     SP<State> st = state.lock();
-    if (!st)
-    {
-        LOG(Error, "Attempt to fill user list in account menu but state is null.");
-        return;
-    }
+    assert(st);
 
     vector<SP<User> > users;
     st->getAllUsers(&users);
@@ -381,11 +356,7 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->modifyListSelectionIndex(back_index);
 
     SP<State> st = state.lock();
-    if (!st)
-    {
-        LOG(Error, "Attempt to show user information for user ID " << user_id.serialize() << " but state is null.");
-        return;
-    }
+    assert(st);
 
     SP<User> user = st->getUser(user_id);
     if (!user)
@@ -418,11 +389,7 @@ void ConfigurationInterface::enterManageUsersMenu()
     window->addListElement("Show user accounts", "showaccounts", true, false);
 
     SP<State> st = state.lock();
-    if (!st)
-    {
-        LOG(Error, "Attempt to fill connection list in manage users menu but state is null.");
-        return;
-    }
+    assert(st);
 
     LockedObject<vector<SP<Client> > > lo_clients = st->getAllClients();
     vector<SP<Client> > &clients = *lo_clients.get();
@@ -481,17 +448,15 @@ void ConfigurationInterface::enterSlotsMenu()
     window->modifyListSelectionIndex(slot_index);
 
     SP<State> st = state.lock();
-    if (st)
+    assert(st);
+    vector<WP<SlotProfile> > slotprofiles = st->getSlotProfiles();
+    vector<WP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
+    for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
     {
-        vector<WP<SlotProfile> > slotprofiles = st->getSlotProfiles();
-        vector<WP<SlotProfile> >::iterator i1, slotprofiles_end = slotprofiles.end();
-        for (i1 = slotprofiles.begin(); i1 != slotprofiles_end; ++i1)
-        {
-            SP<SlotProfile> slot_profile = (*i1).lock();
-            if (!slot_profile) continue;
+        SP<SlotProfile> slot_profile = (*i1).lock();
+        if (!slot_profile) continue;
 
-            window->addListElement(slot_profile->getName(), string("editslotprofile_") + slot_profile->getIDRef().serialize(), true, false);
-        }
+        window->addListElement(slot_profile->getName(), string("editslotprofile_") + slot_profile->getIDRef().serialize(), true, false);
     }
 
     checkSlotsMenu(true);
@@ -566,7 +531,7 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
 
 void ConfigurationInterface::checkSlotsMenu(bool no_read)
 {
-    if (!window) return;
+    assert(window);
 
     ui32 index;
     string data;
@@ -595,7 +560,7 @@ void ConfigurationInterface::checkSlotsMenu(bool no_read)
 
 void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
 {
-    if (!window) return;
+    assert(window);
 
     ui32 index;
     string data;
@@ -713,7 +678,7 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
 
 bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
 {
-    if (!auxiliary_window) return false;
+    assert(auxiliary_window);
 
     data1D selection = auxiliary_window->getListElementData(index);
     if (selection == "usergroup_nobody")
@@ -768,7 +733,7 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
 
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
 {
-    if (auxiliary_window) return false;
+    assert(window);
 
     checkSlotsMenu();
 
@@ -785,27 +750,19 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "max_slots")
     {
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-            { LOG(Error, "User " << user->getNameUTF8() << " attempted to configure maximum number of slots but state is null."); }
-            else
-            { LOG(Error, "Null user attempted to configure maximum number of slots but state is null."); };
-        }
-        else
-        {
-            ui32 max_slots = strtol(window->getListElementUTF8(index).c_str(), 0, 10);
-            stringstream ss;
-            ss << max_slots;
-            window->modifyListElementTextUTF8(index, ss.str());
+        assert(st && user);
 
-            st->setMaximumNumberOfSlots(max_slots);
-        }
+        ui32 max_slots = strtol(window->getListElementUTF8(index).c_str(), 0, 10);
+        stringstream ss;
+        ss << max_slots;
+        window->modifyListElementTextUTF8(index, ss.str());
+
+        st->setMaximumNumberOfSlots(max_slots);
     }
     else if (selection == "disconnect")
     {
-        if (user)
-            user->kill();
+        assert(user);
+        user->kill();
         return false;
     }
     else if (selection == "shutdown")
@@ -830,28 +787,14 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "forceclose")
     {
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-            { LOG(Error, "User " << user->getNameUTF8() << " attempted to force close a slot but state is null."); }
-            else
-            { LOG(Error, "Null user attempted to force close a slot but state is null."); };
-        }
-        else
-            st->forceCloseSlotOfUser(user);
+        assert(st && user);
+        st->forceCloseSlotOfUser(user);
     }
     else if (selection == "forcedisconnect")
     {
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-            { LOG(Error, "User " << user->getNameUTF8() << " attempted to kick out client ID " << client_target.serialize() << " but state is null."); }
-            else
-            { LOG(Error, "Null user attempted to kick out client ID " << client_target.serialize() << " but state is null."); };
-        }
-        else
-            st->destroyClient(client_target);
+        assert(st && user);
+        st->destroyClient(client_target);
         enterManageUsersMenu();
     }
     /* in show user accounts menu */
@@ -863,61 +806,50 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "savepassword")
     {
         SP<State> st = state.lock();
-        if (!st)
+        assert(st && user);
+
+        SP<User> user_sp = st->getUser(user_target);
+        if (!user_sp)
         {
-            if (user)
-            { LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password for user ID " << user_target.serialize() << " but state is null."); }
-            else
-            { LOG(Error, "Null user attempted to set a password for user ID " << user_target.serialize() << " but state is null."); };
+            LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password for user ID " << user_target.serialize() << " but there is no such user.");
         }
         else
         {
-            SP<User> user_sp = st->getUser(user_target);
-            if (!user_sp)
-            {
-                if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " attempted to set a password for user ID " << user_target.serialize() << " but there is no such user."); }
-                else
-                { LOG(Error, "Null user attempted to set a password for user ID " << user_target.serialize() << " but there is no such user."); }
-            }
-            else
-            {
-                bool old_password_ok = false;
-                if (old_password_index == -1) old_password_ok = true;
+            bool old_password_ok = false;
+            if (old_password_index == -1) old_password_ok = true;
 
+
+            if (!old_password_ok)
+            {
+                UnicodeString old_password = window->getListElement(old_password_index);
+                old_password_ok = user_sp->verifyPassword(old_password);
 
                 if (!old_password_ok)
                 {
-                    UnicodeString old_password = window->getListElement(old_password_index);
-                    old_password_ok = user_sp->verifyPassword(old_password);
-
-                    if (!old_password_ok)
-                    {
-                        window->modifyListElementTextUTF8(old_password_index, "");
-                        window->modifyListSelectionIndex(old_password_index);
-                    }
+                    window->modifyListElementTextUTF8(old_password_index, "");
+                    window->modifyListSelectionIndex(old_password_index);
                 }
+            }
 
-                if (old_password_ok)
+            if (old_password_ok)
+            {
+                string password = window->getListElementUTF8(password_index);
+                string retype_password = window->getListElementUTF8(retype_password_index);
+
+                if (password != retype_password)
                 {
-                    string password = window->getListElementUTF8(password_index);
-                    string retype_password = window->getListElementUTF8(retype_password_index);
-
-                    if (password != retype_password)
-                    {
-                        window->modifyListElementTextUTF8(password_index, "");
-                        window->modifyListElementTextUTF8(retype_password_index, "");
-                        window->modifyListSelectionIndex(password_index);
-                    }
+                    window->modifyListElementTextUTF8(password_index, "");
+                    window->modifyListElementTextUTF8(retype_password_index, "");
+                    window->modifyListSelectionIndex(password_index);
+                }
+                else
+                {
+                    user_sp->setPassword(password);
+                    st->saveUser(user_sp);
+                    if (old_password_index != -1)
+                        enterMainMenu();
                     else
-                    {
-                        user_sp->setPassword(password);
-                        st->saveUser(user_sp);
-                        if (old_password_index != -1)
-                            enterMainMenu();
-                        else
-                            enterManageAccountMenu(user_target);
-                    }
+                        enterManageAccountMenu(user_target);
                 }
             }
         }
@@ -928,29 +860,16 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (selection == "setuserpassword")
     {
-        if (user)
-        {
-            user_target = user->getIDRef();
-            enterSetPasswordMenu(user_target, false);
-        }
-        else
-        { LOG(Error, "Null user attempted to set their password."); };
+        assert(user);
+        user_target = user->getIDRef();
+        enterSetPasswordMenu(user_target, false);
     }
     else if (selection == "deleteuser")
     {
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-            { LOG(Error, "User " << user->getNameUTF8() << " attempted to delete user with ID " << user_target.serialize() << " but state is null."); }
-            else
-            { LOG(Error, "Null user attempted to delete user with ID " << user_target.serialize() << " but state is null."); };
-        }
-        else
-        {
-            st->destroyClientAndUser(user_target);
-            enterShowAccountsMenu();
-        }
+        assert(st && user);
+        st->destroyClientAndUser(user_target);
+        enterShowAccountsMenu();
     }
     else if (selection == "manage_users")
     {
@@ -964,26 +883,15 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         ID client_id = ID::getUnSerialized(selection.substr(7));
         SP<State> st = state.lock();
-        if (!st)
+        assert(st && user);
+        LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but state is null.");
+        SP<Client> client = st->getClient(client_id);
+        if (!client)
         {
-            if (user)
-            { LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but state is null."); }
-            else
-            { LOG(Error, "Null user attempted to view connection information for client ID " << client_id.serialize() << " but state is null."); };
+            LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but no such client is in state.");
         }
         else
-        {
-            SP<Client> client = st->getClient(client_id);
-            if (!client)
-            {
-                if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but no such client is in state."); }
-                else
-                { LOG(Error, "Null user attempted to view connection information for client ID " << client_id.serialize() << " but no such client is in state."); };
-            }
-            else
-                enterShowClientInformationMenu(client);
-        }
+            enterShowClientInformationMenu(client);
     }
     /* Motd */
     else if (selection == "motd")
@@ -999,15 +907,8 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         if (admin)
         {
             SP<State> st = state.lock();
-            if (st)
-                st->setMOTD(window->getListElement(0)); /* assuming MotD text is in index 0 */
-            else
-            {
-                if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " attempted to set MotD but state is null."); }
-                else
-                { LOG(Error, "Null user attempted to set MotD but state is null."); }
-            }
+            assert(st);
+            st->setMOTD(window->getListElement(0)); /* assuming MotD text is in index 0 */
         }
         enterMainMenu();
     }
@@ -1071,93 +972,61 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (selection == "newslot_delete")
     {
+        assert(user);
         checkSlotProfileMenu();
         if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
         {
-            if (user)
-                { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name."); }
-            else
-                { LOG(Note, "Null user attempted to create a slot profile with an empty name."); }
+            LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name.");
             window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
         }
         else
         {
             SP<State> st = state.lock();
-            if (!st)
-                { LOG(Error, "Could not delete slot profile from slot profile menu, because state is null. Oopsies. Profile name " << edit_slotprofile.getNameUTF8()); }
-            else
-            {
-                configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
-                st->deleteSlotProfile(edit_slotprofile_sp_target);
-                edit_slotprofile_sp_target = SP<SlotProfile>();
-                enterSlotsMenu();
-            }
+            assert(st);
+
+            configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
+            st->deleteSlotProfile(edit_slotprofile_sp_target);
+            edit_slotprofile_sp_target = SP<SlotProfile>();
+            enterSlotsMenu();
         }
     }
     else if (selection == "newslot_create" || selection == "newslot_save")
     {
+        assert(user);
         checkSlotProfileMenu();
         if (edit_slotprofile.getName().countChar32() == 0) /* Require a name for the slot */
         {
-            if (user)
-                { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name."); }
-            else
-                { LOG(Note, "Null user attempted to create a slot profile with an empty name."); }
-
+            LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an empty name.");
             window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
         }
         else
         {
             SP<State> st = state.lock();
-            if (!st)
+            assert(st);
+
+            if (selection == "newslot_create")
             {
-                if (user)
-                    { LOG(Error, "User " << user->getNameUTF8() << " could not save slot profile from slot profile menu. State is null. Oopsies. Slot profile name " << edit_slotprofile.getNameUTF8()); }
-                else
-                    { LOG(Error, "Null user could not save slot profile from slot profile menu. State is null. Oopsies. Slot profile name " << edit_slotprofile.getNameUTF8()); }
+                SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
+                if (st->addSlotProfile(slotp))
+                {
+                    configuration_database->saveSlotProfileData(slotp);
+                    edit_slotprofile_sp_target = SP<SlotProfile>();
+
+                    LOG(Note, "User " << user->getNameUTF8() << " created a new slot profile with the name " << edit_slotprofile.getNameUTF8());
+                    enterSlotsMenu();
+                }
             }
             else
             {
-                if (selection == "newslot_create" && st->hasSlotProfile(edit_slotprofile.getID()))
-                {
-                    if (user)
-                        { LOG(Note, "User " << user->getNameUTF8() << " attempted to create a slot profile with an ID that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
-                    else
-                        { LOG(Note, "Null user attempted to create a slot profile with an ID that already exists. Slot profile name " << edit_slotprofile.getNameUTF8()); }
-                    window->modifyListSelectionIndex(1); /* HACK: Assuming the name of the slot profile is in index number 1. */
-                    window->modifyListElementTextUTF8(1, window->getListElementUTF8(1) + string("_"));
-                }
-                else
-                {
-                    if (selection == "newslot_create")
-                    {
-                        SP<SlotProfile> slotp(new SlotProfile(edit_slotprofile));
-                        if (st->addSlotProfile(slotp))
-                        {
-                            configuration_database->saveSlotProfileData(slotp);
-                            edit_slotprofile_sp_target = SP<SlotProfile>();
+                configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
+                st->updateSlotProfile(edit_slotprofile_sp_target, edit_slotprofile);
+                configuration_database->saveSlotProfileData(edit_slotprofile_sp_target);
 
-                            if (user)
-                                { LOG(Note, "User " << user->getNameUTF8() << " created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
-                            else
-                                { LOG(Note, "Null user created a new slot profile with the name " << edit_slotprofile.getNameUTF8()); }
-                            enterSlotsMenu();
-                        }
-                    }
-                    else
-                    {
-                        configuration_database->deleteSlotProfileData(edit_slotprofile_sp_target->getName());
-                        st->updateSlotProfile(edit_slotprofile_sp_target, edit_slotprofile);
-                        configuration_database->saveSlotProfileData(edit_slotprofile_sp_target);
+                edit_slotprofile_sp_target = SP<SlotProfile>();
 
-                        edit_slotprofile_sp_target = SP<SlotProfile>();
+                LOG(Note, "User " << user->getNameUTF8() << " edited and saved slotprofile " << edit_slotprofile.getNameUTF8());
 
-                        if (user)
-                            { LOG(Note, "User " << user->getNameUTF8() << " edited and saved slotprofile " << edit_slotprofile.getNameUTF8()); }
-
-                        enterSlotsMenu();
-                    }
-                }
+                enterSlotsMenu();
             }
 
             return false;
@@ -1168,30 +1037,18 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         ID slot_id = ID::getUnSerialized(selection.substr(16));
         SP<State> st = state.lock();
-        if (!st)
+        assert(st && user);
+        WP<SlotProfile> wp_sp = st->getSlotProfile(slot_id);
+        SP<SlotProfile> sp = wp_sp.lock();
+        if (!sp)
         {
-            if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " requested slot profile edit but state is null. Oopsies."); }
-            else
-                { LOG(Error, "Null user requested slot profile edit but state is null. Oopsies."); }
+            LOG(Error, "User " << user->getNameUTF8() << " requested edit from interface with name " << sp->getNameUTF8() << " but there's no such slot profile.");
         }
         else
         {
-            WP<SlotProfile> wp_sp = st->getSlotProfile(slot_id);
-            SP<SlotProfile> sp = wp_sp.lock();
-            if (!sp)
-            {
-                if (user)
-                    { LOG(Error, "User " << user->getNameUTF8() << " requested edit from interface with name " << sp->getNameUTF8() << " but there's no such slot profile."); }
-                else
-                    { LOG(Error, "Null user requested edit from interface with name " << sp->getNameUTF8() << " but there's no such slot profile."); }
-            }
-            else
-            {
-                edit_slotprofile = (*sp);
-                edit_slotprofile_sp_target = sp;
-                enterEditSlotProfileMenu();
-            }
+            edit_slotprofile = (*sp);
+            edit_slotprofile_sp_target = sp;
+            enterEditSlotProfileMenu();
         }
     }
     /* launching slots */
@@ -1199,47 +1056,26 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         ID slot_id = ID::getUnSerialized(selection.substr(11));
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " requested slot launch from interface but state is null. Oops. Slot ID " << slot_id.serialize()); }
-            else
-                { LOG(Error, "Null user requested slot launch from interface but state is null. Oops. Slot profile ID " << slot_id.serialize() ); }
-        }
-        else
-        {
-            if (st->launchSlot(slot_id, user));
-                enterMainMenu();
-        }
+        assert(st && user);
+
+        if (st->launchSlot(slot_id, user))
+            enterMainMenu();
     }
     /* join slots */
     else if (!selection.compare(0, min(selection.size(), (size_t) 9), "joinslot_", 9))
     {
         ID slot_id = ID::getUnSerialized(selection.substr(9));
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " requested slot join from interface but state is null. Oopsies. Slot ID " << slot_id.serialize()); }
-            else
-                { LOG(Error, "Null user requested slot join from interface but state is null. Oopsies. Slot profile name " << slot_id.serialize()); }
-        }
-        else
-            if (st->setUserToSlot(user, slot_id))
-                enterMainMenu();
+        assert(st && user);
+
+        if (st->setUserToSlot(user, slot_id))
+            enterMainMenu();
     }
     else if (selection == "join_none")
     {
         SP<State> st = state.lock();
-        if (!st)
-        {
-            if (user)
-                { LOG(Error, "User " << user->getNameUTF8() << " requested slot join none from interface but state is null. Oopsies."); }
-            else
-                { LOG(Error, "Null user requested slot join none from interface but state is null. Oopsies."); }
-        }
-        else
-            st->setUserToSlot(user, ID());
+        assert(st && user);
+        st->setUserToSlot(user, ID());
     }
 
     checkSlotProfileMenu();
@@ -1249,6 +1085,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
 void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
 {
     if (!auxiliary_window) auxiliary_window = interface->createInterfaceElementWindow();
+
     auxiliary_window->setHint("wide");
     auxiliary_window->deleteAllListElements();
 
@@ -1271,8 +1108,7 @@ void ConfigurationInterface::auxiliaryEnterUsergroupWindow()
 
 void ConfigurationInterface::auxiliaryEnterSpecificUsersWindow()
 {
-    if (!configuration_database) return;
-    if (!auxiliary_window) return;
+    assert(configuration_database && auxiliary_window);
 
     auxiliary_window->deleteAllListElements(); 
 
@@ -1302,7 +1138,7 @@ void ConfigurationInterface::auxiliaryEnterSpecificUsersWindow()
 
 void ConfigurationInterface::checkAuxiliaryWindowUsergroupSelections()
 {
-    if (!auxiliary_window) return;
+    assert(auxiliary_window);
 
     /* This function iteraters over all list elements in auxiliary window, and updates
      * the texts to reflect what users the user has selected for a user group.

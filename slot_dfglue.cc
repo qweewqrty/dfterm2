@@ -39,6 +39,8 @@ void SendMessage(const vector<HWND> &windows, UINT msg, WPARAM wparam, LPARAM lp
 /* A simple checksum function. */
 static ui32 checksum(const char* buf, size_t buflen)
 {
+    assert(!buflen || (buflen && buf));
+
     ui32 a = 1, b = buflen;
     size_t i1;
     for (i1 = 0; i1 < buflen; ++i1)
@@ -132,6 +134,7 @@ bool DFGlue::isAlive()
 
 void DFGlue::static_thread_function(DFGlue* self)
 {
+    assert(self);
     self->thread_function();
 }
 
@@ -335,6 +338,8 @@ void DFGlue::thread_function()
 
 void DFGlue::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color, bool* bold)
 {
+    assert(color && bold);
+
     (*color) = Black;
     (*bold) = false;
 
@@ -474,6 +479,7 @@ BOOL CALLBACK DFGlue::enumDFWindow(HWND hwnd, LPARAM strct)
 
 bool DFGlue::findDFWindow(vector<HWND>* df_windows, DWORD pid)
 {
+    assert(df_windows);
     (*df_windows).clear();
 
     // Find the DF window
@@ -489,6 +495,8 @@ bool DFGlue::findDFWindow(vector<HWND>* df_windows, DWORD pid)
 
 bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 {
+    assert(df_process && df_windows);
+
     /* Wait until "path" and "work" are set for 60 seconds. */
     /* Copied the code from slot_terminal.cc */
 
@@ -582,6 +590,8 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 
 bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 {
+    assert(df_process, df_windows);
+
     DWORD processes[1000], num_processes;
     EnumProcesses(processes, sizeof(DWORD)*1000, &num_processes);
 
@@ -633,6 +643,8 @@ bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 
 void DFGlue::getSize(ui32* width, ui32* height)
 {
+    assert(width && height);
+
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     ui32 w = 80, h = 25;
     (*width) = w;
@@ -847,8 +859,7 @@ bool DFGlue::detectDFVersion()
 
 void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 {
-    if (!target_window) return;
-    if (!alive) return;
+    assert(alive && target_window);
 
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     ui32 t_w, t_h;
@@ -888,7 +899,8 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 
 bool DFGlue::injectDLL(string dllname)
 {
-    if (df_handle == INVALID_HANDLE_VALUE) return false;
+    assert(!dllname.empty());
+    assert(df_handle != INVALID_HANDLE_VALUE);
 
     /* Allocate memory for the dll string in the target process */
     LPVOID address = VirtualAllocEx(df_handle, NULL, dllname.size()+1, MEM_COMMIT, PAGE_READWRITE);

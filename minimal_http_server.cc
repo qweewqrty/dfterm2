@@ -287,22 +287,19 @@ SP<Socket> HTTPServer::cycle()
 
 void HTTPServer::addListeningSocket(SP<Socket> listening_socket)
 {
-    if (!listening_socket || !listening_socket->active())
-        return;
-
+    assert(listening_socket && listening_socket->active());
     listening_sockets.insert(listening_socket);
 }
 
 void HTTPServer::addPlainListeningSocket(SP<Socket> listening_socket, const string &serviceaddress)
 {
-    if (!listening_socket || !listening_socket->active())
-        return;
-
+    assert(listening_socket && listening_socket->active());
     plain_listening_sockets.insert(pair<SP<Socket>, string>(listening_socket, serviceaddress));
 }
 
 void HTTPServer::serveContentUTF8(string buffer, string contenttype, string serviceaddress)
 {
+    assert(!serviceaddress.empty());
     served_content[serviceaddress] = Document(buffer, contenttype);
 }
 

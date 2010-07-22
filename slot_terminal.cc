@@ -50,6 +50,7 @@ bool TerminalGlue::isAlive()
 
 void TerminalGlue::static_thread_function(TerminalGlue* self)
 {
+    assert(self);
     self->thread_function();
 }
 
@@ -94,6 +95,8 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
 
 void TerminalGlue::flushInput(Pty* program_pty)
 {
+    assert(program_pty);
+
     lock_guard<recursive_mutex> lock(glue_mutex);
     if (input_queue.size() == 0) return;
 
@@ -104,7 +107,6 @@ void TerminalGlue::flushInput(Pty* program_pty)
     {
         ui32 keycode = (ui32) input_queue.front().getKeyCode();
         bool special_key = input_queue.front().isSpecialKey();
-        cout << keycode << " " << special_key << endl;
 
         input_queue.pop_front();
 
@@ -272,6 +274,8 @@ void TerminalGlue::feedInput(const KeyPress &kp)
 
 void TerminalGlue::getSize(ui32* width, ui32* height)
 {
+    assert(width && height);
+
     lock_guard<recursive_mutex> lock(glue_mutex);
     (*width) = terminal_w;
     (*height) = terminal_h;
@@ -279,7 +283,7 @@ void TerminalGlue::getSize(ui32* width, ui32* height)
 
 void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
 {
-    if (!target_window) return;
+    assert(target_window);
 
     lock_guard<recursive_mutex> lock(game_terminal_mutex);
     ui32 t_w = min(terminal_w, (ui32) game_terminal.getWidth());

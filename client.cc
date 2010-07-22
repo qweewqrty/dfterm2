@@ -29,6 +29,8 @@ void ClientTelnetSession::setClient(WP<Client> client)
 
 bool ClientTelnetSession::writeRawData(const void* data, size_t* size)
 {
+    assert(size);
+
     size_t max_size = (*size);
 
     (*size) = 0;
@@ -59,6 +61,8 @@ bool ClientTelnetSession::writeRawData(const void* data, size_t* size)
 
 bool ClientTelnetSession::readRawData(void* data, size_t* size)
 {
+    assert(size);
+
     size_t max_size = (*size);
 
     (*size) = 0;
@@ -152,6 +156,8 @@ void Client::setState(WP<State> state)
 
 bool Client::isActive() const
 {
+    assert(client_socket);
+
     return client_socket->active();
 }
 
@@ -165,8 +171,11 @@ void Client::sendPrivateChatMessage(const UnicodeString &us)
 
 void Client::cycleChat()
 {
-    if (!global_chat) return;
-    if (!global_chat_reader) return;
+    assert(global_chat);
+    assert(global_chat_reader);
+
+    /* Chat window doesn't exist before client
+       has identified. */
     if (!chat_window) return;
 
     while(1)
@@ -202,12 +211,8 @@ void Client::cycle()
     lock_guard<recursive_mutex> cycle_lock(cycle_mutex);
 
     if (!isActive()) return;
-    if (!user)
-    { 
-        client_socket->close(); 
-        state.lock()->notifyClient(self.lock());
-        return; 
-    };
+    assert(user);
+
     if (!user->isActive() && client_socket) 
     { 
         client_socket->close(); 
@@ -599,6 +604,8 @@ void Client::gameInputFunction(const KeyPress &kp)
 /* Used as a callback function for element window input. */
 bool Client::chatRestrictFunction(ui32* keycode, ui32* cursor)
 {
+    assert(keycode && cursor);
+
     /* Don't allow cursor to move before 6 characters. */
     //if ((*cursor) < 6) { (*cursor) = 6; return false; };
     if ((*keycode) == 0) return true;
@@ -628,6 +635,8 @@ void Client::updateNicklistWindowForAll()
 
 void Client::updateClientNicklist(std::vector<SP<Client> >* new_clients)
 {
+    assert(new_clients);
+
     clients.clear();
     size_t i1, len = new_clients->size();
     for (i1 = 0; i1 < len; ++i1)
@@ -681,14 +690,16 @@ void Client::updateNicklistWindow()
 void Client::gameResizeFunction(ui32 w, ui32 h)
 {
     SP<State> st = state.lock();
-    if (st)
-        st->notifyClient(self.lock());
+    assert(st);
+
+    st->notifyClient(self.lock());
 }
 
 void Client::clientIdentified()
 {
     SP<State> st = state.lock();
-    if (!st) return;
+    assert(st);
+
     st->destroyClient(user->getIDRef(), self.lock());
 
     game_window = interface->createInterface2DWindow();
