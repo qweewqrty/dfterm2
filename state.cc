@@ -994,7 +994,7 @@ void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
     if (sp_cli->shouldShutdown()) close = true;
 }
 
-void State::new_connection(SP<Socket> listening_socket)
+bool State::new_connection(SP<Socket> listening_socket)
 {
     assert(listening_socket);
 
@@ -1017,8 +1017,13 @@ void State::new_connection(SP<Socket> listening_socket)
 
         if (cli.size() >= MAX_CONNECTIONS)
         {
-            new_connection->send("Maximum number of connections reached.\n");
-            return;
+            pruneInactiveClients();
+            if (cli.size() >= MAX_CONNECTIONS)
+            {
+                new_connection->send("Maximum number of connections reached.\n");
+                LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8() << " but disconnected because maximum number of connections has been reached.");
+                return true;
+            }
         }
 
         cli.push_back(new_client);
@@ -1026,6 +1031,7 @@ void State::new_connection(SP<Socket> listening_socket)
         
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
         socketevents.addSocket(new_connection);
+        socketevents.forceEvent(new_connection);
         
         new_client->sendPrivateChatMessage(MOTD);
         
@@ -1033,7 +1039,10 @@ void State::new_connection(SP<Socket> listening_socket)
         for (i1 = 0; i1 < len; ++i1)
             if (cli[i1])
                 cli[i1]->updateClientNicklist(&cli);
+        return true;
     }
+
+    return false;
 }
 
 void State::loop()
@@ -1075,7 +1084,7 @@ void State::loop()
         set<SP<Socket> >::iterator i2 = listening_sockets.find(s);
         if (i2 != listening_sockets.end())
         {
-            new_connection(s);
+            while (new_connection(s)) { };
             continue;
         }
         LockedObject<vector<SP<Client> > > lo_clients = clients.lock();

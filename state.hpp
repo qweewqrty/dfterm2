@@ -71,7 +71,7 @@ class State
 
         trankesbel::SocketEvents socketevents;
 
-        void new_connection(SP<trankesbel::Socket> listening_socket);
+        bool new_connection(SP<trankesbel::Socket> listening_socket);
         void client_signal_function(WP<Client> client, SP<trankesbel::Socket> from_where);
 
         /* this mutex locked in loop(), to ensure no outside code is called from this class
