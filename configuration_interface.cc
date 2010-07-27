@@ -726,7 +726,8 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
         edit_usergroup.toggleUser(user_id);
     }
 
-    checkAuxiliaryWindowUsergroupSelections();
+    if (auxiliary_window)
+        checkAuxiliaryWindowUsergroupSelections();
 
     return false;
 }
