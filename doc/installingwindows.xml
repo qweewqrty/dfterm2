@@ -1,0 +1,152 @@
+<chapter xml:id="installingwindows">
+<title>Installing on Windows</title>
+
+<para>
+Dfterm2 is distributed using self-extracting installer packages. Using these
+should be straightforward. The latest file can be found from bay12 forums at
+<filename>http://www.bay12forums.com/smf/index.php?topic=50643.0</filename>.
+</para>
+<para>
+These are step-by-step instructions with screenshots to guide you to install dfterm2. The images are from Microsoft Windows 7, 64-bit version, Finnish localized on author's computer but the instructions should apply to other versions of Windows too.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot1.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+<para>
+The first step to installing dfterm2. We have downloaded the installer executable and it's seen here. Double click on the installer to launch it.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot2.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Then, just follow the instructions of the installer.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot3.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+In this screen, you can create yourself an administrator account. Just do what the installer instructions tell you.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot4.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+The installer should place shortcuts to the start menu for you. Note that if you want to manually create links to dfterm2, you need some parameters to dfterm2 inside the link. You can check from this automatically generated link what parameters you need.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot5.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+You should see something like this after launching dfterm2. If the window does not immediately go away, everything should be good.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot6.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+
+<para>
+Now you should grab yourself a Telnet/Terminal client. Note that this step does not need to be done on the same computer from where you set up dfterm2. Here, we use PuTTY, which is a commonly used client on Windows. It can be downloaded from <filename>http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html</filename>
+</para>
+<para>
+Check that the <emphasis>port</emphasis> is <emphasis>8000</emphasis>, the <emphasis>address</emphasis> points to the computer where dfterm2 is (in this screenshot, 127.0.0.1 is used which always points to the local computer) and that <emphasis>connection type</emphasis> is <emphasis>Telnet</emphasis>.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot7.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Also check that UTF-8 is turned on. Dfterm2 uses UTF-8 exclusively.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot8.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Finally, after you open connection, you should see something like this. You should type in your username here and press enter. After this screen, dfterm2 will ask you for your password. Type it in and press enter.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="shot9.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+If you see this, you've managed to log in to dfterm2 as an administrator. From here you can configure other settings, such as slots and Message of the Day (MotD).
+Further instructions on configuring is in chapter <link linkend='configuring'>Configuring dfterm2</link>
+</para>
+
+</chapter>

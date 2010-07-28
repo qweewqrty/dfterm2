@@ -1,0 +1,40 @@
+<chapter xml:id="security">
+<title>Security considerations</title>
+
+<para>
+Dfterm2 strives to be secure in itself but it can't guarantee the safety of the programs that it runs.
+For example, if there's a way in Dwarf Fortress to format the C-drive from inside it, dfterm2 can't do anything about it.
+</para>
+<para>
+In Linux, be extra careful that there is no way for the program you run in a slot to escape to a shell. For example, don't run telnet in a slot, because ! key escapes to shell. From there, malicious users can do pretty much anything they want. Chrooted enviroments and narrow privileges are recommended.
+</para>
+<para>
+Dfterm2 uses telnet for connections. This means all the passwords are transmitted in plain text and are not encrypted in any way. It is not recommended that you connect administrators to dfterm2 over insecure links. On Linux, stolen administrator password lets the attacker to access a shell and then do anything they want from there. Dfterm2 may have a built-in SSH server in it in the future.
+</para>
+<para>
+Dfterm2 has some limits on it that somewhat mitigate DoS attacks made against it. These limits are in header file dfterm2_limits.hpp. The limits are as follows.
+</para>
+
+<itemizedlist>
+<listitem>
+<para>Maximum number of slots running at a time is 30</para>
+</listitem>
+<listitem>
+<para>Maximum number of slot profiles is 30</para>
+</listitem>
+<listitem>
+<para>Maximum number of registered users is 50</para>
+</listitem>
+<listitem>
+<para>Maximum number of Telnet connections at a time is 50</para>
+</listitem>
+<listitem>
+<para>Maximum number of HTTP connections at a time is 50</para>
+</listitem>
+<listitem>
+<para>Largest file dfterm2 will server through HTTP is 1000000 bytes.</para>
+</listitem>
+</itemizedlist>
+
+</chapter>
+

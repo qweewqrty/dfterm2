@@ -1,0 +1,24 @@
+<chapter xml:id="introduction">
+<title>Introduction</title>
+
+<para>
+Dfterm2 is a program that manages Dwarf Fortress games and allows them
+to be accessed remotely using Telnet and ANSI/VT102 compliant terminals, or
+using a browser with a flash plugin.
+</para>
+<para>
+It has several features designed for building public Dwarf Fortress servers
+feasible, such as user registration system and a chat.
+</para>
+<para>
+It works on both Windows and Linux platforms, albeit the way the game is handled is a little different. On Windows systems, dfterm2 reads screen data from Dwarf Fortress' memory. On Linux, Dwarf Fortress must be set to use terminal text mode (i.e. [PRINT_MODE:TEXT]), and dfterm2's terminal emulator parses this output. Linux version of dfterm2 works also on other programs that use a terminal for their output.
+</para>
+<para>
+Dfterm2 is designed to be easily deployed and configured. There are no configuration files to modify. All settings are set by logging in to it and using the text mode UI. The only exception is setting up an administrator account with which to configure it, but usually the Windows installer can handle even that.
+</para>
+<para>
+Dfterm2 is fully usable, but there are missing features that need to be implemented before a stable version can be released. Dfterm2, as of writing of this, is under constant development and it may happen that this manual becomes out of date with the current features.
+</para>
+
+</chapter>
+

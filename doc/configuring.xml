@@ -1,0 +1,98 @@
+<chapter xml:id="configuring">
+<title>Configuring dfterm2</title>
+
+<para>
+Dfterm2 can be configured in various ways. For example, if you want to play Dwarf Fortress through it, you need to tell
+it where it can find Dwarf Fortress on your computer.
+</para>
+
+<para>
+In dfterm2, there's a concept of <emphasis>slot profiles</emphasis> and <emphasis>slots</emphasis>. 
+</para>
+<para>
+Slot profile contains information on what show to in a slot. Typical settings are game executable and working directory, and maximum number of slots of a slot profile.
+</para>
+<para>
+Slots are created from slot profiles. You could say they are instances of slot profiles. A slot is created when a user selects <emphasis>"Launch a new game"</emphasis>. This usually launches the game and it can be seen through the slot. Users see the slot in the <emphasis>Game window</emphasis>. When they are not watching a slot, the game window is filled with X letters.
+</para>
+
+<para>
+You navigate through the UI in dfterm2 by using arrow keys and ALT+number keys (or ESC+number keys). In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown.
+</para>
+
+<simplesect>
+<title>Main menu</title>
+
+<para>The main menu items are as follows.</para>
+
+<para><emphasis>Launch a new game</emphasis></para>
+<para>From here, you can launch a new slot from a slot profile.</para>
+
+<para><emphasis>Join a running game</emphasis></para>
+<para>From here you can select the slot you want to watch.</para>
+
+<para><emphasis>Configure slots</emphasis></para>
+<para>Administrator only. From here you can configure slot profiles. There's more information on them later.</para>
+
+<para><emphasis>Set MotD</emphasis></para>
+<para>Administrator only. You can write a message here to show to anyone who connects to the server. The message will appear in the chat window.</para>
+
+<para><emphasis>Manage users</emphasis></para>
+<para>Administrator only. You can see a list of currently connected people here. Selecting them will allow you to show their IP address and hostname and you can also disconnect them. If you select <emphasis>Show user accounts</emphasis> here, you can see registered users and delete them or change their passwords if you like. Note that you can't see the passwords of the users because they are hashed with SHA512.</para>
+
+<para><emphasis>Force close running slot</emphasis></para>
+<para>If you select this, the slot you are currently watching will be immdiately closed and the program in it will be killed. You need to have force closer privileges for the slot.</para> 
+
+<para><emphasis>Change your password</emphasis></para>
+<para>You can change your password here. You need to know your old password.</para>
+
+<para><emphasis>Disconnect</emphasis></para>
+<para>If you select this, the server disconnects you.</para>
+
+<para><emphasis>Shutdown server</emphasis></para>
+<para>Administrator only. Makes dfterm2 close, closing all games and connections.</para>
+
+</simplesect>
+
+<simplesect>
+<title>Slot profile configuration</title>
+
+<para>
+Slot profiles are created from <emphasis>"Configure slots"</emphasis> menu. You can set the maximum amount of slots that can be run at the same time in this menu. From here, select <emphasis>"Add a new slot profile"</emphasis> to go in the slot profile creation menu.
+</para>
+
+<para>
+There are a few parameters that can be configured for a new slot profile. Here they are listed with descriptions on what they do.
+</para>
+
+<para><emphasis>Slot profile name</emphasis></para>
+<para>This is the name of the slot profile. The name will appear in <emphasis>"Launch a new game"</emphasis> menu for users. You need to put something here.</para>
+
+<para><emphasis>Method of screen scraping</emphasis></para>
+<para>This describes how dfterm2 will obtain the symbol data from dfterm2. On Windows, this can be either launching a new Dwarf Fortress process or using an already running Dwarf Fortress process. On Linux, there's only launching a program in a terminal.</para>
+
+<para><emphasis>Game executable path</emphasis></para>
+<para>This should point directly to the Dwarf Fortress executable file. On Windows, it could be something like "C:\df_31_12_win\Dwarf Fortress.exe" and on Linux it could be "/home/mikko/df_linux/df"</para>
+
+<para><emphasis>Game working directory</emphasis></para>
+<para>This should point to the directory from where game executable is run. On Windows, it could be something like "C:\df_31_12_win" and on Linux it could be "/home/mikko/df_linux"</para>
+
+<para><emphasis>Allowed watchers/launchers/players/force closers</emphasis></para>
+<para>This is fine-grained access control on how users can interact with slots created from this slot profile. Under these menus, you can select which users can do the specific action. Watching refers to seeing what's in the slot. Launching refers to being able to launch the slot from <emphasis>"Launch a new game"</emphasis>. Playing refers to being able to give input to the slot. Force closer refers to the ability to forcefully close the slot from main menu.</para>
+
+<para><emphasis>Forbidden watchers/launchers/players/force closers</emphasis></para>
+<para>The opposite of their allowed counterparts. If you set users in these groups, they will not be allowed to do the specific action. The forbidden user groups always override allowed user groups.</para>
+
+<para><emphasis>Width and height</emphasis></para>
+<para>Set the width and height of the slot window. These are <emphasis>ignored</emphasis> on Windows but they are used on Linux to set the terminal size.</para>
+
+<para><emphasis>Maximum slots</emphasis></para>
+<para>Set the maximum number of slots that can be created of this slot profile. For Dwarf Fortress, you probably only want to allow one to avoid players accidentally messing each other's save files when two Dwarf Fortress processes are running in the same directory. If you want to run many Dwarf Fortress processes on the same computer, create separate slot profiles for them (with different directories).</para>
+
+<para><emphasis>Create slot profile</emphasis></para>
+<para>Select this and the slot profile will be created. You can later modify the slot profile in slot configuration menu.</para>
+
+</simplesect>
+
+</chapter>
+

@@ -1,4 +1,4 @@
-  To comply with licenses used with dfterm2, here they are:
+To comply with other licenses used in dfterm2 or distributed with it, here they are:
 
 -------------------------------------------------
 ICU License - ICU 1.8.1 and later
@@ -183,3 +183,4 @@ bsd_pty.c has code from FreeBSD, here's the license:
  SUCH DAMAGE.
 
 --------------------------------------------------------------
+

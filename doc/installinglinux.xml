@@ -1,0 +1,176 @@
+<chapter xml:id="installinglinux">
+<title>Installing on Linux</title>
+
+<para>
+Dfterm2 for Linux has to be compiled from source. No binaries are provided.
+</para>
+
+<para>
+<emphasis role="bold">
+Note that dfterm2 development is focused on Windows and less work is done to make sure Linux version stays up to the same quality. For example, there are no Linux releases, just a source code repository which always contains the latest code. It's possible that the code doesn't even compile at times. On the other hand, the author constantly also develops dfterm2 on Linux and the both platforms are supported from the same codebase.
+</emphasis>
+</para>
+
+<para>
+Here is presented a step-by-step guide to set up dfterm2 for Linux. Before you start, install the following packages.
+</para>
+
+<itemizedlist>
+<listitem>
+<para>ICU development libraries</para>
+</listitem>
+<listitem>
+<para>Boost development libraries (at least version 1.42)</para>
+</listitem>
+<listitem>
+<para>OpenSSL development libraries</para>
+</listitem>
+<listitem>
+<para>CMake</para>
+</listitem>
+<listitem>
+<para>PCRE development libraries</para>
+</listitem>
+<listitem>
+<para>g++ and usual development tools</para>
+</listitem>
+<listitem>
+<para>git</para>
+</listitem>
+</itemizedlist>
+
+<para>
+Some packages dfterm2 needs are fairly recent. For example, Debian lenny does not have recent enough packages to make dfterm2 work. These screenshots are from Debian testing (squeeze) distribution using konsole and xfce's desktop environment.
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="linux_shot1.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+First step should be obtaining the source code. Use git for this. The exact commands are below, above is a screenshot of what should happen.
+</para>
+<para>
+<programlisting>
+$ git clone git://genodeen.net/dfterm2
+$ cd dfterm2
+$ git submodule init
+$ git submodule update
+</programlisting>
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="linux_shot2.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Second, use CMake to configure the building system.
+</para>
+<para>
+<programlisting>
+$ cmake .
+</programlisting>
+</para>
+
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="linux_shot3.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Next, type make to compile dfterm2. If compilation fails, there might be a temporary code breakage in source code repository or some of your packages are incompatible. You may ask help on the bay12 forums in dfterm2 thread.
+</para>
+
+<para>
+<programlisting>
+$ make
+</programlisting>
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="linux_shot4.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+And finally, dfterm2 has been compiled. The Linux version does not support installing out of box yet, so you run dfterm2 from the source directory. Add an administrator account using "dfterm2_configure --adduser (username) (password) admin". You may want to use "history -c" to clear command history so that the password does not stay there. Also, you probably want to change the password from inside dfterm2 once you have logged in for the first time.
+</para>
+<para>
+Dfterm2 has some parameters that influence ports, logs and the database dfterm2 uses. You can refer to these by typing "dfterm2 --help"
+</para>
+
+<para>
+<programlisting>
+$ ./dfterm2_configure --adduser Mikko mikkos_very_secret_p4ssw0rd admin
+$ ./dfterm2
+</programlisting>
+</para>
+
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="linux_shot5.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Next, you may want to try logging in. By default, dfterm2 listents on port 8000. Using telnet, you can connect to it and log in. You don't need to run telnet on the same computer as where dfterm2 runs. You can even use a Windows machine and PuTTY to connect to Linux dfterm2 or a telnet in Linux to a Windows dfterm2.
+</para>
+
+<para>
+<programlisting>
+$ telnet 127.0.0.1 8000
+</programlisting>
+</para>
+
+<screenshot>
+<info>
+<bibliomisc role="resolution">800x600x24</bibliomisc>
+</info>
+<mediaobject>
+  <imageobject>
+    <imagedata fileref="linux_shot6.png" />
+  </imageobject>
+</mediaobject>
+</screenshot>
+
+<para>
+Once you have telnetted to dfterm2, it should ask you about your username and password. Just type them in. If everything went ok, you should see a screen that looks like this.
+
+Further instructions on configuring is in chapter <link linkend='configuring'>Configuring dfterm2</link>
+</para>
+
+</chapter>
+
