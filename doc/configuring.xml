@@ -17,7 +17,7 @@ Slots are created from slot profiles. You could say they are instances of slot p
 </para>
 
 <para>
-You navigate through the UI in dfterm2 by using arrow keys and ALT+number keys (or ESC+number keys). In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown.
+You navigate through the UI in dfterm2 by using arrow keys and ALT+number keys (or ESC+number keys). In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown. You can use CTRL+F to enlarge currently focused window to fullscreen and CTRL+L to lock a window. Locking can be particularly useful in game window where some of the keys used by dfterm2 might conflict with the keys the game uses.
 </para>
 
 <simplesect>
