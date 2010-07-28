@@ -34,6 +34,8 @@ Page custom adminAccountSetPage
 UninstPage uninstConfirm
 UninstPage instfiles
 
+LicenseData "license.txt"
+
 Section "Installer Section"
 
     SectionIn RO
