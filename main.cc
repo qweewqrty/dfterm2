@@ -69,10 +69,14 @@ int main(int argc, char* argv[])
     function3<void, bool, SocketAddress, string> flash_resolve_binding = 
     boost::bind(resolve_success, &succeeded_resolve, &flash_policy_listen_address, &error_message, _1, _2, _3);
 
+    bool create_app_dir = false;
+
     int i1;
     for (i1 = 1; i1 < argc; ++i1)
     {
-        if ((!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p")) && i1 < argc-1)
+        if ((!strcmp(argv[i1], "--create-appdir")))
+            create_app_dir = true;
+        else if ((!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p")) && i1 < argc-1)
             port = argv[++i1];
         else if ((!strcmp(argv[i1], "--httpport") || !strcmp(argv[i1], "-hp")) && i1 < argc-1)
             httpport = argv[++i1];
@@ -137,6 +141,10 @@ int main(int argc, char* argv[])
             cout << "--database (database file)" << endl;
             cout << "-db (database file)   Set the database file used. By default dfterm2 will try to look for" << endl;
             cout << "                      dfterm2_database.sqlite3 as database." << endl;
+            #ifdef _WIN32
+            cout << "--create-appdir       Creates %APPDIR%\\dfterm2 on start-up, if the" << endl;
+            cout << "                      directory does not exist. Windows only." << endl;
+            #endif
             cout << "--help"  << endl;;
             cout << "-h"  << endl;
             cout << "-?                    Show this help." << endl;
@@ -158,6 +166,37 @@ int main(int argc, char* argv[])
         cout << "Logging to file " << TO_UTF8(log_file) << endl;
 
     LOG(Note, "Starting up dfterm2.");
+
+    #ifdef _WIN32
+    if (create_app_dir)
+    {
+        WCHAR AppData[] = L"APPDATA";
+        WCHAR result_str[32868]; /* Max size for env variable is 32767,
+                                but leave some extra space there,
+                                because we append to it. */
+        memset(result_str, 0, 32868 * sizeof(WCHAR));
+
+        DWORD result = GetEnvironmentVariableW(AppData, result_str, 32767);
+        if (!result)
+        { LOG(Error, "Could not fetch environment variable APPDATA with GetLastError() == " << GetLastError()); }
+        else
+        {
+            wcscpy(&result_str[result], L"\\dfterm2");
+
+            BOOL success = CreateDirectoryW(result_str, NULL);
+            if (success)
+            { LOG(Note, "Created directory " << TO_UTF8(result_str, result+8)); }
+            else
+            {
+                DWORD errorcode = GetLastError();
+                if (errorcode == ERROR_ALREADY_EXISTS)
+                { LOG(Note, "Will not create " << TO_UTF8(result_str, result+8) << " because the directory already exists."); }
+                else
+                { LOG(Error, "Could not create directory " << TO_UTF8(result_str, result+8) << " with GetLastError() == " << GetLastError()); };
+            }
+        }
+    }
+    #endif
 
     SocketAddress::resolve(address, port, resolve_binding, true);
     if (!succeeded_resolve)
