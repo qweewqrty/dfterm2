@@ -161,11 +161,6 @@ int main(int argc, char* argv[])
             return 0;
         }
     }
-    
-    if (log_file.length() > 0)
-        cout << "Logging to file " << TO_UTF8(log_file) << endl;
-
-    LOG(Note, "Starting up dfterm2.");
 
     #ifdef _WIN32
     if (create_app_dir)
@@ -197,6 +192,11 @@ int main(int argc, char* argv[])
         }
     }
     #endif
+
+    if (log_file.length() > 0)
+        cout << "Logging to file " << TO_UTF8(log_file) << endl;
+
+    LOG(Note, "Starting up dfterm2.");
 
     SocketAddress::resolve(address, port, resolve_binding, true);
     if (!succeeded_resolve)
