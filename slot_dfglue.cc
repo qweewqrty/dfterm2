@@ -191,6 +191,9 @@ void DFGlue::initVkeyMappings()
     vkey_mappings[Enter] = VK_RETURN;
 }
 
+extern WCHAR local_directory[60000];
+extern size_t local_directory_size;
+
 void DFGlue::thread_function()
 {
     // Handle and window for process goes here. 
@@ -221,7 +224,10 @@ void DFGlue::thread_function()
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
     this->df_windows = df_windows;
     this->df_handle = df_process;
-    injectDLL("dfterm_injection_glue.dll");
+
+    string injection_glue_dll = TO_UTF8(local_directory, local_directory_size) + string("\\dfterm_injection_glue.dll");
+    LOG(Note, "Injecting " << injection_glue_dll << " to process.");
+    injectDLL(injection_glue_dll);
 
     bool version = detectDFVersion();
     if (!version)

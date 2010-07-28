@@ -37,8 +37,19 @@ class sockets_initialize
         { shutdownSockets(); };
 };
 
+#ifdef _WIN32
+WCHAR local_directory[60000];
+size_t local_directory_size;
+#endif
+
 int main(int argc, char* argv[])
 {
+#ifdef _WIN32
+    local_directory_size = 0;
+    memset(local_directory, 0, 60000 * sizeof(WCHAR));
+    local_directory_size = GetCurrentDirectoryW(59999, local_directory);
+#endif
+
     log_file = TO_UNICODESTRING(string("dfterm2.log"));
     setlocale(LC_ALL, "");
 
@@ -231,6 +242,7 @@ int main(int argc, char* argv[])
         flush_messages();
         return -1;
     }
+    LOG(Note, "Using database " << database_file);
 
     if (!state->addTelnetService(listen_address))
     {
