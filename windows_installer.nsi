@@ -149,7 +149,7 @@ Function adminAccountSetPage
 	GetFunctionAddress $0 OnAccountCreate
 	nsDialogs::OnClick $BUTTON $0
     
-	${NSD_CreateLabel} 0 0 100% 50u "To be able to configure dfterm2, you need an administrator account to it. If you are updating from an older version of dfterm2, you can just continue using your old account. In other case, fill these in. You can also add administrator accounts later with the command line tool dfterm2_configure. You can create more than one administrator account if you want. The user account information is stored in current user %APPDATA%\dfterm2 directory."
+	${NSD_CreateLabel} 0 0 100% 50u "To be able to configure dfterm2, you need an administrator account to it. If you are updating from an older version of dfterm2, you can just continue using your old account. In other case, fill these in and click $\"Create account$\". You can also add administrator accounts later with the command line tool dfterm2_configure. You can create more than one administrator account if you want. The user account information is stored in current user %APPDATA%\dfterm2 directory."
 	Pop $0
     
     nsDialogs::Show
