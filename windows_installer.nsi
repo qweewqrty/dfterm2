@@ -34,7 +34,7 @@ Page custom adminAccountSetPage
 UninstPage uninstConfirm
 UninstPage instfiles
 
-LicenseData "license.txt"
+LicenseData "license_for_nsis_installer.txt"
 
 Section "Installer Section"
 
