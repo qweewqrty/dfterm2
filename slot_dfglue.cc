@@ -228,6 +228,21 @@ void DFGlue::thread_function()
     string injection_glue_dll = TO_UTF8(local_directory, local_directory_size) + string("\\dfterm_injection_glue.dll");
     LOG(Note, "Injecting " << injection_glue_dll << " to process.");
     injectDLL(injection_glue_dll);
+    LOG(Note, "Waiting 2 seconds for injection to land.");
+
+    try
+    {
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(2000000LL)));
+    }
+    catch (const thread_interrupted &ti)
+    {
+        CloseHandle(df_process);
+        this->df_handle = INVALID_HANDLE_VALUE;
+        this->df_windows.clear();;
+        alive = false;
+        alive_lock.unlock();
+        return;
+    }
 
     bool version = detectDFVersion();
     if (!version)
@@ -568,10 +583,10 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     df_terminal.printString("Take it easy!! Game is being launched and attached in 20 seconds.", 1, 1, 7, 0, false, false);
     lock.unlock();
 
-    /* Sleep for 20 seconds before attaching */
+    /* Sleep for 18 seconds before attaching */
     try
     {
-        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(20000000LL)));
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(18000000LL)));
     }
     catch (const thread_interrupted &ti)
     {
