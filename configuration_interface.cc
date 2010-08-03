@@ -5,17 +5,6 @@
 #include <cstdio>
 #include "logger.hpp"
 
-/*
-TODO:
-This whole interface thing is a sort of mess, compared
-to other code. There's some duplicate log message stuff
-that irritates me but I can't be bothered to fix it, 
-when it works.
-
- It should not directly interface with ConfigurationDatabase.
- Only the State.
-*/
-
 using namespace dfterm;
 using namespace boost;
 using namespace std;
