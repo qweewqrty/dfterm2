@@ -1,4 +1,4 @@
-<chapter xml:id="interface">
+<chapter xml:id="supported_df">
 <title>User interface</title>
 
 <para>
@@ -42,8 +42,14 @@ Currently supported Dwarf Fortress versions on Windows are:
 <listitem>
 <para>0.28.181.40d18</para>
 </listitem>
-</chapter>
+</itemizedlist>
+
 <para>
 Usually only the most recent Dwarf Fortress versions are tested. It is possible there are changes in dfterm2 that partially break compatibility in older versions. The versions listed are Dwarf Fortress versions that each have dedicated code in dfterm2 to handle them.
 </para>
+<para>
+Linux version parses Dwarf Fortress' text terminal output so it supports any Dwarf Fortress version that supports [PRINT_MODE:TEXT]
+</para>
 
+
+</chapter>

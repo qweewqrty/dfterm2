@@ -5,7 +5,7 @@
 <!ENTITY installinglinux SYSTEM "installinglinux.xml">
 <!ENTITY configuring SYSTEM "configuring.xml">
 <!ENTITY interface SYSTEM "interface.xml">
-<!ENTITY supported_df SYSTEM "supported_dsupported_df.xml">
+<!ENTITY supported_df SYSTEM "supported_df.xml">
 <!ENTITY security SYSTEM "security.xml">
 <!ENTITY licenses SYSTEM "licenses.xml">
 ]>
