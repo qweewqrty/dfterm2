@@ -1,9 +1,7 @@
 ########################################################################
 
-The main developer of dfterm2 is Mikko Juola (mikko.juola@kolumbus.fi).
-(goes by the nickname Adeon).
+The main developer of dfterm2 is Mikko Juola (mikjuo@gmail.com)
+(goes by the nickname Adeon in IRC and bay12 forums).
 
-Many thanks go to supporters who let me use their computers for testing
-the old dfterm, and of them, especially those known as K4os and Remmon.
-
+Thanks to Remmon who helps me test dfterm2 on his server.
 
