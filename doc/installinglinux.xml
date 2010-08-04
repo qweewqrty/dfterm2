@@ -169,7 +169,7 @@ $ telnet 127.0.0.1 8000
 <para>
 Once you have telnetted to dfterm2, it should ask you about your username and password. Just type them in. If everything went ok, you should see a screen that looks like this.
 
-Further instructions on configuring is in chapter <link linkend='configuring'>Configuring dfterm2</link>
+Further instructions on configuring is in chapter <link linkend='configuring'>Configuring dfterm2</link>.
 </para>
 
 </chapter>

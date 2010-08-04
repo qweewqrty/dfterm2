@@ -1,0 +1,25 @@
+<chapter xml:id="interface">
+<title>User interface</title>
+
+<para>
+You navigate through the UI in dfterm2 by using arrow keys and ALT+number keys (or ESC+number keys). Dfterm2 has a simple windowed interface. Windows are automatically arranged and will not overlap unless you are short on terminal screen space. 
+</para>
+
+<para>
+Currently focused window has a blue border. Other windows have gray border. If the currently focused window is also locked, the border is red.
+</para>
+
+<para>
+You can use CTRL+F to enlarge currently focused window to fullscreen and CTRL+L to lock a window. Locking can be particularly useful in game window where some of the keys used by dfterm2 might conflict with the keys the game uses.
+</para>
+
+<para>
+CTRL+R can be used to remove the borders of currently focused window.
+</para>
+
+<para>
+There is a chat in dfterm2 you can access after logging in. In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown.
+</para>
+
+</chapter>
+

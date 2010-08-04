@@ -7,18 +7,20 @@ it where it can find Dwarf Fortress on your computer.
 </para>
 
 <para>
+Refer to the <link linkend='interface'>interface chapter</link> to see how to navigate in the UI.
+</para>
+
+<para>
 In dfterm2, there's a concept of <emphasis>slot profiles</emphasis> and <emphasis>slots</emphasis>. 
 </para>
 <para>
 Slot profile contains information on what show to in a slot. Typical settings are game executable and working directory, and maximum number of slots of a slot profile.
 </para>
+
 <para>
 Slots are created from slot profiles. You could say they are instances of slot profiles. A slot is created when a user selects <emphasis>"Launch a new game"</emphasis>. This usually launches the game and it can be seen through the slot. Users see the slot in the <emphasis>Game window</emphasis>. When they are not watching a slot, the game window is filled with X letters.
 </para>
 
-<para>
-You navigate through the UI in dfterm2 by using arrow keys and ALT+number keys (or ESC+number keys). In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown. You can use CTRL+F to enlarge currently focused window to fullscreen and CTRL+L to lock a window. Locking can be particularly useful in game window where some of the keys used by dfterm2 might conflict with the keys the game uses.
-</para>
 
 <simplesect>
 <title>Main menu</title>
