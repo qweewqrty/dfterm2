@@ -74,6 +74,7 @@ Section "Installer Section"
     File /oname=soiled\beep.mp3 "soiled\beep.mp3"
     File /oname=soiled\soiled.swf "soiled\soiled.swf"
     File /oname=soiled\soiled.txt "soiled\soiled.txt"
+    File /oname=soiled\soiled.html "soiled\soiled.html"
     File /oname=soiled\soiled_LICENSE "soiled\soiled_LICENSE"
 
     WriteUninstaller "uninstall.exe"
