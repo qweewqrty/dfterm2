@@ -63,18 +63,20 @@ void TerminalGlue::pushEscapeSequence(KeyCode special_key, string &input_buf)
         case ADown:      input_buf.append("\x1b\x4f\x42"); break;
         case ARight:     input_buf.append("\x1b\x4f\x43"); break;
         case ALeft:      input_buf.append("\x1b\x4f\x44"); break;
+
         case AltUp:      input_buf.append("\x1b\x1b\x4f\x41"); break;
         case AltDown:    input_buf.append("\x1b\x1b\x4f\x42"); break;
         case AltRight:   input_buf.append("\x1b\x1b\x4f\x43"); break;
         case AltLeft:    input_buf.append("\x1b\x1b\x4f\x44"); break;
+
         case CtrlUp:     input_buf.append("\x1b\x4f\x41"); break;
         case CtrlDown:   input_buf.append("\x1b\x4f\x42"); break;
         case CtrlRight:  input_buf.append("\x1b\x4f\x43"); break;
         case CtrlLeft:   input_buf.append("\x1b\x4f\x44"); break;
-        case F1:         input_buf.append("\x1b\x5b\x31\x31\x7e"); break;
-        case F2:         input_buf.append("\x1b\x5b\x31\x32\x7e"); break;
-        case F3:         input_buf.append("\x1b\x5b\x31\x33\x7e"); break;
-        case F4:         input_buf.append("\x1b\x5b\x31\x34\x7e"); break;
+        case F1:         input_buf.append("\x1b\x4fP"); break;
+        case F2:         input_buf.append("\x1b\x4fQ"); break;
+        case F3:         input_buf.append("\x1b\x4fR"); break;
+        case F4:         input_buf.append("\x1b\x4fS"); break;
         case F5:         input_buf.append("\x1b\x5b\x31\x35\x7e"); break;
         case F6:         input_buf.append("\x1b\x5b\x31\x37\x7e"); break;
         case F7:         input_buf.append("\x1b\x5b\x31\x38\x7e"); break;
@@ -105,16 +107,27 @@ void TerminalGlue::flushInput(Pty* program_pty)
 
     while(input_queue.size() > 0)
     {
+        KeyPress kp = input_queue.front();
+
         ui32 keycode = (ui32) input_queue.front().getKeyCode();
         bool special_key = input_queue.front().isSpecialKey();
 
         input_queue.pop_front();
 
+        if (kp.isAltDown())
+            input_buf.push_back('\x1b');
+            
         if (special_key) { pushEscapeSequence((KeyCode) keycode, input_buf); continue; }
 
         if (keycode == '\n')
         {
             input_buf.append("\r");
+            continue;
+        }
+
+        if (kp.isCtrlDown() && keycode >= 'A' && keycode < 'Z')
+        {
+            input_buf.push_back(keycode - 'A' + 1);
             continue;
         }
 
