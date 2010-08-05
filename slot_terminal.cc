@@ -303,14 +303,31 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     ui32 t_h = min(terminal_h, (ui32) game_terminal.getHeight());
 
     target_window->setMinimumSize(t_w, t_h);
-    CursesElement* elements = new CursesElement[t_w * t_h];
+
+    ui32 actual_window_w, actual_window_h;
+    target_window->getSize(&actual_window_w, &actual_window_h);
+
+    ui32 game_offset_x, game_offset_y;
+    game_offset_x = game_offset_y = 0;
+    if (actual_window_w > t_w)
+        game_offset_x = (actual_window_w - t_w) / 2;
+    if (actual_window_h > t_h)
+        game_offset_y = (actual_window_h - t_h) / 2;
+
+    CursesElement* elements = new CursesElement[actual_window_w * actual_window_h];
     ui32 i1, i2;
     ui32 cursor_x = game_terminal.getCursorX();
     ui32 cursor_y = game_terminal.getCursorY();
-    for (i1 = 0; i1 < t_w; ++i1)
-        for (i2 = 0; i2 < t_h; ++i2)
+    for (i1 = 0; i1 < actual_window_w; ++i1)
+        for (i2 = 0; i2 < actual_window_h; ++i2)
         {
-            const TerminalTile &t = game_terminal.getTile(i1, i2);
+            TerminalTile t;
+            
+            if (i1 < game_offset_x || i2 < game_offset_y || (i1 - game_offset_x) >= t_w || (i2 - game_offset_y) >= t_h)
+                t = TerminalTile(' ', 7, 0, false, false);
+            else
+                t = game_terminal.getTile(i1 - game_offset_x, i2 - game_offset_y);
+
             ui32 symbol = t.getSymbol();
             ui32 fore_c = t.getForegroundColor();
             ui32 back_c = t.getBackgroundColor();
@@ -323,9 +340,9 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
                 fore_c = back_c;
                 back_c = temp;
             }
-            elements[i1 + i2 * t_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
+            elements[i1 + i2 * actual_window_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
         }
-    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), t_w, t_w, t_h, 0, 0);
+    target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), actual_window_w, actual_window_w, actual_window_h, 0, 0);
     delete[] elements;
 }
 
