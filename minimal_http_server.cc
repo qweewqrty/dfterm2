@@ -357,7 +357,7 @@ void HTTPServer::serveFileUTF8(string filename, string contenttype, string servi
     fseeko64(f, 0, SEEK_SET);
     #endif
 
-    if (fsize > MAX_HTTP_FILE_SIZE)
+    if ((ui64) fsize > MAX_HTTP_FILE_SIZE)
     {
         LOG(Error, "Attempted to serve file \"" << filename << "\" but it is larger (" << fsize << " bytes) than the compile time limit (" << MAX_HTTP_FILE_SIZE << " bytes) on file sizes.");
         fclose(f);
@@ -366,7 +366,7 @@ void HTTPServer::serveFileUTF8(string filename, string contenttype, string servi
 
     char* buf = new char[fsize];
     size_t result = fread(buf, 1, fsize, f);
-    if (result != fsize)
+    if (result != (ui64) fsize)
     {
         LOG(Error, "Attempted to serve file \"" << filename << "\" but there was a read error.");
         delete[] buf;

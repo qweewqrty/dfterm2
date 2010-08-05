@@ -806,7 +806,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         else
         {
             bool old_password_ok = false;
-            if (old_password_index == -1) old_password_ok = true;
+            if (old_password_index == 0xffffffff) old_password_ok = true;
 
 
             if (!old_password_ok)
@@ -836,7 +836,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
                 {
                     user_sp->setPassword(password);
                     st->saveUser(user_sp);
-                    if (old_password_index != -1)
+                    if (old_password_index != 0xffffffff)
                         enterMainMenu();
                     else
                         enterManageAccountMenu(user_target);

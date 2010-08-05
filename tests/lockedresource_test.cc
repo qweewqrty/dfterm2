@@ -17,7 +17,7 @@ class data
 
         int getResult()
         {
-            int i1;
+            unsigned int i1;
             int total = 0;
             for (i1 = 0; i1 < values.size(); i1++)
                 total += values[i1];
