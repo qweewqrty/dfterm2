@@ -334,7 +334,7 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
             if (fore_c == 9) fore_c = 7;
             if (back_c == 9) back_c = 0;
             ui32 temp;
-            if (cursor_x == i1 && cursor_y == i2)
+            if (cursor_x == i1 - game_offset_x && cursor_y == i2 - game_offset_y && game_terminal.isCursorVisible())
             {
                 temp = fore_c;
                 fore_c = back_c;
