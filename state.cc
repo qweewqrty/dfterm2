@@ -348,11 +348,13 @@ bool State::addHTTPService(SocketAddress address, SocketAddress flashpolicy_addr
     ss2 << flashpolicy_address.getPort();
     replacors["##FLASHPOLICYPORT##"] = ss2.str();
 
-    http_server.serveFileUTF8("soiled/soiled.swf", "application/x-shockwave-flash", "/soiled.swf");
+    map<string, string> empty;
+
+    http_server.serveFileUTF8("soiled/soiled.swf", "application/x-shockwave-flash", "/soiled.swf", empty);
     http_server.serveFileUTF8("soiled/soiled.html", "text/html", "/", replacors);
-    http_server.serveFileUTF8("soiled/soiled.txt", "text/plain; charset=UTF-8", "/soiled.txt");
-    http_server.serveFileUTF8("soiled/beep.mp3", "audio/mp3", "/beep.mp3");
-    http_server.serveFileUTF8("soiled/AC_OETags.js", "application/javascript", "/AC_OETags.js");
+    http_server.serveFileUTF8("soiled/soiled.txt", "text/plain; charset=UTF-8", "/soiled.txt", empty);
+    http_server.serveFileUTF8("soiled/beep.mp3", "audio/mp3", "/beep.mp3", empty);
+    http_server.serveFileUTF8("soiled/AC_OETags.js", "application/javascript", "/AC_OETags.js", empty);
 
     http_server.addListeningSocket(s);
 
@@ -983,6 +985,33 @@ void State::pruneInactiveClients()
     for (i2 = 0; i2 < len; ++i2)
         cli[i2]->updateClientNicklist(&cli);
     notifyAllClients();
+}
+
+bool State::checkBan(SP<Client> client)
+{
+    assert(client);
+
+    SP<Socket> s = client->getSocket();
+    if (!s) return false;
+    if (!s->active()) return false;
+
+    SocketAddress sa = s->getAddress();
+
+    vector<SocketAddressRange>::const_iterator i1, bans_end = bans.end();
+    for (i1 = bans.begin(); i1 != bans_end; ++i1)
+        if (i1->testAddress(sa))
+        {
+            SP<User> u = client->getUser();
+            if (!u || u->getNameUTF8().empty())
+            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a ban."); }
+            else
+            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a ban. User was \"" << u->getNameUTF8() << "\"."); };
+
+            s->close();
+            return true;
+        }
+
+    return false;
 }
 
 void State::client_signal_function(WP<Client> client, SP<Socket> from_where)

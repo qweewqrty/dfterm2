@@ -57,7 +57,7 @@ class HTTPServer
         /* Same as above but loads the content from file. Note that the file is loaded into memory
            before returning so it is not a good idea to use this on large files. 
            If you fill in replacors, any string that matches the key in the map is replaced by the value. */
-        void serveFileUTF8(std::string filename, std::string contenttype, std::string serviceaddress, const std::map<std::string, std::string> &replacors = std::map<std::string, std::string>());
+        void serveFileUTF8(std::string filename, std::string contenttype, std::string serviceaddress, const std::map<std::string, std::string> &replacors);
 };
 
 };

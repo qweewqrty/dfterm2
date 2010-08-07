@@ -53,6 +53,13 @@ class State
         SP<ConfigurationDatabase> configuration;
         boost::recursive_mutex configuration_mutex; /* configuration itself is thread-safe, but setting it is not */
 
+        /* Banned IP-addresses. */
+        std::vector<trankesbel::SocketAddressRange> bans;
+
+        /* Checks a client if it should be banned and disconnects it if this is the case.
+           Returns true if a client was disconnected. */
+        bool checkBan(SP<Client> client);
+
         /* Running slots */
         std::vector<SP<Slot> > slots;
         /* And a mutex to them */
