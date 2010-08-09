@@ -52,13 +52,19 @@ class State
         /* Database */
         SP<ConfigurationDatabase> configuration;
         boost::recursive_mutex configuration_mutex; /* configuration itself is thread-safe, but setting it is not */
-
-        /* Banned IP-addresses. */
-        std::vector<trankesbel::SocketAddressRange> bans;
+        
+        /* Allowed addresses. */
+        std::vector<trankesbel::SocketAddressRange> allowed_addresses;
+        /* Forbidden addresses. Overrides allowed addresses. */
+        std::vector<trankesbel::SocketAddressRange> forbidden_addresses;
+        
+        /* If true, by default anyone can connect. If false,
+           only those in 'allowed_addresses' can connect. */
+        bool default_address_allowance;
 
         /* Checks a client if it should be banned and disconnects it if this is the case.
            Returns true if a client was disconnected. */
-        bool checkBan(SP<Client> client);
+        bool checkAddressAllowance(SP<Client> client);
 
         /* Running slots */
         std::vector<SP<Slot> > slots;

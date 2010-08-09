@@ -22,6 +22,8 @@ State::State()
     global_chat = SP<Logger>(new Logger);
     close = false;
     
+    default_address_allowance = true;
+    
     stringstream ss;
     ss << "Welcome. This is a dfterm2 server. Take off your shoes and wipe your nose. "
     "Do good and no evil. ";
@@ -987,7 +989,7 @@ void State::pruneInactiveClients()
     notifyAllClients();
 }
 
-bool State::checkBan(SP<Client> client)
+bool State::checkAddressAllowance(SP<Client> client)
 {
     assert(client);
 
@@ -997,21 +999,36 @@ bool State::checkBan(SP<Client> client)
 
     SocketAddress sa = s->getAddress();
 
-    vector<SocketAddressRange>::const_iterator i1, bans_end = bans.end();
-    for (i1 = bans.begin(); i1 != bans_end; ++i1)
+    vector<SocketAddressRange>::const_iterator i1, forbidden_addresses_end = forbidden_addresses.end();
+    for (i1 = forbidden_addresses.begin(); i1 != forbidden_addresses_end; ++i1)
         if (i1->testAddress(sa))
         {
             SP<User> u = client->getUser();
             if (!u || u->getNameUTF8().empty())
-            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a ban."); }
+            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address."); }
             else
-            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a ban. User was \"" << u->getNameUTF8() << "\"."); };
+            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address. User was \"" << u->getNameUTF8() << "\"."); };
 
             s->close();
             return true;
         }
+    
+    if (default_address_allowance) 
+        return false;
+    
+    vector<SocketAddressRange>::const_iterator allowed_addresses_end = allowed_addresses.end();
+    for (i1 = allowed_addresses.begin(); i1 != allowed_addresses_end; ++i1)
+        if (i1->testAddress(sa))
+            return false;
+    
+    SP<User> u = client->getUser();
+    if (!u || u->getNameUTF8().empty())
+    { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it did not match an allowed address."); }
+    else
+    { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it did not match an allowed address. User was \"" << u->getNameUTF8() << "\"."); };
 
-    return false;
+    s->close();
+    return true;
 }
 
 void State::client_signal_function(WP<Client> client, SP<Socket> from_where)
@@ -1036,6 +1053,11 @@ bool State::new_connection(SP<Socket> listening_socket)
 
         SP<Client> new_client = Client::createClient(new_connection);
         new_client->setState(self);
+        
+        /* Do early check of banned/allowed addresses. Hostname is probably not resolved yet at this point though. */
+        if (checkAddressAllowance(new_client))
+            return true;
+
         new_client->setConfigurationDatabase(configuration);
         new_client->setGlobalChatLogger(global_chat);
 
