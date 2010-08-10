@@ -30,6 +30,7 @@ enum Menu { /* These are menus for all of us! */
             MotdMenu,
             SlotsMenu, 
             ManageUsersMenu,
+            ManageConnectionsMenu,
             };
 
 /* Handles windows for easy online editing of configuration */
@@ -60,8 +61,10 @@ class ConfigurationInterface
         void enterShowClientInformationMenu(SP<Client> c);
         void enterShowAccountsMenu();
         void enterSetPasswordMenu(const ID &user_id, bool admin_menu);
+        void enterManageConnectionsMenu();
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
+        void checkManageConnectionsMenu(bool no_read);
 
         void auxiliaryEnterUsergroupWindow();
         void auxiliaryEnterSpecificUsersWindow();
@@ -89,6 +92,15 @@ class ConfigurationInterface
         trankesbel::ui32 old_password_index;
         trankesbel::ui32 password_index;
         trankesbel::ui32 retype_password_index;
+
+        /* In connection restrictions menu, this is the index to the
+           line that asks the default access for new connections */
+        trankesbel::ui32 default_allowance_index;
+
+        /* Currently edited ban/allow profile */
+        bool edit_default_address_allowance;
+        std::vector<trankesbel::SocketAddressRange> edit_allowed_addresses;
+        std::vector<trankesbel::SocketAddressRange> edit_forbidden_addresses;
 
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */
         bool true_if_ok;

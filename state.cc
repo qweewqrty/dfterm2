@@ -35,6 +35,21 @@ State::~State()
     state_initialized = false;
 };
 
+vector<SocketAddressRange> State::getAllowedAddresses() const
+{
+    return allowed_addresses;
+}
+
+vector<SocketAddressRange> State::getForbiddenAddresses() const
+{
+    return allowed_addresses;
+}
+
+bool State::getDefaultConnectionAllowance() const
+{
+    return default_address_allowance;
+}
+
 void State::saveUser(SP<User> user)
 {
     assert(configuration);

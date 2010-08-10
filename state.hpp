@@ -201,6 +201,14 @@ class State
            Returns true if that succeeded and false if it did not. */
         bool forceCloseSlotOfUser(SP<User> user);
 
+        /* Returns the address ranges that are allowed for connections. */
+        std::vector<trankesbel::SocketAddressRange> getAllowedAddresses() const;
+        /* Returns the address ranges that are forbidden for connections. */
+        std::vector<trankesbel::SocketAddressRange> getForbiddenAddresses() const;
+        /* Returns if default action is to allow or forbid connection. True
+           means allowed, and false is forbidden. */
+        bool getDefaultConnectionAllowance() const;
+
         /* Runs until admin tells it to stop. */
         void loop();
 };

@@ -129,6 +129,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Configure slots", "slots", true, false);
     window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Manage users", "manage_users", true, false);
+    window->addListElement("Manage connection restrictions", "manage_connections", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Change your password", "setuserpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
@@ -363,6 +364,27 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->addListElementUTF8("Delete user", "deleteuser", true, false);
 }
 
+void ConfigurationInterface::enterManageConnectionsMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    window->setTitle("Connection restrictions");
+    window->setHint("default");
+
+    current_menu = ManageConnectionsMenu;
+
+    int back_index = window->addListElement("Back to main menu (don't save)", "mainmenu", true, false);
+    default_allowance_index = window->addListElement("allow", "Default action for connections: ", "toggle_default_connection_action", true, false);
+    window->addListElement("Set allowed addresses", "manage_allowed_addresses", true, false);
+    window->addListElement("Set forbidden addresses", "manage_forbidden_addresses", true, false);
+    window->addListElement("Save and apply", "save_and_apply_connection_restrictions", true, false);
+
+    window->modifyListSelectionIndex(back_index);
+
+    checkManageConnectionsMenu(true);
+}
+
 void ConfigurationInterface::enterManageUsersMenu()
 {
     if (!admin) return;
@@ -516,6 +538,27 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
     window->modifyListSelectionIndex(slot_index);
 
     checkSlotProfileMenu();
+}
+
+void ConfigurationInterface::checkManageConnectionsMenu(bool no_read)
+{
+    assert(window);
+    assert(state);
+    
+    if (no_read)
+    {
+        if (edit_default_address_allowance)
+            window->modifyListElementTextUTF8(default_allowance_index, "allow");
+        else
+            window->modifyListElementTextUTF8(default_allowance_index, "forbid");
+        return;
+    }
+
+    string text = window->getListElementUTF8(default_allowance_index);
+    if (text == "allow")
+        edit_default_address_allowance = true;
+    else
+        edit_default_address_allowance = false;
 }
 
 void ConfigurationInterface::checkSlotsMenu(bool no_read)
@@ -864,6 +907,21 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "manage_users")
     {
         enterManageUsersMenu();
+    }
+    else if (selection == "manage_connections")
+    {
+        SP<State> st = state.lock();
+        assert(st);
+
+        edit_default_address_allowance = st->getDefaultConnectionAllowance();
+        edit_allowed_addresses = st->getAllowedAddresses();
+        edit_forbidden_addresses = st->getForbiddenAddresses();
+        enterManageConnectionsMenu();
+    }
+    else if (selection == "toggle_default_connection_action")
+    {
+        edit_default_address_allowance = edit_default_address_allowance ? false : true;
+        checkManageConnectionsMenu(true);
     }
     else if (selection == "showaccounts")
     {
