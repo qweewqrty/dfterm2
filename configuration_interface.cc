@@ -621,7 +621,8 @@ void ConfigurationInterface::enterNewSlotProfileMenu()
 void ConfigurationInterface::checkManageConnectionsMenu(bool no_read)
 {
     assert(window);
-    assert(state);
+    SP<State> st = state.lock();
+    assert(st);
     
     if (no_read)
     {
