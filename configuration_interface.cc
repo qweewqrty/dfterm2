@@ -15,6 +15,7 @@ ConfigurationInterface::ConfigurationInterface()
     current_menu = MainMenu;
     admin = false;
     shutdown = false;
+    edit_addresses = NULL;
 
     true_if_ok = false;
 }
@@ -383,6 +384,83 @@ void ConfigurationInterface::enterManageConnectionsMenu()
     window->modifyListSelectionIndex(back_index);
 
     checkManageConnectionsMenu(true);
+}
+
+void ConfigurationInterface::enterManageAddressesMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    if (currently_editing_allowed_addresses)
+        window->setTitle("Allowed addresses");
+    else
+        window->setTitle("Forbidden addresses");
+    window->setHint("default");
+
+    current_menu = ManageAddressesMenu;
+
+    ui32 first_index = window->addListElement("Back to manage connections menu (don't save)", "manage_connections_no_reset", true, false);
+    window->addListElement("Add new individual address", "add_individual_address", true, false);
+    window->addListElement("Add new regex address", "add_regex_address", true, false);
+
+    vector<SocketAddressRange>::const_iterator i1, edit_addresses_end = edit_addresses->end();
+    for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+    {
+         vector<SocketAddress> vsa;
+         (*i1).getSocketAddressesToVector(vsa);
+
+         vector<SocketAddress>::const_iterator i2, vsa_end = vsa.end();
+         for (i2 = vsa.begin(); i2 != vsa_end; ++i2)
+             window->addListElementUTF8(i2->getHumanReadablePlainUTF8(), "Delete individual address: ", string("deleteaddress") + i2->serialize(), true, false);
+
+         vector<string> vs;
+         (*i1).getHostnameRegexesUTF8ToVector(vs);
+         
+         vector<string>::const_iterator i3, vs_end = vs.end();
+         for (i3 = vs.begin(); i3 != vs_end; ++i3)
+             window->addListElementUTF8(*i3, "Delete regex: ", string("deleteregex") + *i3, true, false);
+    }
+
+    window->addListElementUTF8("Save", "saveaddresses", true, false);
+    window->modifyListSelectionIndex(first_index);
+}
+
+void ConfigurationInterface::enterAddIndividualAddressMenu()
+{
+    if (!admin)
+        return;
+
+    window->deleteAllListElements();
+    window->setTitle("Add individual address");
+    window->setHint("wide");
+
+    current_menu = AddIndividualAddressMenu;
+
+    ui32 first_index = window->addListElementUTF8("", "Address: ", "individual_address_field", true, true);
+    add_address_information_index = first_index;
+
+    window->addListElementUTF8("Add address", "add_individual_address_ok", true, false);
+    window->addListElementUTF8("Cancel", "add_individual_address_cancel", true, false);
+    window->modifyListSelectionIndex(first_index);
+}
+
+void ConfigurationInterface::enterAddRegexAddressMenu()
+{
+    if (!admin)
+        return;
+
+    window->deleteAllListElements();
+    window->setTitle("Add regex");
+    window->setHint("wide");
+
+    current_menu = AddRegexMenu;
+
+    ui32 first_index = window->addListElementUTF8("", "Regex: ", "regex_field", true, true);
+    add_address_information_index = first_index;
+
+    window->addListElementUTF8("Add regex", "add_regex_ok", true, false);
+    window->addListElementUTF8("Cancel", "add_regex_cancel", true, false);
+    window->modifyListSelectionIndex(first_index);
 }
 
 void ConfigurationInterface::enterManageUsersMenu()
@@ -917,6 +995,122 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         edit_allowed_addresses = st->getAllowedAddresses();
         edit_forbidden_addresses = st->getForbiddenAddresses();
         enterManageConnectionsMenu();
+    }
+    else if (selection == "manage_connections_no_reset")
+    {
+        enterManageConnectionsMenu();
+    }
+    else if (selection == "manage_allowed_addresses")
+    {
+        currently_editing_allowed_addresses = true;
+        edit_addresses = &edit_allowed_addresses;
+        enterManageAddressesMenu();
+    }
+    else if (selection == "manage_forbidden_addresses")
+    {
+        currently_editing_allowed_addresses = false;
+        edit_addresses = &edit_forbidden_addresses;
+        enterManageAddressesMenu();
+    }
+    else if (!selection.compare(0, min(selection.size(), (size_t) 11), "deleteregex", 11))
+    {
+        string reg = selection.substr(11);
+        assert(edit_addresses);
+
+        vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses->end();
+        for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+            i1->deleteHostnameRegexUTF8(reg);
+
+        ui32 current_index = window->getListSelectionIndex();
+        enterManageAddressesMenu();
+        window->modifyListSelectionIndex(current_index-1);
+    }
+    else if (!selection.compare(0, min(selection.size(), (size_t) 13), "deleteaddress", 13))
+    {
+        string unserialize_me = selection.substr(13);
+        assert(edit_addresses);
+
+        SocketAddress sa;
+        bool unserialize_success = sa.unSerialize(unserialize_me);
+
+        /* This shouldn't happen but I think it might be remotely possible for it to happen.
+           So I'm putting both assert and handling the case if unserializing fails. */
+        assert(!unserialize_success);
+        if (!unserialize_success)
+        {
+            LOG(Error, "Tried to delete a socket address from access list but unserializing data string failed. Possible bug in program. ");
+        }
+        else
+        {
+            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses->end();
+            for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+                i1->deleteSocketAddress(sa);
+
+            ui32 current_index = window->getListSelectionIndex();
+            enterManageAddressesMenu();
+            window->modifyListSelectionIndex(current_index-1);
+        }
+    }
+    else if (selection == "add_individual_address")
+    {
+        enterAddIndividualAddressMenu();
+    }
+    else if (selection == "add_regex_address")
+    {
+        enterAddRegexAddressMenu();
+    }
+    else if (selection == "add_individual_address_ok")
+    {
+        assert(edit_addresses);
+
+        string address = window->getListElementUTF8(add_address_information_index);
+        string errormsg;
+        bool success = false;
+
+        SocketAddress sa = SocketAddress::resolvePlainUTF8(address, "1", &success, &errormsg);
+        if (!success)
+        { 
+            LOG(Error, "User " << user->getNameUTF8() << " attempted to add an individual address " << address << " to access list but this failed. " << errormsg); 
+
+            window->modifyListSelectionIndex(add_address_information_index);
+        }
+        else
+        {
+            if (edit_addresses->empty()) edit_addresses->resize(1);
+
+            ( (*edit_addresses)[0]).addSocketAddress(sa);
+            enterManageAddressesMenu();
+        }
+    }
+    else if (selection == "add_regex_ok")
+    {
+        assert(edit_addresses);
+
+        string reg = window->getListElementUTF8(add_address_information_index);
+        Regex r(reg);
+        if (r.isInvalid())
+        { 
+            LOG(Error, "User " << user->getNameUTF8() << " attempted to add a regex " << reg << " to access list but compiling the regex failed."); 
+
+            window->modifyListSelectionIndex(add_address_information_index);
+        }
+        else
+        {
+            if (edit_addresses->empty()) edit_addresses->resize(1);
+
+            /* This deletes the regex before adding it, the effect is that there
+               can be no duplicate regexes in access list. */
+            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses->end();
+            for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+                i1->deleteHostnameRegexUTF8(reg);
+
+            ( (*edit_addresses)[0]).addHostnameRegexUTF8(reg);
+            enterManageAddressesMenu();
+        }
+    }
+    else if (selection == "add_individual_address_cancel" || selection == "add_regex_cancel")
+    {
+        enterManageAddressesMenu();
     }
     else if (selection == "toggle_default_connection_action")
     {
