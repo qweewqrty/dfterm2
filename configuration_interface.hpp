@@ -111,7 +111,7 @@ class ConfigurationInterface
         bool edit_default_address_allowance;
         std::vector<trankesbel::SocketAddressRange> edit_allowed_addresses;
         std::vector<trankesbel::SocketAddressRange> edit_forbidden_addresses;
-        std::vector<trankesbel::SocketAddressRange>* edit_addresses; // points to either allowed or forbidden above
+        std::vector<trankesbel::SocketAddressRange> edit_addresses; // points to either allowed or forbidden above
         bool currently_editing_allowed_addresses;
 
         /* When in a menu that has "ok" and "cancel", this is set to what was selected. */

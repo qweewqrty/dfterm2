@@ -15,7 +15,6 @@ ConfigurationInterface::ConfigurationInterface()
     current_menu = MainMenu;
     admin = false;
     shutdown = false;
-    edit_addresses = NULL;
 
     true_if_ok = false;
 }
@@ -403,8 +402,8 @@ void ConfigurationInterface::enterManageAddressesMenu()
     window->addListElement("Add new individual address", "add_individual_address", true, false);
     window->addListElement("Add new regex address", "add_regex_address", true, false);
 
-    vector<SocketAddressRange>::const_iterator i1, edit_addresses_end = edit_addresses->end();
-    for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+    vector<SocketAddressRange>::const_iterator i1, edit_addresses_end = edit_addresses.end();
+    for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
     {
          vector<SocketAddress> vsa;
          (*i1).getSocketAddressesToVector(vsa);
@@ -1018,26 +1017,29 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "manage_allowed_addresses")
     {
         currently_editing_allowed_addresses = true;
-        edit_addresses = &edit_allowed_addresses;
+        edit_addresses = edit_allowed_addresses;
         enterManageAddressesMenu();
     }
     else if (selection == "manage_forbidden_addresses")
     {
         currently_editing_allowed_addresses = false;
-        edit_addresses = &edit_forbidden_addresses;
+        edit_addresses = edit_forbidden_addresses;
         enterManageAddressesMenu();
     }
     else if (selection == "saveaddresses")
     {
+        if (currently_editing_allowed_addresses)
+            edit_allowed_addresses = edit_addresses;
+        else
+            edit_forbidden_addresses = edit_addresses;
         enterManageConnectionsMenu();
     }
     else if (!selection.compare(0, min(selection.size(), (size_t) 11), "deleteregex", 11))
     {
         string reg = selection.substr(11);
-        assert(edit_addresses);
 
-        vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses->end();
-        for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+        vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses.end();
+        for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
             i1->deleteHostnameRegexUTF8(reg);
 
         ui32 current_index = window->getListSelectionIndex();
@@ -1047,7 +1049,6 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (!selection.compare(0, min(selection.size(), (size_t) 13), "deleteaddress", 13))
     {
         string unserialize_me = selection.substr(13);
-        assert(edit_addresses);
 
         SocketAddress sa;
         bool unserialize_success = sa.unSerialize(unserialize_me);
@@ -1061,8 +1062,8 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses->end();
-            for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses.end();
+            for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
                 i1->deleteSocketAddress(sa);
 
             ui32 current_index = window->getListSelectionIndex();
@@ -1080,8 +1081,6 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (selection == "add_individual_address_ok")
     {
-        assert(edit_addresses);
-
         string address = window->getListElementUTF8(add_address_information_index);
         string errormsg;
         bool success = false;
@@ -1095,16 +1094,14 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            if (edit_addresses->empty()) edit_addresses->resize(1);
+            if (edit_addresses.empty()) edit_addresses.resize(1);
 
-            ( (*edit_addresses)[0]).addSocketAddress(sa);
+            edit_addresses[0].addSocketAddress(sa);
             enterManageAddressesMenu();
         }
     }
     else if (selection == "add_regex_ok")
     {
-        assert(edit_addresses);
-
         string reg = window->getListElementUTF8(add_address_information_index);
         Regex r(reg);
         if (r.isInvalid())
@@ -1115,15 +1112,15 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            if (edit_addresses->empty()) edit_addresses->resize(1);
+            if (edit_addresses.empty()) edit_addresses.resize(1);
 
             /* This deletes the regex before adding it, the effect is that there
                can be no duplicate regexes in access list. */
-            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses->end();
-            for (i1 = edit_addresses->begin(); i1 != edit_addresses_end; ++i1)
+            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses.end();
+            for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
                 i1->deleteHostnameRegexUTF8(reg);
 
-            ( (*edit_addresses)[0]).addHostnameRegexUTF8(reg);
+            edit_addresses[0].addHostnameRegexUTF8(reg);
             enterManageAddressesMenu();
         }
     }
