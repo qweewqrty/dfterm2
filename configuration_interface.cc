@@ -411,7 +411,7 @@ void ConfigurationInterface::enterManageAddressesMenu()
 
          vector<SocketAddress>::const_iterator i2, vsa_end = vsa.end();
          for (i2 = vsa.begin(); i2 != vsa_end; ++i2)
-             window->addListElementUTF8(i2->getHumanReadablePlainUTF8(), "Delete individual address: ", string("deleteaddress") + i2->serialize(), true, false);
+             window->addListElementUTF8(i2->getHumanReadablePlainUTF8WithoutPort(), "Delete individual address: ", string("deleteaddress") + i2->serialize(), true, false);
 
          vector<string> vs;
          (*i1).getHostnameRegexesUTF8ToVector(vs);
@@ -987,6 +987,20 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         enterManageUsersMenu();
     }
+    else if (selection == "save_and_apply_connection_restrictions")
+    {
+        SP<State> st = state.lock();
+        assert(st);
+        
+        st->setDefaultConnectionAllowance(edit_default_address_allowance);
+        st->setAllowedAddresses(edit_allowed_addresses);
+        st->setForbiddenAddresses(edit_forbidden_addresses);
+        st->checkAddressRestrictions();
+
+        LOG(Note, "Connection restrictions have been updated by " << user->getNameUTF8());
+
+        enterMainMenu();
+    }
     else if (selection == "manage_connections")
     {
         SP<State> st = state.lock();
@@ -1012,6 +1026,10 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         currently_editing_allowed_addresses = false;
         edit_addresses = &edit_forbidden_addresses;
         enterManageAddressesMenu();
+    }
+    else if (selection == "saveaddresses")
+    {
+        enterManageConnectionsMenu();
     }
     else if (!selection.compare(0, min(selection.size(), (size_t) 11), "deleteregex", 11))
     {
@@ -1127,7 +1145,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         ID client_id = ID::getUnSerialized(selection.substr(7));
         SP<State> st = state.lock();
         assert(st && user);
-        LOG(Error, "User " << user->getNameUTF8() << " attempted to view connection information for client ID " << client_id.serialize() << " but state is null.");
+
         SP<Client> client = st->getClient(client_id);
         if (!client)
         {

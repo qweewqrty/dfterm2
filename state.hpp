@@ -53,9 +53,9 @@ class State
         SP<ConfigurationDatabase> configuration;
         boost::recursive_mutex configuration_mutex; /* configuration itself is thread-safe, but setting it is not */
         
-        /* Allowed addresses. */
+        /* Allowed addresses. Overrides forbidden addresses, if by default connections are allowed. */
         std::vector<trankesbel::SocketAddressRange> allowed_addresses;
-        /* Forbidden addresses. Overrides allowed addresses. */
+        /* Forbidden addresses. Overrides allowed addresses, if by default connections are forbidden. */
         std::vector<trankesbel::SocketAddressRange> forbidden_addresses;
         
         /* If true, by default anyone can connect. If false,
@@ -208,6 +208,13 @@ class State
         /* Returns if default action is to allow or forbid connection. True
            means allowed, and false is forbidden. */
         bool getDefaultConnectionAllowance() const;
+        /* And setters for all above */
+        void setAllowedAddresses(const std::vector<trankesbel::SocketAddressRange> &allowed_addresses);
+        void setForbiddenAddresses(const std::vector<trankesbel::SocketAddressRange> &forbidden_addresses);
+        void setDefaultConnectionAllowance(bool allowance);
+
+        /* Checks all currently connected clients for restrictions. */
+        void checkAddressRestrictions();
 
         /* Runs until admin tells it to stop. */
         void loop();

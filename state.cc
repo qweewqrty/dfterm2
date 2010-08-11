@@ -42,12 +42,27 @@ vector<SocketAddressRange> State::getAllowedAddresses() const
 
 vector<SocketAddressRange> State::getForbiddenAddresses() const
 {
-    return allowed_addresses;
+    return forbidden_addresses;
 }
 
 bool State::getDefaultConnectionAllowance() const
 {
     return default_address_allowance;
+}
+
+void State::setAllowedAddresses(const std::vector<trankesbel::SocketAddressRange> &allowed_addresses)
+{
+    this->allowed_addresses = allowed_addresses;
+}
+
+void State::setForbiddenAddresses(const std::vector<trankesbel::SocketAddressRange> &forbidden_addresses)
+{
+    this->forbidden_addresses = forbidden_addresses;
+}
+
+void State::setDefaultConnectionAllowance(bool allowance)
+{
+    default_address_allowance = allowance;
 }
 
 void State::saveUser(SP<User> user)
@@ -1004,6 +1019,17 @@ void State::pruneInactiveClients()
     notifyAllClients();
 }
 
+void State::checkAddressRestrictions()
+{
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
+        if ( (*i1) )
+            checkAddressAllowance(*i1);
+}
+
 bool State::checkAddressAllowance(SP<Client> client)
 {
     assert(client);
@@ -1014,28 +1040,58 @@ bool State::checkAddressAllowance(SP<Client> client)
 
     SocketAddress sa = s->getAddress();
 
+    bool is_in_forbidden = false;
+    bool is_in_allowed = false;
+
     vector<SocketAddressRange>::const_iterator i1, forbidden_addresses_end = forbidden_addresses.end();
     for (i1 = forbidden_addresses.begin(); i1 != forbidden_addresses_end; ++i1)
         if (i1->testAddress(sa))
         {
-            SP<User> u = client->getUser();
-            if (!u || u->getNameUTF8().empty())
-            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address."); }
-            else
-            { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address. User was \"" << u->getNameUTF8() << "\"."); };
-
-            s->close();
-            return true;
+            is_in_forbidden = true;
+            break;
         }
-    
-    if (default_address_allowance) 
-        return false;
+
+    if (!default_address_allowance && is_in_forbidden)
+    {
+        SP<User> u = client->getUser();
+        if (!u || u->getNameUTF8().empty())
+        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address."); }
+        else
+        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address. User was \"" << u->getNameUTF8() << "\"."); };
+        s->close();
+        return true;
+    }
     
     vector<SocketAddressRange>::const_iterator allowed_addresses_end = allowed_addresses.end();
     for (i1 = allowed_addresses.begin(); i1 != allowed_addresses_end; ++i1)
         if (i1->testAddress(sa))
-            return false;
+        {
+            is_in_allowed = true;
+            break;
+        }
     
+    if (default_address_allowance && is_in_allowed)
+        return false;
+
+    if (default_address_allowance && is_in_forbidden)
+    {
+        SP<User> u = client->getUser();
+        if (!u || u->getNameUTF8().empty())
+        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address."); }
+        else
+        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address. User was \"" << u->getNameUTF8() << "\"."); };
+        s->close();
+        return true;
+    }
+
+    if (!default_address_allowance && is_in_allowed)
+        return false;
+
+    if (default_address_allowance)
+        return false;
+
+    assert(!default_address_allowance);
+
     SP<User> u = client->getUser();
     if (!u || u->getNameUTF8().empty())
     { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it did not match an allowed address."); }
