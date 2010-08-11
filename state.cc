@@ -1173,10 +1173,19 @@ bool State::new_connection(SP<Socket> listening_socket)
 
 void State::loop()
 {
+    /* 10 seconds. */
+    ui64 address_restriction_check_time = 10000000000ULL + nanoclock();;
+    
     unique_lock<recursive_mutex> lock(cycle_mutex);
     close = false;
     while(!close)
     {
+        if (nanoclock() > address_restriction_check_time)
+        {
+            checkAddressRestrictions();
+            address_restriction_check_time = nanoclock() + 10000000000ULL;
+        }
+
         ui64 next_event_time = 5000000000LL; // 5 seconds
         if (!pending_delayed_notifications.empty())
         {
