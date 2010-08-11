@@ -407,7 +407,7 @@ void ConfigurationInterface::enterManageAddressesMenu()
 
      vector<SocketAddress>::const_iterator i2, vsa_end = vsa.end();
      for (i2 = vsa.begin(); i2 != vsa_end; ++i2)
-         window->addListElementUTF8(i2->getHumanReadablePlainUTF8WithoutPort(), "Delete individual address: ", string("deleteaddress") + i2->serialize(), true, false);
+         window->addListElementUTF8(i2->getHumanReadablePlainUTF8WithoutPort(), "Delete individual address: ", string("deleteaddress") + bytes_to_hex(i2->serialize()), true, false);
 
      vector<string> vs;
      edit_addresses.getHostnameRegexesUTF8ToVector(vs);
@@ -1043,14 +1043,14 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     }
     else if (!selection.compare(0, min(selection.size(), (size_t) 13), "deleteaddress", 13))
     {
-        string unserialize_me = selection.substr(13);
+        string unserialize_me = hex_to_bytes(selection.substr(13));
 
         SocketAddress sa;
         bool unserialize_success = sa.unSerialize(unserialize_me);
 
         /* This shouldn't happen but I think it might be remotely possible for it to happen.
            So I'm putting both assert and handling the case if unserializing fails. */
-        assert(!unserialize_success);
+        assert(unserialize_success);
         if (!unserialize_success)
         {
             LOG(Error, "Tried to delete a socket address from access list but unserializing data string failed. Possible bug in program. ");
