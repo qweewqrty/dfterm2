@@ -10,6 +10,7 @@
 #include "configuration_primitives.hpp"
 #include <boost/function.hpp>
 #include "slot.hpp"
+#include "sockets.hpp"
 
 using namespace dfterm;
 using namespace std;
@@ -53,6 +54,7 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
     result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, ID TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, AllowedClosers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, ForbiddenClosers TEXT, MaxSlots TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE MOTD(Content TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE GlobalSettings(Key TEXT, Value TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE AllowedAndForbiddenSocketAddressRanges(Allowed TEXT, Forbidden TEXT);", 0, 0, 0);
 
     /* Create an admin user, if database was created. */
     if (!database_exists)
@@ -243,6 +245,39 @@ int ConfigurationDatabase::motdCallback(UnicodeString* us, void* v_self, int arg
             (*us) = TO_UNICODESTRING(string(argv[i]));
     }
     
+    return 0;
+}
+
+int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(SocketAddressRange* allowed, SocketAddressRange* forbidden, void* v_self, int argc, char** argv, char** colname)
+{
+    assert(allowed);
+    assert(forbidden);
+
+    int i;
+    for (i = 0; i < argc; ++i)
+    {
+        if (!argv[i]) continue;
+
+        if (!strcmp(colname[i], "Allowed"))
+        {
+            bool result = allowed->unSerialize(argv[i]);
+            if (!result)
+            {
+                LOG(Note, "The socket address range for allowed connections in database is malformed.");
+                return 1;
+            }
+        }
+        else if (!strcmp(colname[i], "Forbidden"))
+        {
+            bool result = forbidden->unSerialize(argv[i]);
+            if (!result)
+            {
+                LOG(Note, "The socket address range for allowed connections in database is malformed.");
+                return 1;
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -533,6 +568,57 @@ ui32 ConfigurationDatabase::loadMaximumNumberOfSlots()
 
     return maximum;
 }
+
+void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(const SocketAddressRange &allowed, const SocketAddressRange &forbidden)
+{
+    assert(db);
+
+    char* errormsg = (char*) 0;
+
+    string allowed_str = allowed.serialize();
+    string forbidden_str = forbidden.serialize();
+
+    string statement = string("DELETE FROM AllowedAndForbiddenSocketAddressRanges;");
+    int result = sqlite3_exec(db, statement.c_str(), 0, 0, &errormsg);
+    if (result != SQLITE_OK)
+    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+    if (errormsg) sqlite3_free(errormsg);
+
+    stringstream ss;
+    ss << "INSERT INTO AllowedAndForbiddenSocketAddressRanges(Allowed, Forbidden) VALUES(\'" << escape_sql_string(allowed_str) << "\', \'" << escape_sql_string(forbidden_str) << "\');";
+    result = sqlite3_exec(db, ss.str().c_str(), 0, 0, &errormsg);
+    if (result != SQLITE_OK)
+    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+
+    if (errormsg) sqlite3_free(errormsg);
+}
+
+void ConfigurationDatabase::loadAllowedAndForbiddenSocketAddressRanges(SocketAddressRange* allowed, SocketAddressRange* forbidden)
+{
+    assert(allowed);
+    assert(forbidden);
+    assert(db);
+
+    SocketAddressRange allowed_f, forbidden_f;
+
+    function4<int, void*, int, char**, char**> sql_callback_function;
+    sql_callback_function = boost::bind(&ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback, this, &allowed_f, &forbidden_f, _1, _2, _3, _4);
+
+    string statement = string("SELECT Allowed, Forbidden FROM AllowedAndForbiddenSocketAddressRanges;");
+    char* errormsg = (char*) 0;
+    int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
+    if (result != SQLITE_OK)
+    {
+        LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg);
+        if (errormsg) sqlite3_free(errormsg);
+        return;
+    }
+    if (errormsg) sqlite3_free(errormsg);
+
+    (*allowed) = allowed_f;
+    (*forbidden) = forbidden_f;
+}
+
 
 data1D dfterm::escape_sql_string(const data1D &str)
 {
