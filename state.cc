@@ -35,12 +35,12 @@ State::~State()
     state_initialized = false;
 };
 
-vector<SocketAddressRange> State::getAllowedAddresses() const
+SocketAddressRange State::getAllowedAddresses() const
 {
     return allowed_addresses;
 }
 
-vector<SocketAddressRange> State::getForbiddenAddresses() const
+SocketAddressRange State::getForbiddenAddresses() const
 {
     return forbidden_addresses;
 }
@@ -50,12 +50,12 @@ bool State::getDefaultConnectionAllowance() const
     return default_address_allowance;
 }
 
-void State::setAllowedAddresses(const std::vector<trankesbel::SocketAddressRange> &allowed_addresses)
+void State::setAllowedAddresses(const SocketAddressRange &allowed_addresses)
 {
     this->allowed_addresses = allowed_addresses;
 }
 
-void State::setForbiddenAddresses(const std::vector<trankesbel::SocketAddressRange> &forbidden_addresses)
+void State::setForbiddenAddresses(const SocketAddressRange &forbidden_addresses)
 {
     this->forbidden_addresses = forbidden_addresses;
 }
@@ -1043,13 +1043,8 @@ bool State::checkAddressAllowance(SP<Client> client)
     bool is_in_forbidden = false;
     bool is_in_allowed = false;
 
-    vector<SocketAddressRange>::const_iterator i1, forbidden_addresses_end = forbidden_addresses.end();
-    for (i1 = forbidden_addresses.begin(); i1 != forbidden_addresses_end; ++i1)
-        if (i1->testAddress(sa))
-        {
-            is_in_forbidden = true;
-            break;
-        }
+    if (forbidden_addresses.testAddress(sa))
+        is_in_forbidden = true;
 
     if (!default_address_allowance && is_in_forbidden)
     {
@@ -1062,13 +1057,8 @@ bool State::checkAddressAllowance(SP<Client> client)
         return true;
     }
     
-    vector<SocketAddressRange>::const_iterator allowed_addresses_end = allowed_addresses.end();
-    for (i1 = allowed_addresses.begin(); i1 != allowed_addresses_end; ++i1)
-        if (i1->testAddress(sa))
-        {
-            is_in_allowed = true;
-            break;
-        }
+    if (allowed_addresses.testAddress(sa))
+        is_in_allowed = true;
     
     if (default_address_allowance && is_in_allowed)
         return false;

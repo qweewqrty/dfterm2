@@ -54,9 +54,9 @@ class State
         boost::recursive_mutex configuration_mutex; /* configuration itself is thread-safe, but setting it is not */
         
         /* Allowed addresses. Overrides forbidden addresses, if by default connections are allowed. */
-        std::vector<trankesbel::SocketAddressRange> allowed_addresses;
+        trankesbel::SocketAddressRange allowed_addresses;
         /* Forbidden addresses. Overrides allowed addresses, if by default connections are forbidden. */
-        std::vector<trankesbel::SocketAddressRange> forbidden_addresses;
+        trankesbel::SocketAddressRange forbidden_addresses;
         
         /* If true, by default anyone can connect. If false,
            only those in 'allowed_addresses' can connect. */
@@ -202,15 +202,15 @@ class State
         bool forceCloseSlotOfUser(SP<User> user);
 
         /* Returns the address ranges that are allowed for connections. */
-        std::vector<trankesbel::SocketAddressRange> getAllowedAddresses() const;
+        trankesbel::SocketAddressRange getAllowedAddresses() const;
         /* Returns the address ranges that are forbidden for connections. */
-        std::vector<trankesbel::SocketAddressRange> getForbiddenAddresses() const;
+        trankesbel::SocketAddressRange getForbiddenAddresses() const;
         /* Returns if default action is to allow or forbid connection. True
            means allowed, and false is forbidden. */
         bool getDefaultConnectionAllowance() const;
         /* And setters for all above */
-        void setAllowedAddresses(const std::vector<trankesbel::SocketAddressRange> &allowed_addresses);
-        void setForbiddenAddresses(const std::vector<trankesbel::SocketAddressRange> &forbidden_addresses);
+        void setAllowedAddresses(const trankesbel::SocketAddressRange &allowed_addresses);
+        void setForbiddenAddresses(const trankesbel::SocketAddressRange &forbidden_addresses);
         void setDefaultConnectionAllowance(bool allowance);
 
         /* Checks all currently connected clients for restrictions. */

@@ -402,23 +402,19 @@ void ConfigurationInterface::enterManageAddressesMenu()
     window->addListElement("Add new individual address", "add_individual_address", true, false);
     window->addListElement("Add new regex address", "add_regex_address", true, false);
 
-    vector<SocketAddressRange>::const_iterator i1, edit_addresses_end = edit_addresses.end();
-    for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
-    {
-         vector<SocketAddress> vsa;
-         (*i1).getSocketAddressesToVector(vsa);
+     vector<SocketAddress> vsa;
+     edit_addresses.getSocketAddressesToVector(vsa);
 
-         vector<SocketAddress>::const_iterator i2, vsa_end = vsa.end();
-         for (i2 = vsa.begin(); i2 != vsa_end; ++i2)
-             window->addListElementUTF8(i2->getHumanReadablePlainUTF8WithoutPort(), "Delete individual address: ", string("deleteaddress") + i2->serialize(), true, false);
+     vector<SocketAddress>::const_iterator i2, vsa_end = vsa.end();
+     for (i2 = vsa.begin(); i2 != vsa_end; ++i2)
+         window->addListElementUTF8(i2->getHumanReadablePlainUTF8WithoutPort(), "Delete individual address: ", string("deleteaddress") + i2->serialize(), true, false);
 
-         vector<string> vs;
-         (*i1).getHostnameRegexesUTF8ToVector(vs);
+     vector<string> vs;
+     edit_addresses.getHostnameRegexesUTF8ToVector(vs);
          
-         vector<string>::const_iterator i3, vs_end = vs.end();
-         for (i3 = vs.begin(); i3 != vs_end; ++i3)
-             window->addListElementUTF8(*i3, "Delete regex: ", string("deleteregex") + *i3, true, false);
-    }
+     vector<string>::const_iterator i3, vs_end = vs.end();
+     for (i3 = vs.begin(); i3 != vs_end; ++i3)
+         window->addListElementUTF8(*i3, "Delete regex: ", string("deleteregex") + *i3, true, false);
 
     window->addListElementUTF8("Save", "saveaddresses", true, false);
     window->modifyListSelectionIndex(first_index);
@@ -1038,9 +1034,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         string reg = selection.substr(11);
 
-        vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses.end();
-        for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
-            i1->deleteHostnameRegexUTF8(reg);
+        edit_addresses.deleteHostnameRegexUTF8(reg);
 
         ui32 current_index = window->getListSelectionIndex();
         enterManageAddressesMenu();
@@ -1062,9 +1056,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses.end();
-            for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
-                i1->deleteSocketAddress(sa);
+            edit_addresses.deleteSocketAddress(sa);
 
             ui32 current_index = window->getListSelectionIndex();
             enterManageAddressesMenu();
@@ -1094,9 +1086,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            if (edit_addresses.empty()) edit_addresses.resize(1);
-
-            edit_addresses[0].addSocketAddress(sa);
+            edit_addresses.addSocketAddress(sa);
             enterManageAddressesMenu();
         }
     }
@@ -1112,15 +1102,11 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         }
         else
         {
-            if (edit_addresses.empty()) edit_addresses.resize(1);
-
             /* This deletes the regex before adding it, the effect is that there
                can be no duplicate regexes in access list. */
-            vector<SocketAddressRange>::iterator i1, edit_addresses_end = edit_addresses.end();
-            for (i1 = edit_addresses.begin(); i1 != edit_addresses_end; ++i1)
-                i1->deleteHostnameRegexUTF8(reg);
+            edit_addresses.deleteHostnameRegexUTF8(reg);
 
-            edit_addresses[0].addHostnameRegexUTF8(reg);
+            edit_addresses.addHostnameRegexUTF8(reg);
             enterManageAddressesMenu();
         }
     }
