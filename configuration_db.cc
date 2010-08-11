@@ -260,7 +260,7 @@ int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(Socket
 
         if (!strcmp(colname[i], "Allowed"))
         {
-            bool result = allowed->unSerialize(argv[i]);
+            bool result = allowed->unSerialize(hex_to_bytes(argv[i]));
             if (!result)
             {
                 LOG(Note, "The socket address range for allowed connections in database is malformed.");
@@ -269,7 +269,7 @@ int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(Socket
         }
         else if (!strcmp(colname[i], "Forbidden"))
         {
-            bool result = forbidden->unSerialize(argv[i]);
+            bool result = forbidden->unSerialize(hex_to_bytes(argv[i]));
             if (!result)
             {
                 LOG(Note, "The socket address range for allowed connections in database is malformed.");
@@ -585,7 +585,7 @@ void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(const Soc
     if (errormsg) sqlite3_free(errormsg);
 
     stringstream ss;
-    ss << "INSERT INTO AllowedAndForbiddenSocketAddressRanges(Allowed, Forbidden) VALUES(\'" << escape_sql_string(allowed_str) << "\', \'" << escape_sql_string(forbidden_str) << "\');";
+    ss << "INSERT INTO AllowedAndForbiddenSocketAddressRanges(Allowed, Forbidden) VALUES(\'" << bytes_to_hex(allowed_str) << "\', \'" << bytes_to_hex(forbidden_str) << "\');";
     result = sqlite3_exec(db, ss.str().c_str(), 0, 0, &errormsg);
     if (result != SQLITE_OK)
     { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };

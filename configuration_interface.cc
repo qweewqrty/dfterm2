@@ -991,6 +991,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         st->setAllowedAddresses(edit_allowed_addresses);
         st->setForbiddenAddresses(edit_forbidden_addresses);
         st->checkAddressRestrictions();
+        st->saveAddressRestrictions();
 
         LOG(Note, "Connection restrictions have been updated by " << user->getNameUTF8());
 

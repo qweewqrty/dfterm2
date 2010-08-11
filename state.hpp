@@ -213,6 +213,11 @@ class State
         void setForbiddenAddresses(const trankesbel::SocketAddressRange &forbidden_addresses);
         void setDefaultConnectionAllowance(bool allowance);
 
+        /* Tells state to save allowed/forbidden addresses to database. */
+        void saveAddressRestrictions();
+        /* And to load them. */
+        void loadAddressRestrictions();
+
         /* Checks all currently connected clients for restrictions. */
         void checkAddressRestrictions();
 

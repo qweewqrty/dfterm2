@@ -65,6 +65,19 @@ void State::setDefaultConnectionAllowance(bool allowance)
     default_address_allowance = allowance;
 }
 
+void State::saveAddressRestrictions()
+{
+    assert(configuration);
+    configuration->saveAllowedAndForbiddenSocketAddressRanges(allowed_addresses, forbidden_addresses);
+}
+
+void State::loadAddressRestrictions()
+{
+    assert(configuration);
+    configuration->loadAllowedAndForbiddenSocketAddressRanges(&allowed_addresses, &forbidden_addresses);
+    checkAddressRestrictions();
+}
+
 void State::saveUser(SP<User> user)
 {
     assert(configuration);
@@ -329,6 +342,7 @@ bool State::setDatabaseUTF8(string database_file)
     }
     
     MOTD = configuration->loadMOTD();
+    loadAddressRestrictions();
 
     return true;
 }
