@@ -68,13 +68,13 @@ void State::setDefaultConnectionAllowance(bool allowance)
 void State::saveAddressRestrictions()
 {
     assert(configuration);
-    configuration->saveAllowedAndForbiddenSocketAddressRanges(allowed_addresses, forbidden_addresses);
+    configuration->saveAllowedAndForbiddenSocketAddressRanges(default_address_allowance, allowed_addresses, forbidden_addresses);
 }
 
 void State::loadAddressRestrictions()
 {
     assert(configuration);
-    configuration->loadAllowedAndForbiddenSocketAddressRanges(&allowed_addresses, &forbidden_addresses);
+    configuration->loadAllowedAndForbiddenSocketAddressRanges(&default_address_allowance, &allowed_addresses, &forbidden_addresses);
     checkAddressRestrictions();
 }
 

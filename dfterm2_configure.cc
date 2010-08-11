@@ -9,13 +9,15 @@
 #include <time.h>
 #include <unicode/uclean.h>
 #include <cstring>
+#include "sockets.hpp"
 
 #include <clocale>
 
 using namespace std;
 using namespace dfterm;
+using namespace trankesbel;
 
-enum Action { Nothing, ListUsers, AddUser, RemoveUser, UserInfo, SetMotd, GetMotd };
+enum Action { Nothing, ListUsers, AddUser, RemoveUser, UserInfo, SetMotd, GetMotd, RemoveAddressRestrictions };
 
 void seedRNG()
 {
@@ -112,12 +114,19 @@ int main(int argc, char* argv[])
         {
             action = GetMotd;
         }
+        else if (!strcmp(argv[i1], "--removeaddressrestrictions"))
+        {
+            action = RemoveAddressRestrictions;
+        }
         else if (!strcmp(argv[i1], "--help") || !strcmp(argv[i1], "-h"))
         {
             cout << "Usage: " << endl;
             cout << "--database (database file)" << endl;
             cout << "-db (database file)   Set the database file used. By default dfterm2 will try to look for" << endl;
             cout << "                      dfterm2_database.sqlite3" << endl;
+            cout << "--removeaddressrestrictions" << endl;
+            cout << "                      Removes all restrictions on addresses and lets everyone to connect it." << endl;
+            cout << "                      You can use this if you accidentally firewalled yourself out." << endl;
             cout << "--adduser (name) (password) [admin]" << endl;
             cout << "                      Add a new user to database. The password will be hashed with SHA512." << endl;
             cout << "                      If admin is specified, makes this user an admin." << endl;
@@ -156,6 +165,14 @@ int main(int argc, char* argv[])
     SP<User> user_sp;
     switch(action)
     {
+        case RemoveAddressRestrictions:
+        {
+        SocketAddressRange empty_allowed, empty_forbidden;
+        bool default_allowance = true;
+
+        cdb->saveAllowedAndForbiddenSocketAddressRanges(default_allowance, empty_allowed, empty_forbidden);
+        }
+        break;
         case GetMotd:
         {
         string motd = cdb->loadMOTDUTF8();

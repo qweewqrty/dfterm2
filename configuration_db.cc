@@ -54,7 +54,7 @@ OpenStatus ConfigurationDatabase::open(const UnicodeString &filename)
     result = sqlite3_exec(db, "CREATE TABLE Slotprofiles(Name TEXT, ID TEXT, Width TEXT, Height TEXT, Path TEXT, WorkingPath TEXT, SlotType TEXT, AllowedWatchers TEXT, AllowedLaunchers TEXT, AllowedPlayers TEXT, AllowedClosers TEXT, ForbiddenWatchers TEXT, ForbiddenLaunchers TEXT, ForbiddenPlayers TEXT, ForbiddenClosers TEXT, MaxSlots TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE MOTD(Content TEXT);", 0, 0, 0);
     result = sqlite3_exec(db, "CREATE TABLE GlobalSettings(Key TEXT, Value TEXT);", 0, 0, 0);
-    result = sqlite3_exec(db, "CREATE TABLE AllowedAndForbiddenSocketAddressRanges(Allowed TEXT, Forbidden TEXT);", 0, 0, 0);
+    result = sqlite3_exec(db, "CREATE TABLE AllowedAndForbiddenSocketAddressRanges(Allowed TEXT, Forbidden TEXT, DefaultAllowance TEXT);", 0, 0, 0);
 
     /* Create an admin user, if database was created. */
     if (!database_exists)
@@ -248,10 +248,11 @@ int ConfigurationDatabase::motdCallback(UnicodeString* us, void* v_self, int arg
     return 0;
 }
 
-int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(SocketAddressRange* allowed, SocketAddressRange* forbidden, void* v_self, int argc, char** argv, char** colname)
+int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(bool* default_allowance, SocketAddressRange* allowed, SocketAddressRange* forbidden, void* v_self, int argc, char** argv, char** colname)
 {
     assert(allowed);
     assert(forbidden);
+    assert(default_allowance);
 
     int i;
     for (i = 0; i < argc; ++i)
@@ -263,7 +264,7 @@ int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(Socket
             bool result = allowed->unSerialize(hex_to_bytes(argv[i]));
             if (!result)
             {
-                LOG(Note, "The socket address range for allowed connections in database is malformed.");
+                LOG(Error, "The socket address range for allowed connections in database is malformed.");
                 return 1;
             }
         }
@@ -272,8 +273,20 @@ int ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback(Socket
             bool result = forbidden->unSerialize(hex_to_bytes(argv[i]));
             if (!result)
             {
-                LOG(Note, "The socket address range for allowed connections in database is malformed.");
+                LOG(Error, "The socket address range for allowed connections in database is malformed.");
                 return 1;
+            }
+        }
+        else if (!strcmp(colname[i], "DefaultAllowance"))
+        {
+            if (!strcmp(argv[i], "Yes"))
+                (*default_allowance) = true;
+            else if (!strcmp(argv[i], "No"))
+                (*default_allowance) = false;
+            else
+            {
+                LOG(Error, "The default allowance field in database for address restrictions is malformed. Defaulting it to allow everyone.");
+                (*default_allowance) = true;
             }
         }
     }
@@ -569,7 +582,7 @@ ui32 ConfigurationDatabase::loadMaximumNumberOfSlots()
     return maximum;
 }
 
-void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(const SocketAddressRange &allowed, const SocketAddressRange &forbidden)
+void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(bool default_allowance, const SocketAddressRange &allowed, const SocketAddressRange &forbidden)
 {
     assert(db);
 
@@ -584,8 +597,12 @@ void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(const Soc
     { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
     if (errormsg) sqlite3_free(errormsg);
 
+    string default_allowance_str("Yes");
+    if (!default_allowance)
+        default_allowance_str = "No";
+
     stringstream ss;
-    ss << "INSERT INTO AllowedAndForbiddenSocketAddressRanges(Allowed, Forbidden) VALUES(\'" << bytes_to_hex(allowed_str) << "\', \'" << bytes_to_hex(forbidden_str) << "\');";
+    ss << "INSERT INTO AllowedAndForbiddenSocketAddressRanges(Allowed, Forbidden, DefaultAllowance) VALUES(\'" << bytes_to_hex(allowed_str) << "\', \'" << bytes_to_hex(forbidden_str) << "\', \'" << default_allowance_str << "\');";
     result = sqlite3_exec(db, ss.str().c_str(), 0, 0, &errormsg);
     if (result != SQLITE_OK)
     { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
@@ -593,18 +610,20 @@ void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(const Soc
     if (errormsg) sqlite3_free(errormsg);
 }
 
-void ConfigurationDatabase::loadAllowedAndForbiddenSocketAddressRanges(SocketAddressRange* allowed, SocketAddressRange* forbidden)
+void ConfigurationDatabase::loadAllowedAndForbiddenSocketAddressRanges(bool* default_allowance, SocketAddressRange* allowed, SocketAddressRange* forbidden)
 {
     assert(allowed);
     assert(forbidden);
     assert(db);
+    assert(default_allowance);
 
     SocketAddressRange allowed_f, forbidden_f;
+    bool default_allowance_f = true;
 
     function4<int, void*, int, char**, char**> sql_callback_function;
-    sql_callback_function = boost::bind(&ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback, this, &allowed_f, &forbidden_f, _1, _2, _3, _4);
+    sql_callback_function = boost::bind(&ConfigurationDatabase::allowedAndForbiddenSocketAddressRangesCallback, this, &default_allowance_f, &allowed_f, &forbidden_f, _1, _2, _3, _4);
 
-    string statement = string("SELECT Allowed, Forbidden FROM AllowedAndForbiddenSocketAddressRanges;");
+    string statement = string("SELECT Allowed, Forbidden, DefaultAllowance FROM AllowedAndForbiddenSocketAddressRanges;");
     char* errormsg = (char*) 0;
     int result = sqlite3_exec(db, statement.c_str(), c_callback, (void*) &sql_callback_function, &errormsg);
     if (result != SQLITE_OK)
@@ -617,6 +636,7 @@ void ConfigurationDatabase::loadAllowedAndForbiddenSocketAddressRanges(SocketAdd
 
     (*allowed) = allowed_f;
     (*forbidden) = forbidden_f;
+    (*default_allowance) = default_allowance_f;
 }
 
 

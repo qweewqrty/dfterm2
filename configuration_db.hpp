@@ -33,7 +33,7 @@ class ConfigurationDatabase
         int userDataCallback(SP<User>* user, void* v_self, int argc, char** argv, char** colname);
         int userListDataCallback(std::vector<SP<User> >* user_list, void* v_self, int argc, char** argv, char** colname);
         int maximumSlotsCallback(trankesbel::ui32* maximum, void* v_self, int argc, char** argv, char** colname);
-        int allowedAndForbiddenSocketAddressRangesCallback(trankesbel::SocketAddressRange* allowed, trankesbel::SocketAddressRange* forbidden, void* v_self, int argc, char** argv, char** colname);
+        int allowedAndForbiddenSocketAddressRangesCallback(bool* default_allowance, trankesbel::SocketAddressRange* allowed, trankesbel::SocketAddressRange* forbidden, void* v_self, int argc, char** argv, char** colname);
 
     public:
         ConfigurationDatabase();
@@ -70,8 +70,8 @@ class ConfigurationDatabase
         UnicodeString loadMOTD();
         std::string loadMOTDUTF8();
 
-        void saveAllowedAndForbiddenSocketAddressRanges(const trankesbel::SocketAddressRange &allowed, const trankesbel::SocketAddressRange &forbidden);
-        void loadAllowedAndForbiddenSocketAddressRanges(trankesbel::SocketAddressRange* allowed, trankesbel::SocketAddressRange* forbidden);
+        void saveAllowedAndForbiddenSocketAddressRanges(bool default_allowance, const trankesbel::SocketAddressRange &allowed, const trankesbel::SocketAddressRange &forbidden);
+        void loadAllowedAndForbiddenSocketAddressRanges(bool* default_allowance, trankesbel::SocketAddressRange* allowed, trankesbel::SocketAddressRange* forbidden);
 
         trankesbel::ui32 loadMaximumNumberOfSlots();
         void saveMaximumNumberOfSlots(trankesbel::ui32 maximum);
