@@ -7,12 +7,13 @@
 <!ENTITY interface SYSTEM "interface.xml">
 <!ENTITY supported_df SYSTEM "supported_df.xml">
 <!ENTITY security SYSTEM "security.xml">
+<!ENTITY dfterm2_configure SYSTEM "dfterm2_configure.xml">
 <!ENTITY licenses SYSTEM "licenses.xml">
 ]>
 <book xmlns="http://docbook.org/ns/docbook" version="5.0">
 
 <info>
-<title>Dfterm2 0.2</title>
+<title>Dfterm2 0.3</title>
 <author>
 <firstname>Mikko</firstname>
 <surname>Juola</surname>
@@ -26,6 +27,7 @@
 &installinglinux;
 &configuring;
 &interface;
+&dfterm2_configure;
 &security;
 &licenses;
 </book>

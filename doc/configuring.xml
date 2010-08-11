@@ -42,6 +42,10 @@ Slots are created from slot profiles. You could say they are instances of slot p
 <para><emphasis>Manage users</emphasis></para>
 <para>Administrator only. You can see a list of currently connected people here. Selecting them will allow you to show their IP address and hostname and you can also disconnect them. If you select <emphasis>Show user accounts</emphasis> here, you can see registered users and delete them or change their passwords if you like. Note that you can't see the passwords of the users because they are hashed with SHA512.</para>
 
+<para><emphasis>Manage connection restrictions</emphasis></para>
+<para>You can set restrictions on what address ranges are allowed to
+connect to dfterm2 from here. See section on "Connection restrictions" for more information.</para>
+
 <para><emphasis>Force close running slot</emphasis></para>
 <para>If you select this, the slot you are currently watching will be immdiately closed and the program in it will be killed. You need to have force closer privileges for the slot.</para> 
 
@@ -93,6 +97,50 @@ There are a few parameters that can be configured for a new slot profile. Here t
 
 <para><emphasis>Create slot profile</emphasis></para>
 <para>Select this and the slot profile will be created. You can later modify the slot profile in slot configuration menu.</para>
+
+</simplesect>
+
+<simplesect>
+<title>Connection restrictions</title>
+
+<para>You can access this menu from main menu, selecting "Manage connection restrictions".</para>
+
+<para>If you mess up here, and accidentally firewall yourself off of dfterm2, you can use the command line tool dfterm2_configure to purge all connection restriction settings.</para>
+
+<para>
+Example on Windows, on author's computer. You need to know where dfterm2 has its database.
+<programlisting>
+$ dfterm2_configure --database c:\users\mikko\appdata\roaming\dfterm2\dfterm2.database
+</programlisting>
+</para>
+
+<para><emphasis>Back to main menu (Don't save)</emphasis></para>
+<para>Goes back to the main menu, discarding all changes you made.</para>
+
+<para><emphasis>Default action for connections</emphasis></para>
+<para>This is the default action for new connections. By default,
+all connections are allowed so this is set to "allow". If you set it to
+"forbidden", then you need to add manually some address ranges to connect from or all connections are immediately refused.</para>
+
+<para><emphasis>Set allowed addresses</emphasis></para>
+<para><emphasis>Set forbidden addresses</emphasis></para>
+<para>You can set allowed and forbidden addresses from these menus. You
+can add addresses for individual IP-addresses or regexes that match the hostname
+or IP-address of a connecting client.</para>
+
+<para>
+There are some caveats at using regexes for hostname based matching. You should not use hostname regexes for allowing connections. For example, you can't use them for allowing connections in an environment where the connection would normally be forbidden. This is because dfterm2 can't resolve the address of a connecting host immediately, so for a short time the hostname of a connecting client is not known. During this time, only IP-based matching works, and if the IP-address of the client is forbidden, the client is disconnected.
+</para>
+<para>Using allowing regexes for matching IP-addresses is just fine though.</para>
+<para>
+You can use hostname based forbidding though. Dfterm2 will disconnect any client that has a hostname that matches a forbidden regex. This comes with a small delay, until dfterm2 reverse looks up the address of a connecting client.
+</para>
+
+<para><emphasis>Save and apply</emphasis></para>
+<para>
+Saves all settings and applies them. Everyone who is connecting from an address
+in the forbidden list is disconnected immediately.
+</para>
 
 </simplesect>
 
