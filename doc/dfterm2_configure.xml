@@ -1,0 +1,45 @@
+<chapter xml:id="dfterm2_configure">
+<title>dfterm2_configure command line tool</title>
+
+<para>
+Dfterm2 is bundled with a command line tool called dfterm2_configure.
+You configure some aspects of dfterm2 with it. It is the only way to
+create new admin accounts, apart from dfterm2 installer on Windows.
+It must be used on Linux systems to create an admin account.
+</para>
+<para>
+Dfterm2 uses an sqlite3 database file to store all its settings. Dfterm2_configure writes to this database. You should not run dfterm2_configure, while dfterm2 itself is running.
+</para>
+<para>
+Dfterm2_configure should be where dfterm2 is. On Windows, it is installed in the same directory (e.g. C:\Program Files\dfterm2). Use the Windows command line program (cmd.exe) to navigate there. On Linux, dfterm2_configure sits in the same directory where dfterm2 was compiled.
+</para>
+<para>
+You can get help of all command line parameters by using the --help switch.
+</para>
+<para>
+<programlisting>
+C:\Program Files\dfterm2> dfterm2_configure --help    (Windows)
+$ ./dfterm2_configure --help                          (Linux)
+</programlisting>
+</para>
+<para>
+On Windows, the database is located in %APPDATA\dfterm2\dfterm2.database
+For example, on author's computer, this is C:\Users\Mikko\AppData\Roaming\dfterm2 (Windows 7). To use dfterm2_configure with it, you would write this, if you wanted to clear all address restriction settings.
+</para>
+<para>
+<programlisting>
+C:\Program Files\dfterm2> dfterm2_configure --database C:\Users\Mikko\AppData\Roaming\dfterm2\dfterm2.database  --removeaddressrestrictions
+</programlisting>
+</para>
+
+<para>
+On Linux, the default database is in the current directory where dfterm2 runs with the name dfterm2_database.sqlite3. Dfterm2_configure also uses this file by default.
+</para>
+<para>
+<programlisting>
+$ ./dfterm2_configure --removeaddressrestrictions
+</programlisting>
+</para>
+
+</chapter>
+
