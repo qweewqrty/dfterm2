@@ -39,6 +39,7 @@ class DFHackSlot : public Slot
 
         DFHack::ContextManager* df_contextmanager;
         DFHack::Context* df_context;
+        DFHack::Position* df_position_module;
 
         bool isDFClosed();
 

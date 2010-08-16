@@ -83,6 +83,7 @@ DFHackSlot::DFHackSlot() : Slot()
     initVkeyMappings();
 
     df_context = (DFHack::Context*) 0;
+    df_position_module = (DFHack::Position*) 0;
     df_contextmanager = new DFHack::ContextManager("Memory.xml");
 
     // Create a thread that will launch or grab the DF process.
@@ -221,6 +222,7 @@ void DFHackSlot::thread_function()
         {
             df_context = df_contextmanager->getSingleContext();
             df_context->Attach();
+            df_position_module = df_context->getPosition();
         }
         catch (std::exception &e)
         {
@@ -427,6 +429,9 @@ void DFHackSlot::buildColorFromFloats(float32 r, float32 g, float32 b, Color* co
 
 void DFHackSlot::updateDFWindowTerminal()
 {
+    if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
+        df_terminal.resize(df_w, df_h);
+
     /*
     if (data_format == PackedVarying && df_w < 256 && df_h < 256)
     {
@@ -721,6 +726,19 @@ void DFHackSlot::LoggerReadProcessMemory(HANDLE handle, const void* address, voi
 
 void DFHackSlot::updateWindowSizeFromDFMemory()
 {
+    assert(df_position_module);
+
+    ::int32_t width, height;
+    df_position_module->getWindowSize(width, height);
+
+    // Some protection against bogus offsets
+    if (width < 1) width = 1;
+    if (height < 1) height = 1;
+    if (width > 300) width = 300;
+    if (height > 300) height = 300;
+
+    df_w = width;
+    df_h = height;
 }
 
 void DFHackSlot::unloadToWindow(SP<Interface2DWindow> target_window)
@@ -801,6 +819,8 @@ bool DFHackSlot::isDFClosed()
     if (bc.Contains(df_context))
     {
         df_context = (DFHack::Context*) 0;
+        if (df_handle) df_handle = INVALID_HANDLE_VALUE;
+        df_windows.clear();
         return true;
     }
     
