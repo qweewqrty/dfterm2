@@ -732,6 +732,10 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
                 SlotType st = (SlotType) edit_slotprofile.getSlotType();
                 if (!no_read)
                 {
+                    #ifdef NO_DFHACK
+                    if (st == DFGrabHackSlot) st = DFGrab;
+                    #endif
+
                     #ifdef _WIN32
                     if (st != DFGrab && st != DFLaunch && st != DFGrabHackSlot) st = DFLaunch;
                     #else
@@ -1165,8 +1169,10 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         SlotType st = (SlotType) edit_slotprofile.getSlotType();
         if (st == DFGrab)
             edit_slotprofile.setSlotType((ui32) DFLaunch);
+        #ifndef NO_DFHACK
         else if (st == DFLaunch)
             edit_slotprofile.setSlotType((ui32) DFGrabHackSlot);
+        #endif
         else
             edit_slotprofile.setSlotType((ui32) DFGrab);
         #endif

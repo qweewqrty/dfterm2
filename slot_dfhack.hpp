@@ -26,6 +26,7 @@
 #include "termemu.h"
 #include "interface_ncurses.hpp"
 #include "dfscreendataformat.hpp"
+#include "lockedresource.hpp"
 
 namespace dfterm
 {
@@ -55,6 +56,8 @@ class DFHackSlot : public Slot
 
         /* Terminal for DF screen. */
         Terminal df_terminal;
+
+        LockedResource<Terminal> df_cache_terminal;
 
         /* Cycle thread watches this variable and closes when it sees it's true. */
         volatile bool close_thread;

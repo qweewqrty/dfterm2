@@ -10,10 +10,17 @@ subdirs (trankesbel)
 
 SET(NO_CURSES 1)
 
+OPTION(BUILD_DFHACK "Build DFHack and DFHack slot type. (buggy)" OFF)
+IF (BUILD_DFHACK)
+    SET(DFHACK_SLOT_SOURCE slot_dfhack.cc)
+ELSE (BUILD_DFHACK)
+    ADD_DEFINITIONS(-DNO_DFHACK)
+ENDIF (BUILD_DFHACK)
+
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
 IF (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc slot_dfhack.cc)
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc ${SLOT_DFHACK_SOURCE})
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
     add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.c configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc)
@@ -83,7 +90,8 @@ ADD_TEST(lockedresource_test ${EXECUTABLE_OUTPUT_PATH}/lockedresource_test)
 
 SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure lockedresource_test PROPERTIES COMPILE_DEFINITIONS _UNICODE)
 
-subdirs(dfhack)
-
-target_link_libraries(dfterm2 dfhack)
+IF (BUILD_DFHACK)
+    subdirs(dfhack)
+    target_link_libraries(dfterm2 dfhack)
+ENDIF (BUILD_DFHACK)
 

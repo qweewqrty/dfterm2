@@ -140,7 +140,9 @@ DFHackSlot::~DFHackSlot()
 
 bool DFHackSlot::isAlive()
 {
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
+    unique_lock<recursive_mutex> alive_try_lock(glue_mutex, try_to_lock_t());
+    if (!alive_try_lock.owns_lock()) return true;
+
     bool alive_bool = alive;
     return alive_bool;
 }
@@ -269,10 +271,11 @@ void DFHackSlot::thread_function()
     this->df_handle = df_process;
 
     string injection_glue_dll = TO_UTF8(local_directory, local_directory_size) + string("\\dfterm_injection_glue.dll");
-    LOG(Note, "Injecting " << injection_glue_dll << " to process.");
+    LOG(Note, "Injecting " << injection_glue_dll << " to process in 2 seconds.");
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
-    df_context->Resume();
+    df_context->ForceResume();
+    
 
     try
     {
@@ -292,7 +295,7 @@ void DFHackSlot::thread_function()
 
     try
     {
-        while(!isDFClosed())
+        while(!isDFClosed() && df_context)
         {
             this_thread::interruption_point();
 
@@ -373,6 +376,7 @@ void DFHackSlot::thread_function()
             }
 
             update_mutex.unlock();
+
             updateDFWindowTerminal();
 
             {
@@ -429,89 +433,62 @@ void DFHackSlot::buildColorFromFloats(float32 r, float32 g, float32 b, Color* co
 
 void DFHackSlot::updateDFWindowTerminal()
 {
+    lock_guard<recursive_mutex> alive_mutex_lock(glue_mutex);
+
+    assert(df_context);
+
     if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
         df_terminal.resize(df_w, df_h);
 
-    /*
-    if (data_format == PackedVarying && df_w < 256 && df_h < 256)
+    if (df_w > 256 || df_h > 256)
+        return; /* I'd like to log this message but it would most likely spam the log
+                   when this happens. */
+
+    DFHack::t_screen screendata[256*256];
+
+    assert(df_position_module);
+    try
     {
-        ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
-
-        ui32 packed_buf[256*256];
-        LoggerReadProcessMemory(df_handle, (LPCVOID) symbol_address, packed_buf, df_w*df_h*4, NULL);
-
-        lock_guard<recursive_mutex> lock(glue_mutex);
-        if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
-            df_terminal.resize(df_w, df_h);
-        ui32 i1, i2;
-        for (i2 = 0; i2 < df_h; ++i2)
-            for (i1 = 0; i1 < df_w; ++i1)
-            {
-                ui32 offset = i1 * df_h + i2;
-                Color f_color, b_color;
-                bool f_bold = false;
-                bool b_bold = false;
-
-                ui8 symbol = (ui8) ((ui32) (packed_buf[i1 * df_h + i2] & 0x000000FF));
-                f_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x0000FF00) >> 8);
-                b_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x00FF0000) >> 16);
-                f_bold = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0xFF000000) >> 24);
-
-                if (f_color == Red) f_color = Blue;
-                else if (f_color == Blue) f_color = Red;
-                else if (f_color == Yellow) f_color = Cyan;
-                else if (f_color == Cyan) f_color = Yellow;
-                if (b_color == Red) b_color = Blue;
-                else if (b_color == Blue) b_color = Red;
-                else if (b_color == Yellow) b_color = Cyan;
-                else if (b_color == Cyan) b_color = Yellow;
-
-                df_terminal.setTile(i1, i2, TerminalTile(symbol, f_color, b_color, false, f_bold));
-            }
+        df_context->Suspend();
+        if (!df_position_module->getScreenTiles(df_w, df_h, screendata))
+        {
+            LOG(Error, "Cannot read screen data with DFHack from DF for some reason. (missing screen_tiles_pointer?)");
+            return;
+        }
+        df_context->ForceResume();
     }
-    if (data_format == DistinctFloatingPointVarying && df_w < 256 && df_h < 256)
+    catch(std::exception &e)
     {
-        ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
-        ptrdiff_t red_address = red_pp.getFinalAddress(df_handle);
-        ptrdiff_t green_address = green_pp.getFinalAddress(df_handle);
-        ptrdiff_t blue_address = blue_pp.getFinalAddress(df_handle);
-        ptrdiff_t red_b_address = red_b_pp.getFinalAddress(df_handle);
-        ptrdiff_t green_b_address = green_b_pp.getFinalAddress(df_handle);
-        ptrdiff_t blue_b_address = blue_b_pp.getFinalAddress(df_handle);
+        LOG(Error, "Catched an exception from DFHack while reading screen tiles: " << e.what());
+        return;
+    }
 
-        ui32 symbol_buf[256*256];
-        float32 red_buf[256*256];
-        float32 green_buf[256*256];
-        float32 blue_buf[256*256];
-        float32 red_b_buf[256*256];
-        float32 green_b_buf[256*256];
-        float32 blue_b_buf[256*256];
+    for (ui32 i1 = 0; i1 < df_h; ++i1)
+        for (ui32 i2 = 0; i2 < df_w; ++i2)
+        {
+            ui32 offset = i2 + i1*df_w;
 
-        LoggerReadProcessMemory(df_handle, (LPCVOID) symbol_address, symbol_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) red_address, red_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) blue_address, blue_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) green_address, green_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) red_b_address, red_b_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) blue_b_address, blue_b_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) green_b_address, green_b_buf, df_w*df_h*4, NULL);
+            Color f_color = (Color) screendata[offset].foreground;
+            Color b_color = (Color) screendata[offset].background;
 
-        lock_guard<recursive_mutex> lock(glue_mutex);
-        if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
-            df_terminal.resize(df_w, df_h);
-        ui32 i1, i2;
-        for (i2 = 0; i2 < df_h; ++i2)
-            for (i1 = 0; i1 < df_w; ++i1)
-            {
-                ui32 offset = i1 * df_h + i2;
-                Color f_color, b_color;
-                bool f_bold = false;
-                bool b_bold = false;
-                buildColorFromFloats(blue_buf[offset], green_buf[offset], red_buf[offset], &f_color, &f_bold);
-                buildColorFromFloats(blue_b_buf[offset], green_b_buf[offset], red_b_buf[offset], &b_color, &b_bold);
-                df_terminal.setTile(i1, i2, TerminalTile(symbol_buf[i1 * df_h + i2], f_color, b_color, false, f_bold));
-            }
-    };
-    */
+            if (f_color == Red) f_color = Blue;
+            else if (f_color == Blue) f_color = Red;
+            else if (f_color == Yellow) f_color = Cyan;
+            else if (f_color == Cyan) f_color = Yellow;
+            if (b_color == Red) b_color = Blue;
+            else if (b_color == Blue) b_color = Red;
+            else if (b_color == Yellow) b_color = Cyan;
+            else if (b_color == Cyan) b_color = Yellow;
+
+            df_terminal.setTile(i2, i1, TerminalTile(screendata[offset].symbol, 
+                                                     f_color, 
+                                                     b_color,
+                                                     false, 
+                                                     screendata[offset].bright));
+        }
+
+    LockedObject<Terminal> term = df_cache_terminal.lock();
+    term->copyPreserve(&df_terminal);
 }
 
 class enumDFWindow_struct
@@ -726,10 +703,22 @@ void DFHackSlot::LoggerReadProcessMemory(HANDLE handle, const void* address, voi
 
 void DFHackSlot::updateWindowSizeFromDFMemory()
 {
+    lock_guard<recursive_mutex> alive_lock(glue_mutex);
+
     assert(df_position_module);
 
     ::int32_t width, height;
-    df_position_module->getWindowSize(width, height);
+    try
+    {
+        df_context->Suspend();
+        df_position_module->getWindowSize(width, height);
+        df_context->ForceResume();
+    }
+    catch (std::exception &e)
+    {
+        LOG(Error, "Catched an exception from DFHack while reading window size: " << e.what());
+        return;
+    }
 
     // Some protection against bogus offsets
     if (width < 1) width = 1;
@@ -739,17 +728,20 @@ void DFHackSlot::updateWindowSizeFromDFMemory()
 
     df_w = width;
     df_h = height;
+
+    LockedObject<Terminal> t = df_cache_terminal.lock();
+    if (t->getWidth() != df_w || t->getHeight() != df_h)
+        t->resize(df_w, df_h);
 }
 
 void DFHackSlot::unloadToWindow(SP<Interface2DWindow> target_window)
 {
     assert(alive && target_window);
 
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    ui32 t_w, t_h;
+    LockedObject<Terminal> term = df_cache_terminal.lock();
+    ui32 t_w = term->getWidth(), t_h = term->getHeight();
+
     ui32 actual_window_w, actual_window_h;
-    t_w = min(df_w, (ui32) df_terminal.getWidth());
-    t_h = min(df_h, (ui32) df_terminal.getHeight());
     t_w = min(t_w, (ui32) 256);
     t_h = min(t_h, (ui32) 256);
     target_window->setMinimumSize(t_w, t_h);
@@ -771,7 +763,7 @@ void DFHackSlot::unloadToWindow(SP<Interface2DWindow> target_window)
             if (i1 < game_offset_x || i2 < game_offset_y || (i1 - game_offset_x) >= t_w || (i2 - game_offset_y) >= t_h)
                 t = TerminalTile(' ', 7, 0, false, false);
             else
-                t = df_terminal.getTile(i1 - game_offset_x, i2 - game_offset_y);
+                t = term->getTile(i1 - game_offset_x, i2 - game_offset_y);
 
             ui32 symbol = t.getSymbol();
             if (symbol > 255) symbol = symbol % 256;
