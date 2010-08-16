@@ -1,6 +1,11 @@
+/* DFHack slot type. Code initially copied from slot_dfglue.cc */
+
 #ifndef _WIN32
-#error "dfglue is only for Windows. For UNIX/Linux/BSD/Some other use pty instead."
+/* For now, use dfhack only for windows. */
+#error "dfhack in dfterm2 is only for Windows. For UNIX/Linux/BSD/Some other use pty instead."
 #endif
+
+#include "slot_dfhack.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -8,7 +13,6 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <iostream>
-#include "slot_dfglue.hpp"
 #include "nanoclock.hpp"
 #include "interface_ncurses.hpp"
 #include "cp437_to_unicode.hpp"
@@ -58,7 +62,7 @@ static ui32 checksum(const char* buf, size_t buflen)
 static ui32 checksum(string str)
 { return checksum(str.c_str(), str.size()); };
 
-DFGlue::DFGlue() : Slot()
+DFHackSlot::DFHackSlot() : Slot()
 {
     df_terminal.setCursorVisibility(false);
     reported_memory_error = false;
@@ -78,13 +82,17 @@ DFGlue::DFGlue() : Slot()
 
     initVkeyMappings();
 
+    df_context = (DFHack::Context*) 0;
+    df_position_module = (DFHack::Position*) 0;
+    df_contextmanager = new DFHack::ContextManager("Memory.xml");
+
     // Create a thread that will launch or grab the DF process.
     glue_thread = SP<thread>(new thread(static_thread_function, this));
     if (glue_thread->get_id() == thread::id())
         alive = false;
 };
 
-DFGlue::DFGlue(bool dummy) : Slot()
+DFHackSlot::DFHackSlot(bool dummy) : Slot()
 {
     df_terminal.setCursorVisibility(false);
     reported_memory_error = false;
@@ -104,13 +112,16 @@ DFGlue::DFGlue(bool dummy) : Slot()
 
     initVkeyMappings();
 
+    df_context = (DFHack::Context*) 0;
+    df_contextmanager = new DFHack::ContextManager("Memory.xml");
+
     // Create a thread that will launch or grab the DF process.
     glue_thread = SP<thread>(new thread(static_thread_function, this));
     if (glue_thread->get_id() == thread::id())
         alive = false;
 }
 
-DFGlue::~DFGlue()
+DFHackSlot::~DFHackSlot()
 {
     if (glue_thread)
         glue_thread->interrupt();
@@ -122,23 +133,27 @@ DFGlue::~DFGlue()
 
     if (glue_thread)
         glue_thread->join();
+
     if (df_handle != INVALID_HANDLE_VALUE) CloseHandle(df_handle);
+    if (df_contextmanager) delete df_contextmanager;
 }
 
-bool DFGlue::isAlive()
+bool DFHackSlot::isAlive()
 {
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
+    unique_lock<recursive_mutex> alive_try_lock(glue_mutex, try_to_lock_t());
+    if (!alive_try_lock.owns_lock()) return true;
+
     bool alive_bool = alive;
     return alive_bool;
 }
 
-void DFGlue::static_thread_function(DFGlue* self)
+void DFHackSlot::static_thread_function(DFHackSlot* self)
 {
     assert(self);
     self->thread_function();
 }
 
-void DFGlue::initVkeyMappings()
+void DFHackSlot::initVkeyMappings()
 {
     fixed_mappings[(KeyCode) '0'] = VK_NUMPAD0;
     fixed_mappings[(KeyCode) '1'] = VK_NUMPAD1;
@@ -194,41 +209,73 @@ void DFGlue::initVkeyMappings()
 extern WCHAR local_directory[60000];
 extern size_t local_directory_size;
 
-void DFGlue::thread_function()
+void DFHackSlot::thread_function()
 {
+    assert(!df_context);
+    assert(df_contextmanager);
+
     // Handle and window for process goes here. 
     HANDLE df_process = INVALID_HANDLE_VALUE;
     vector<HWND> df_windows;
 
     if (!dont_take_running_process)
     {
-        // This function should find the window and process for us.
-        bool found_process = findDFProcess(&df_process, &df_windows);
-        if (!found_process)
+        try
         {
-            lock_guard<recursive_mutex> alive_lock2(glue_mutex);
+            df_context = df_contextmanager->getSingleContext();
+            df_context->Attach();
+            df_position_module = df_context->getPosition();
+        }
+        catch (std::exception &e)
+        {
+            LOG(Error, "Cannot get a working context to DF with dfhack. \"" << e.what() << "\"");
             alive = false;
             return;
         }
+
+        DFHack::Process* p = df_context->getProcess();
+        assert(p);
+        DWORD pid = p->getPID();
+        HANDLE h_p = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_VM_WRITE|PROCESS_VM_OPERATION|PROCESS_QUERY_INFORMATION|PROCESS_VM_READ, FALSE, pid);
+        if (h_p == INVALID_HANDLE_VALUE)
+        {
+            LOG(Error, "DFHack attach succeeded but otherwise opening the handle failed.");
+            alive = false;
+            return;
+        }
+
+        findDFWindow(&df_windows, pid);
+
+        df_process = h_p;
     }
     else
     // Launch a new DF process
     {
+        // Oops. doesn't work yet
+        alive = false;
+        return;
+
+        /*
         if (!launchDFProcess(&df_process, &df_windows))
         {
             alive = false;
             return;
         }
+        */
     }
+
+    assert(df_context->isAttached());
 
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
     this->df_windows = df_windows;
     this->df_handle = df_process;
 
     string injection_glue_dll = TO_UTF8(local_directory, local_directory_size) + string("\\dfterm_injection_glue.dll");
-    LOG(Note, "Injecting " << injection_glue_dll << " to process.");
+    LOG(Note, "Injecting " << injection_glue_dll << " to process in 2 seconds.");
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
+    df_context->ForceResume();
+    
 
     try
     {
@@ -244,20 +291,11 @@ void DFGlue::thread_function()
         return;
     }
 
-    bool version = detectDFVersion();
-    if (!version)
-    {
-        CloseHandle(df_process);
-        this->df_handle = INVALID_HANDLE_VALUE;
-        this->df_windows.clear();;
-        alive = false;
-        alive_lock.unlock();
-        return;
-    }
     alive_lock.unlock();
+
     try
     {
-        while(!isDFClosed())
+        while(!isDFClosed() && df_context)
         {
             this_thread::interruption_point();
 
@@ -338,6 +376,7 @@ void DFGlue::thread_function()
             }
 
             update_mutex.unlock();
+
             updateDFWindowTerminal();
 
             {
@@ -357,7 +396,7 @@ void DFGlue::thread_function()
     alive = false;
 }
 
-void DFGlue::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color, bool* bold)
+void DFHackSlot::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color, bool* bold)
 {
     assert(color && bold);
 
@@ -392,86 +431,64 @@ void DFGlue::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color,
     (*bold) = bold_result;
 }
 
-void DFGlue::updateDFWindowTerminal()
+void DFHackSlot::updateDFWindowTerminal()
 {
-    if (data_format == PackedVarying && df_w < 256 && df_h < 256)
+    lock_guard<recursive_mutex> alive_mutex_lock(glue_mutex);
+
+    assert(df_context);
+
+    if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
+        df_terminal.resize(df_w, df_h);
+
+    if (df_w > 256 || df_h > 256)
+        return; /* I'd like to log this message but it would most likely spam the log
+                   when this happens. */
+
+    DFHack::t_screen screendata[256*256];
+
+    assert(df_position_module);
+    try
     {
-        ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
-
-        ui32 packed_buf[256*256];
-        LoggerReadProcessMemory(df_handle, (LPCVOID) symbol_address, packed_buf, df_w*df_h*4, NULL);
-
-        lock_guard<recursive_mutex> lock(glue_mutex);
-        if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
-            df_terminal.resize(df_w, df_h);
-        ui32 i1, i2;
-        for (i2 = 0; i2 < df_h; ++i2)
-            for (i1 = 0; i1 < df_w; ++i1)
-            {
-                ui32 offset = i1 * df_h + i2;
-                Color f_color, b_color;
-                bool f_bold = false;
-                bool b_bold = false;
-
-                ui8 symbol = (ui8) ((ui32) (packed_buf[i1 * df_h + i2] & 0x000000FF));
-                f_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x0000FF00) >> 8);
-                b_color = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0x00FF0000) >> 16);
-                f_bold = (Color) ((ui32) (packed_buf[i1 * df_h + i2] & 0xFF000000) >> 24);
-
-                if (f_color == Red) f_color = Blue;
-                else if (f_color == Blue) f_color = Red;
-                else if (f_color == Yellow) f_color = Cyan;
-                else if (f_color == Cyan) f_color = Yellow;
-                if (b_color == Red) b_color = Blue;
-                else if (b_color == Blue) b_color = Red;
-                else if (b_color == Yellow) b_color = Cyan;
-                else if (b_color == Cyan) b_color = Yellow;
-
-                df_terminal.setTile(i1, i2, TerminalTile(symbol, f_color, b_color, false, f_bold));
-            }
+        df_context->Suspend();
+        if (!df_position_module->getScreenTiles(df_w, df_h, screendata))
+        {
+            LOG(Error, "Cannot read screen data with DFHack from DF for some reason. (missing screen_tiles_pointer?)");
+            return;
+        }
+        df_context->ForceResume();
     }
-    if (data_format == DistinctFloatingPointVarying && df_w < 256 && df_h < 256)
+    catch(std::exception &e)
     {
-        ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
-        ptrdiff_t red_address = red_pp.getFinalAddress(df_handle);
-        ptrdiff_t green_address = green_pp.getFinalAddress(df_handle);
-        ptrdiff_t blue_address = blue_pp.getFinalAddress(df_handle);
-        ptrdiff_t red_b_address = red_b_pp.getFinalAddress(df_handle);
-        ptrdiff_t green_b_address = green_b_pp.getFinalAddress(df_handle);
-        ptrdiff_t blue_b_address = blue_b_pp.getFinalAddress(df_handle);
+        LOG(Error, "Catched an exception from DFHack while reading screen tiles: " << e.what());
+        return;
+    }
 
-        ui32 symbol_buf[256*256];
-        float32 red_buf[256*256];
-        float32 green_buf[256*256];
-        float32 blue_buf[256*256];
-        float32 red_b_buf[256*256];
-        float32 green_b_buf[256*256];
-        float32 blue_b_buf[256*256];
+    for (ui32 i1 = 0; i1 < df_h; ++i1)
+        for (ui32 i2 = 0; i2 < df_w; ++i2)
+        {
+            ui32 offset = i2 + i1*df_w;
 
-        LoggerReadProcessMemory(df_handle, (LPCVOID) symbol_address, symbol_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) red_address, red_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) blue_address, blue_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) green_address, green_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) red_b_address, red_b_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) blue_b_address, blue_b_buf, df_w*df_h*4, NULL);
-        LoggerReadProcessMemory(df_handle, (LPCVOID) green_b_address, green_b_buf, df_w*df_h*4, NULL);
+            Color f_color = (Color) screendata[offset].foreground;
+            Color b_color = (Color) screendata[offset].background;
 
-        lock_guard<recursive_mutex> lock(glue_mutex);
-        if (df_terminal.getWidth() != df_w || df_terminal.getHeight() != df_h)
-            df_terminal.resize(df_w, df_h);
-        ui32 i1, i2;
-        for (i2 = 0; i2 < df_h; ++i2)
-            for (i1 = 0; i1 < df_w; ++i1)
-            {
-                ui32 offset = i1 * df_h + i2;
-                Color f_color, b_color;
-                bool f_bold = false;
-                bool b_bold = false;
-                buildColorFromFloats(blue_buf[offset], green_buf[offset], red_buf[offset], &f_color, &f_bold);
-                buildColorFromFloats(blue_b_buf[offset], green_b_buf[offset], red_b_buf[offset], &b_color, &b_bold);
-                df_terminal.setTile(i1, i2, TerminalTile(symbol_buf[i1 * df_h + i2], f_color, b_color, false, f_bold));
-            }
-    };
+            if (f_color == Red) f_color = Blue;
+            else if (f_color == Blue) f_color = Red;
+            else if (f_color == Yellow) f_color = Cyan;
+            else if (f_color == Cyan) f_color = Yellow;
+            if (b_color == Red) b_color = Blue;
+            else if (b_color == Blue) b_color = Red;
+            else if (b_color == Yellow) b_color = Cyan;
+            else if (b_color == Cyan) b_color = Yellow;
+
+            df_terminal.setTile(i2, i1, TerminalTile(screendata[offset].symbol, 
+                                                     f_color, 
+                                                     b_color,
+                                                     false, 
+                                                     screendata[offset].bright));
+        }
+
+    LockedObject<Terminal> term = df_cache_terminal.lock();
+    term->copyPreserve(&df_terminal);
 }
 
 class enumDFWindow_struct
@@ -486,7 +503,7 @@ class enumDFWindow_struct
 };
 
 // Callback for finding the DF window
-BOOL CALLBACK DFGlue::enumDFWindow(HWND hwnd, LPARAM strct)
+BOOL CALLBACK DFHackSlot::enumDFWindow(HWND hwnd, LPARAM strct)
 {
     enumDFWindow_struct* edw = (enumDFWindow_struct*) strct;
 
@@ -498,7 +515,7 @@ BOOL CALLBACK DFGlue::enumDFWindow(HWND hwnd, LPARAM strct)
     return TRUE;
 }
 
-bool DFGlue::findDFWindow(vector<HWND>* df_windows, DWORD pid)
+bool DFHackSlot::findDFWindow(vector<HWND>* df_windows, DWORD pid)
 {
     assert(df_windows);
     (*df_windows).clear();
@@ -514,7 +531,7 @@ bool DFGlue::findDFWindow(vector<HWND>* df_windows, DWORD pid)
     return true;
 }
 
-bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
+bool DFHackSlot::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 {
     assert(df_process && df_windows);
 
@@ -575,7 +592,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 
     if (!CreateProcessW(NULL, path_cstr, NULL, NULL, FALSE, 0, NULL, working_path, &sup, &pi))
     {
-        LOG(Error, "SLOT/DFGlue: CreateProcess() failed with GetLastError() == " << GetLastError());
+        LOG(Error, "SLOT/DFHackSlot: CreateProcess() failed with GetLastError() == " << GetLastError());
         return false;
     }
 
@@ -609,9 +626,10 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     return true;
 };
 
-bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
+bool DFHackSlot::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
 {
-    assert(df_process && df_windows);
+    assert(df_process);
+    assert(df_windows);
 
     DWORD processes[1000], num_processes;
     EnumProcesses(processes, sizeof(DWORD)*1000, &num_processes);
@@ -662,7 +680,7 @@ bool DFGlue::findDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     return true;
 }
 
-void DFGlue::getSize(ui32* width, ui32* height)
+void DFHackSlot::getSize(ui32* width, ui32* height)
 {
     assert(width && height);
 
@@ -672,7 +690,7 @@ void DFGlue::getSize(ui32* width, ui32* height)
     (*height) = h;
 }
 
-void DFGlue::LoggerReadProcessMemory(HANDLE handle, const void* address, void* target, SIZE_T size, SIZE_T* read_size)
+void DFHackSlot::LoggerReadProcessMemory(HANDLE handle, const void* address, void* target, SIZE_T size, SIZE_T* read_size)
 {
     int result = ReadProcessMemory(handle, address, target, size, read_size);
     if (!result && !reported_memory_error)
@@ -683,224 +701,47 @@ void DFGlue::LoggerReadProcessMemory(HANDLE handle, const void* address, void* t
     }
 }
 
-void DFGlue::updateWindowSizeFromDFMemory()
+void DFHackSlot::updateWindowSizeFromDFMemory()
 {
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    if (df_handle == INVALID_HANDLE_VALUE) return;
 
-    ui32 w = 0, h = 0;
-    ptrdiff_t size_address = size_pp.getFinalAddress(df_handle);
-    LoggerReadProcessMemory(df_handle, (LPCVOID) size_address, &w, 4, NULL);
-    LoggerReadProcessMemory(df_handle, (LPCVOID) (size_address + 4), &h, 4, NULL);
+    assert(df_position_module);
 
-    /* Limit the size. If this condition here ever becomes true, it probably means we are reading
-       the size information from wrong place and getting weird results. */
-    if (!w || !h || w > 255 || h > 255)
+    ::int32_t width, height;
+    try
     {
-        w = 80;
-        h = 25;
+        df_context->Suspend();
+        df_position_module->getWindowSize(width, height);
+        df_context->ForceResume();
+    }
+    catch (std::exception &e)
+    {
+        LOG(Error, "Catched an exception from DFHack while reading window size: " << e.what());
+        return;
     }
 
-    df_w = w;
-    df_h = h;
+    // Some protection against bogus offsets
+    if (width < 1) width = 1;
+    if (height < 1) height = 1;
+    if (width > 300) width = 300;
+    if (height > 300) height = 300;
+
+    df_w = width;
+    df_h = height;
+
+    LockedObject<Terminal> t = df_cache_terminal.lock();
+    if (t->getWidth() != df_w || t->getHeight() != df_h)
+        t->resize(df_w, df_h);
 }
 
-bool DFGlue::detectDFVersion()
-{
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    if (!df_handle) return false;
-
-    /* Find the DF executable, open it, and calculate checksum for it. */
-    WCHAR image_file_name[1001];
-    memset(image_file_name, 0, 1001);
-    WCHAR image_base_name[1001];
-    memset(image_base_name, 0, 1001);
-
-    GetModuleFileNameExW(df_handle, NULL, image_file_name, 1000);
-    WCHAR* last_p = wcsrchr(image_file_name, L'\\');
-    if (!last_p)
-        memcpy(image_base_name, image_file_name, 1000 * sizeof(WCHAR));
-    else
-        wcscpy(image_base_name, last_p + 1);
-    string utf8_image_base_name = TO_UTF8(image_base_name);
-
-    FILE* f = _wfopen(image_file_name, L"rb");
-    if (!f)
-        return false;
-    /* We read 100000 bytes from the executable */
-    char buf[100000];
-    memset(buf, 0, 100000);
-    fread(buf, 100000, 1, f);
-    fclose(f);
-    ::uint32_t csum = checksum(buf, 100000);
-
-    
-
-    PointerPath af;
-    PointerPath sz;
-
-    switch(csum)
-    {
-    case 0xc6b98be5: /* DF 0.31.12 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x0142015C, utf8_image_base_name);
-    data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3112, 4);
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.12 SDL version)");
-    break;
-    case 0xc61cac7e: /* DF 0.31.11 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x0142015C, utf8_image_base_name);
-    data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3111, 4);
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.11 SDL version)");
-    break;
-    case 0xdb942094: /* DF 0.31.10 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x01419144, utf8_image_base_name);
-    data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3110, 4);
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.10 SDL version)");
-    break;
-    case 0xc58b306c:  /* DF 0.31.09 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x01419144, utf8_image_base_name);
-    data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3109, 4);
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.09 SDL version)");
-    break;
-    case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x140C11C, utf8_image_base_name);
-    data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3108, 4);
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.08 SDL version)");
-    break;
-    case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
-    sz.pushAddress(0x0140B11C, utf8_image_base_name);
-    data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3106, 4);
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.06 SDL version)");
-    break;
-    case 0x9404d33d:  /* DF 0.31.03 */
-    af.pushAddress(0x0106FE7C, utf8_image_base_name);
-    af.pushAddress(0);
-    af.pushAddress(0);
-    af.pushAddress(0xC);
-    sz.pushAddress(0x013F6B00, utf8_image_base_name);
-    red_pp.reset();
-    red_pp.pushAddress(0x0106FE7C, utf8_image_base_name);
-    red_pp.pushAddress(0);
-    red_pp.pushAddress(0);
-    blue_pp = red_pp;
-    green_pp = red_pp;
-    red_b_pp = red_pp;
-    green_b_pp = red_pp;
-    blue_b_pp = red_pp;
-    red_pp.pushAddress(0x18);
-    blue_pp.pushAddress(0x10);
-    green_pp.pushAddress(0x14);
-    red_b_pp.pushAddress(0x24);
-    green_b_pp.pushAddress(0x20);
-    blue_b_pp.pushAddress(0x1c);
-
-    data_format = DistinctFloatingPointVarying;
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.03)");
-    break;
-    case 0xa0b99a67:  /* DF v0.31.02 */
-    af.pushAddress(0x0106EE7C, utf8_image_base_name);
-    af.pushAddress(0);
-    af.pushAddress(0);
-    af.pushAddress(0xC);
-    sz.pushAddress(0x013F5AC0, utf8_image_base_name);
-
-    red_pp.reset();
-    red_pp.pushAddress(0x0106EE7C, utf8_image_base_name);
-    red_pp.pushAddress(0);
-    red_pp.pushAddress(0);
-    blue_pp = red_pp;
-    green_pp = red_pp;
-    red_b_pp = red_pp;
-    green_b_pp = red_pp;
-    blue_b_pp = red_pp;
-    red_pp.pushAddress(0x18);
-    blue_pp.pushAddress(0x10);
-    green_pp.pushAddress(0x14);
-    red_b_pp.pushAddress(0x24);
-    green_b_pp.pushAddress(0x20);
-    blue_b_pp.pushAddress(0x1c);
-
-    data_format = DistinctFloatingPointVarying;
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.02)");
-    break;
-    case 0xdf6285d3: /* DF v.0.31.01 */
-    af.pushAddress(0x0106EE7C, utf8_image_base_name);
-    af.pushAddress(0);
-    af.pushAddress(0);
-    af.pushAddress(0xC);
-    sz.pushAddress(0x013F5AC0, utf8_image_base_name);
-
-    red_pp.reset();
-    red_pp.pushAddress(0x0106EE7C, utf8_image_base_name);
-    red_pp.pushAddress(0);
-    red_pp.pushAddress(0);
-    blue_pp = red_pp;
-    green_pp = red_pp;
-    red_b_pp = red_pp;
-    green_b_pp = red_pp;
-    blue_b_pp = red_pp;
-    red_pp.pushAddress(0x18);
-    blue_pp.pushAddress(0x10);
-    green_pp.pushAddress(0x14);
-    red_b_pp.pushAddress(0x24);
-    green_b_pp.pushAddress(0x20);
-    blue_b_pp.pushAddress(0x1c);
-
-    data_format = DistinctFloatingPointVarying;
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.01)");
-    break;
-    case 0x0b6bf445:  /* DF 40d19.2 */
-    af.pushAddress(0x00F32B68, utf8_image_base_name);
-    af.pushAddress(0);
-    sz.pushAddress(0x0129BF28, utf8_image_base_name);
-    data_format = PackedVarying;
-
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d19.2)");
-    break;
-    case 0xb548e1b3: /* DF 40d19 */
-    af.pushAddress(0x00F31B68, utf8_image_base_name);
-    af.pushAddress(0);
-    sz.pushAddress(0x0129AF28, utf8_image_base_name);
-    data_format = PackedVarying;
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d19)");
-    break;
-    case 0x04b75394: /* DF 40d18 */
-    af.pushAddress(0x0101D240, utf8_image_base_name);
-    sz.pushAddress(0x01417EE8, utf8_image_base_name);
-    data_format = Packed256x256;
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 40d18)");
-    break;
-    default:
-    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (Unknown, can't show the screen)");
-    return false;
-    }
-
-    size_pp = sz;
-    symbol_pp = af;
-
-    return true;
-}
-
-void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
+void DFHackSlot::unloadToWindow(SP<Interface2DWindow> target_window)
 {
     assert(alive && target_window);
 
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    ui32 t_w, t_h;
+    LockedObject<Terminal> term = df_cache_terminal.lock();
+    ui32 t_w = term->getWidth(), t_h = term->getHeight();
+
     ui32 actual_window_w, actual_window_h;
-    t_w = min(df_w, (ui32) df_terminal.getWidth());
-    t_h = min(df_h, (ui32) df_terminal.getHeight());
     t_w = min(t_w, (ui32) 256);
     t_h = min(t_h, (ui32) 256);
     target_window->setMinimumSize(t_w, t_h);
@@ -922,7 +763,7 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
             if (i1 < game_offset_x || i2 < game_offset_y || (i1 - game_offset_x) >= t_w || (i2 - game_offset_y) >= t_h)
                 t = TerminalTile(' ', 7, 0, false, false);
             else
-                t = df_terminal.getTile(i1 - game_offset_x, i2 - game_offset_y);
+                t = term->getTile(i1 - game_offset_x, i2 - game_offset_y);
 
             ui32 symbol = t.getSymbol();
             if (symbol > 255) symbol = symbol % 256;
@@ -932,7 +773,7 @@ void DFGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     delete[] elements;
 }
 
-bool DFGlue::injectDLL(string dllname)
+bool DFHackSlot::injectDLL(string dllname)
 {
     assert(!dllname.empty());
     assert(df_handle != INVALID_HANDLE_VALUE);
@@ -955,29 +796,26 @@ bool DFGlue::injectDLL(string dllname)
     return true;
 }
 
-void DFGlue::feedInput(const KeyPress &kp)
+void DFHackSlot::feedInput(const KeyPress &kp)
 {
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
     input_queue.push_back(kp);
 }
 
-bool DFGlue::isDFClosed()
+bool DFHackSlot::isDFClosed()
 {
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    if (df_handle == INVALID_HANDLE_VALUE) return true;
+    assert(df_contextmanager);
 
-    DWORD exitcode;
-    if (GetExitCodeProcess(df_handle, &exitcode))
+    DFHack::BadContexts bc;
+    df_contextmanager->Refresh(&bc);
+    if (bc.Contains(df_context))
     {
-        if (exitcode != STILL_ACTIVE)
-        {
-            CloseHandle(df_handle);
-            df_handle = INVALID_HANDLE_VALUE;
-            LOG(Note, "Game process has closed with exit code " << exitcode << " in slot " << getNameUTF8());
-            return true;
-        }
+        df_context = (DFHack::Context*) 0;
+        if (df_handle) df_handle = INVALID_HANDLE_VALUE;
+        df_windows.clear();
+        return true;
     }
-
+    
     return false;
 };
 
