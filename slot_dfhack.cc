@@ -132,7 +132,9 @@ DFHackSlot::~DFHackSlot()
 
     if (glue_thread)
         glue_thread->join();
+
     if (df_handle != INVALID_HANDLE_VALUE) CloseHandle(df_handle);
+    if (df_contextmanager) delete df_contextmanager;
 }
 
 bool DFHackSlot::isAlive()
@@ -226,6 +228,21 @@ void DFHackSlot::thread_function()
             alive = false;
             return;
         }
+
+        DFHack::Process* p = df_context->getProcess();
+        assert(p);
+        DWORD pid = p->getPID();
+        HANDLE h_p = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_VM_WRITE|PROCESS_VM_OPERATION|PROCESS_QUERY_INFORMATION|PROCESS_VM_READ, FALSE, pid);
+        if (h_p == INVALID_HANDLE_VALUE)
+        {
+            LOG(Error, "DFHack attach succeeded but otherwise opening the handle failed.");
+            alive = false;
+            return;
+        }
+
+        findDFWindow(&df_windows, pid);
+
+        df_process = h_p;
     }
     else
     // Launch a new DF process
@@ -253,6 +270,7 @@ void DFHackSlot::thread_function()
     LOG(Note, "Injecting " << injection_glue_dll << " to process.");
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
+    df_context->Resume();
 
     try
     {
@@ -776,21 +794,16 @@ void DFHackSlot::feedInput(const KeyPress &kp)
 
 bool DFHackSlot::isDFClosed()
 {
-    lock_guard<recursive_mutex> alive_lock(glue_mutex);
-    if (df_handle == INVALID_HANDLE_VALUE) return true;
+    assert(df_contextmanager);
 
-    DWORD exitcode;
-    if (GetExitCodeProcess(df_handle, &exitcode))
+    DFHack::BadContexts bc;
+    df_contextmanager->Refresh(&bc);
+    if (bc.Contains(df_context))
     {
-        if (exitcode != STILL_ACTIVE)
-        {
-            CloseHandle(df_handle);
-            df_handle = INVALID_HANDLE_VALUE;
-            LOG(Note, "Game process has closed with exit code " << exitcode << " in slot " << getNameUTF8());
-            return true;
-        }
+        df_context = (DFHack::Context*) 0;
+        return true;
     }
-
+    
     return false;
 };
 
