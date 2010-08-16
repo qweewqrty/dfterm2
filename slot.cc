@@ -1,7 +1,8 @@
 #include "slot.hpp"
 
-#ifdef __WIN32
+#ifdef _WIN32
 #include "slot_dfglue.hpp"
+#include "slot_dfhack.hpp"
 #else
 #include "slot_terminal.hpp"
 #endif
@@ -29,6 +30,9 @@ SP<Slot> Slot::createSlot(string slottype)
         break;
         case DFLaunch:
             result = SP<Slot>(new DFGlue(true));
+        break;
+        case DFGrabHackSlot:
+            result = SP<Slot>(new DFHackSlot);
         break;
         #else
         case TerminalLaunch:

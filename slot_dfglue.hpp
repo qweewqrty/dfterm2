@@ -17,6 +17,7 @@
 #include "interface.hpp"
 #include "termemu.h"
 #include "interface_ncurses.hpp"
+#include "dfscreendataformat.hpp"
 
 namespace dfterm
 {
@@ -142,12 +143,6 @@ class PointerPath
 
         ptrdiff_t getFinalAddress(HANDLE df_handle);
 };
-
-enum DFScreenDataFormat { 
-                          DistinctFloatingPointVarying,   /* Varying size for 32-bit floating point buffers. */
-                          PackedVarying,                  /* Varying size for 32-bit integer buffer. */
-                          Packed256x256,                  /* Same as above, but limited to 256x256 buffer. */
-                          Unknown };
 
 class DFGlue : public Slot
 {
