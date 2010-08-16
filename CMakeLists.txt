@@ -3,6 +3,9 @@ project (dfterm2)
 
 link_directories(${Boost_LIBRARY_DIRS})
 
+SET(BUILD_DFHACK_DOCUMENTATION NO)
+SET(BUILD_DFHACK_EXAMPLES NO)
+SET(BUILD_DFHACK_PLAYGROUND NO)
 subdirs (trankesbel)
 
 SET(NO_CURSES 1)
@@ -54,14 +57,6 @@ IF (WIN32)
     target_link_libraries(dfterm_injection_glue psapi)
 ENDIF (WIN32)
 
-IF (CMAKE_COMPILER_IS_GNUCXX) 
-    ADD_DEFINITIONS("-Wall -D_UNICODE")
-ENDIF (CMAKE_COMPILER_IS_GNUCXX)
-
-IF (MSVC)
-    ADD_DEFINITIONS("/D_UNICODE")
-ENDIF (MSVC)
-
 IF (NO_CURSES)
     IF (MSVC)
         ADD_DEFINITIONS("/DNO_CURSES")
@@ -79,12 +74,14 @@ IF (PROFILE)
     SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure PROPERTIES LINK_FLAGS -pg)
 ENDIF (PROFILE)
 
-
-
 # Testing stuff
 ENABLE_TESTING()
 
 ADD_EXECUTABLE(lockedresource_test tests/lockedresource_test.cc)
 target_link_libraries(lockedresource_test trankesbel)
 ADD_TEST(lockedresource_test ${EXECUTABLE_OUTPUT_PATH}/lockedresource_test)
+
+SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure lockedresource_test PROPERTIES COMPILE_DEFINITIONS _UNICODE)
+
+subdirs(dfhack)
 
