@@ -1,5 +1,8 @@
 /* Shamelessly copied somewhere from FreeBSD. 
- * Removed irrelevant parts in regard to dfterm2. */
+ * Removed irrelevant parts in regard to dfterm2. 
+ * 
+ * Also added logging to dfterm2 directly.
+ */
 
 /*-
  * Copyright (c) 1990, 1993, 1994
@@ -44,31 +47,50 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "logger.hpp"
+
+extern "C"
+{
+
 int
 openpty(int *amaster, int *aslave, char *name, struct termios *termp,
     struct winsize *winp)
 {
-	int master, slave;
+	int master, slave, result;
 
-	master = posix_openpt(O_RDWR|O_NOCTTY);
+    master = open("/dev/ptmx", O_RDWR|O_NOCTTY);
+	//master = posix_openpt(O_RDWR|O_NOCTTY);
 	if (master == -1)
+    {
+        LOG(dfterm::Error, "open(\"/dev/ptmx\", O_RDWR|O_NOCTTY) failed with errno == " << errno);
 		return (-1);
+    }
 
 	if (grantpt(master) == -1)
+    {
+        LOG(dfterm::Error, "grantpt(" << master << ") failed with errno == " << errno);
 		goto bad;
+    }
 
 	if (unlockpt(master) == -1)
+    {
+        LOG(dfterm::Error, "unlockpt(" << master << ") failed with errno == " << errno);
 		goto bad;
+    }
 
     char buf[1001];
     memset(buf, 0, 1001);
-	int result = ptsname_r(master, buf, 1000);
+	result = ptsname_r(master, buf, 1000);
 	if (result)
+    {
+        LOG(dfterm::Error, "ptsname_r(" << master << ", " << buf << ", 1000) failed with errno == " << errno);
 		goto bad;
+    }
 
 	slave = open(buf, O_RDWR);
 	if (slave == -1)
     {
+        LOG(dfterm::Error, "open(" << buf << ", O_RDWR) failed with errno == " << errno);
 		goto bad;
     }
 
@@ -82,7 +104,8 @@ openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 
 	return (0);
 
-bad:	close(master);
+bad:	
+    close(master);
 	return (-1);
 }
 
@@ -90,13 +113,16 @@ bad:	close(master);
 int
 forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
 {
-	int master, slave, pid;
+	int master, slave, pid, result;
 
 	if (openpty(&master, &slave, name, termp, winp) == -1)
 		return (-1);
 	switch (pid = fork()) {
 	case -1:
+    {
+        LOG(dfterm::Error, "fork() failed with errno == " << errno);
 		return (-1);
+    }
 	case 0:
 		/*
 		 * child
@@ -120,4 +146,6 @@ forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
 	(void) close(slave);
 	return (pid);
 }
+
+} // extern "C"
 

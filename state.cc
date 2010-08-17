@@ -717,6 +717,75 @@ bool State::setUserToSlot(SP<User> user, const ID &slot_id)
     return true;
 }
 
+/* This function parses 'us' so that all %-sequences are handled.
+   It also parses spaces and divides them to 'parameters' vector.
+   So, if you write
+   "c:\apina% ja% gorilla\%%\sieni.exe apina-%u"
+   where 'user' has name 'Alice', you should get:
+   "c:\apina ja gorilla\%\sieni.exe" (return value)
+   "apina-Alice"                     (parameters[0])
+
+   "%%" gives "%", "% " gives " ", and just " " divides parameters.
+   "%u" gives user->getName()
+   "%X", where X is anything else, gives "X"
+*/
+static UnicodeString parsePathString(const UnicodeString &us, SP<User> user, vector<UnicodeString>* parameters)
+{
+    assert(user);
+
+    UnicodeString result;
+    UnicodeString* current_result = &result;
+
+    ui32 i1, length = us.length();
+    if (length == 0) return UnicodeString();
+
+    for (i1 = 0; i1 < length-1; ++i1)
+    {
+        UChar c = us.charAt(i1);
+        UChar c2 = us.charAt(i1+1);
+
+        if (c == (UChar) ' ')
+        {
+            if (!parameters) return result;
+
+            parameters->push_back(UnicodeString());
+            current_result = &((*parameters)[parameters->size()-1]);
+
+            /* Discard all whitespace before going over to next parameter */
+            while (us.charAt(i1+1) == (UChar) ' ' && i1 < length-1) { ++i1; };
+
+            continue;
+        }
+
+        if (c != (UChar) '%')
+        {
+            current_result->append(c);
+            continue;
+        }
+        i1++;
+        
+        if (c2 == (UChar) '%')
+        {
+            current_result->append('%');
+            continue;
+        }
+
+        if (c2 == (UChar) 'u')
+        {
+            current_result->append(user->getName());
+            continue;
+        }
+        
+        current_result->append(c2);
+        continue;
+    }
+
+    if (i1 == length-1)
+        result.append(us.charAt(i1));
+
+    return result;
+}
+
 bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
 {
     assert(slot_profile && launcher);
@@ -773,10 +842,6 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
         return false;
     }
 
-    stringstream rcs;
-    rcs << running_counter;
-    ++running_counter;
-
     SP<Slot> slot = Slot::createSlot((SlotType) slot_profile->getSlotType());
     if (!slot)
     {
@@ -786,13 +851,36 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
         return false;
     }
 
+
+    // Every slot gets a counter number appended to it
+    stringstream rcs;
+    rcs << running_counter;
+    ++running_counter;
+
     slot->setState(self);
     slot->setSlotProfile(slot_profile);
     slot->setLauncher(launcher);
     string name_utf8 = slot_profile->getNameUTF8() + string(" - ") + launcher->getNameUTF8() + string(":") + rcs.str();
     slot->setNameUTF8(name_utf8);
-    slot->setParameter("path", slot_profile->getExecutable());
-    slot->setParameter("work", slot_profile->getWorkingPath());
+
+    UnicodeString executable, working_path;
+    vector<UnicodeString> parameters;
+
+    executable = parsePathString(slot_profile->getExecutable(), launcher, &parameters);
+    working_path = parsePathString(slot_profile->getWorkingPath(), launcher, NULL);
+
+    /* Setting "path" and "work" first may trigger
+       launching the process, so put arguments in parameters first. */
+    ui32 arglen = parameters.size();
+    for (ui32 argn = 0; argn < arglen; ++argn)
+    {
+        stringstream ss;
+        ss << "arg" << argn;
+        slot->setParameter(ss.str(), parameters[argn]);
+    }
+
+    slot->setParameter("path", executable);
+    slot->setParameter("work", working_path);
 
     stringstream ss_w, ss_h;
     ss_w << slot_profile->getWidth();
@@ -822,6 +910,7 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
     stringstream ss;
     ss << time_c << " " << launcher->getNameUTF8() << " has launched slot " << slot->getNameUTF8();
     global_chat->logMessageUTF8(ss.str());
+    notifyAllClients();
 
     return true;
 }

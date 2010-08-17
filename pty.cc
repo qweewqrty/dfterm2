@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#include "logger.hpp"
 
 Pty::Pty()
 {

@@ -162,6 +162,12 @@ void TerminalGlue::thread_function()
     /* Wait until "path", "work", "w" and "h" are set. 60 seconds. */
     ui8 counter = 60;
     map<string, UnicodeString>::iterator i1;
+
+    
+    vector<string> arguments;
+    string next_arg("arg0");
+    ui32 num_arg = 0;
+
     while (counter > 0)
     {
         unique_lock<recursive_mutex> lock(glue_mutex);
@@ -169,6 +175,15 @@ void TerminalGlue::thread_function()
         {
             lock.unlock();
             return;
+        }
+
+        // Collect arguments to 'arguments' vector
+        while (parameters.find(next_arg) != parameters.end())
+        {
+            arguments.push_back(TO_UTF8(parameters[next_arg]));
+            stringstream next_arg_ss;
+            next_arg_ss << "arg" << (++num_arg);
+            next_arg = next_arg_ss.str();
         }
 
         if (parameters.find("path") != parameters.end() &&
@@ -214,9 +229,34 @@ void TerminalGlue::thread_function()
         if (terminal_h > 500) terminal_h = 500;
     }
 
-    char *argv[] = { const_cast<char*>(path_str.c_str()), 0 };
+    char **argv;
+    argv = new char*[arguments.size() + 2];
+    memset(argv, 0, sizeof(char*) * (arguments.size() + 2));
+    argv[0] = new char[path_str.size()+1];
+    argv[0][path_str.size()] = 0;
+    memcpy(argv[0], path_str.c_str(), path_str.size());
+
+    stringstream logmessage;
+
+    logmessage << "Launching a program \"" << path_str.c_str() << "\" in a pty, with terminal size " << terminal_w << "x" << terminal_h << " and with following arguments: ";
+    for (ui32 i1 = 0; i1 < arguments.size(); ++i1)
+    {
+        argv[i1+1] = new char[arguments[i1].size()+1];
+        argv[i1+1][arguments[i1].size()] = 0;
+        memcpy(argv[i1+1], arguments[i1].c_str(), arguments[i1].size());
+        logmessage << "\"" << argv[i1+1] << "\"";
+        if (i1 < arguments.size() - 1)
+            logmessage << " ";
+    }
+    LOG(Note, logmessage.str());
 
     bool result = program_pty.launchExecutable(terminal_w, terminal_h, path_str.c_str(), argv, (char**) 0, work_dir_str.c_str());
+    for (ui32 i1 = 0; i1 < arguments.size()+1; ++i1)
+    {
+        delete argv[i1];
+    }
+    delete argv;
+
     if (!result)
     {
         alive = false;
@@ -275,7 +315,7 @@ void TerminalGlue::thread_function()
 void TerminalGlue::setParameter(string key, UnicodeString value)
 {
     lock_guard<recursive_mutex> lock(glue_mutex);
-    if (key == "path" || key == "work" || key == "w" || key == "h")
+    if (key == "path" || key == "work" || key == "w" || key == "h" || key.substr(0, 3) == "arg")
         parameters[key] = value;
 }
 
