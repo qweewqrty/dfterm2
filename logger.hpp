@@ -92,7 +92,7 @@ enum Notability { Note, Error, Fatal };
 
 /* This is the most monstrous macro I have ever written. Please don't send me to hell. */
 #ifdef _WIN32
-#define LOG(notability, stringstream_msg) { std::stringstream ss; \
+#define LOG(notability, stringstream_msg) { std::stringstream ___ss; \
                                         dfterm::initialize_logger(); \
                                         wchar_t msg[1000]; \
                                         UChar msg_uchar[1000]; \
@@ -113,19 +113,19 @@ enum Notability { Note, Error, Fatal };
                                         } else { \
                                         UnicodeString msg_us(msg_uchar, msg_len); \
                                         string msg_utf8 = TO_UTF8(msg_us); \
-                                        ss << msg_utf8 << " "; \
+                                        ___ss << msg_utf8 << " "; \
                                         if (notability == dfterm::Note) \
-                                            ss << "Note: "; \
+                                            ___ss << "Note: "; \
                                         else if (notability == dfterm::Error) \
-                                            ss << "Error: "; \
+                                            ___ss << "Error: "; \
                                         else if (notability == dfterm::Fatal) \
-                                            ss << "FATAL: "; \
-                                        ss << stringstream_msg; \
-                                        admin_logger->logMessageUTF8(ss.str()); \
+                                            ___ss << "FATAL: "; \
+                                        ___ss << stringstream_msg; \
+                                        admin_logger->logMessageUTF8(___ss.str()); \
                                         } } \
                                        }
 #else
-#define LOG(notability, stringstream_msg) { std::stringstream ss; \
+#define LOG(notability, stringstream_msg) { std::stringstream ___ss; \
                                         dfterm::initialize_logger(); \
                                         wchar_t msg[1000]; \
                                         UChar msg_uchar[1000]; \
@@ -148,15 +148,15 @@ enum Notability { Note, Error, Fatal };
                                         UnicodeString msg_us(msg_uchar, msg_len); \
                                         string msg_utf8; \
                                         msg_us.toUTF8String(msg_utf8); \
-                                        ss << msg_utf8 << " "; \
+                                        ___ss << msg_utf8 << " "; \
                                         if (notability == dfterm::Note) \
-                                            ss << "Note: "; \
+                                            ___ss << "Note: "; \
                                         else if (notability == dfterm::Error) \
-                                            ss << "Error: "; \
+                                            ___ss << "Error: "; \
                                         else if (notability == dfterm::Fatal) \
-                                            ss << "FATAL: "; \
-                                        ss << stringstream_msg; \
-                                        admin_logger->logMessageUTF8(ss.str()); \
+                                            ___ss << "FATAL: "; \
+                                        ___ss << stringstream_msg; \
+                                        admin_logger->logMessageUTF8(___ss.str()); \
                                         } } \
                                        }
 #endif
