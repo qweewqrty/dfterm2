@@ -78,10 +78,16 @@ There are a few parameters that can be configured for a new slot profile. Here t
 <para>This describes how dfterm2 will obtain the symbol data from dfterm2. On Windows, this can be either launching a new Dwarf Fortress process or using an already running Dwarf Fortress process. On Linux, there's only launching a program in a terminal.</para>
 
 <para><emphasis>Game executable path</emphasis></para>
-<para>This should point directly to the Dwarf Fortress executable file. On Windows, it could be something like "C:\df_31_12_win\Dwarf Fortress.exe" and on Linux it could be "/home/mikko/df_linux/df"</para>
+<para>This should point directly to the Dwarf Fortress executable file. On Windows, it could be something like "C:\df_31_12_win\Dwarf% Fortress.exe" and on Linux it could be "/home/mikko/df_linux/df"</para>
+<para>% character is used as an escape character for certain patterns. To include a space bar in the executable name, use "% " (like in the Windows example in previous paragraph). Otherwise a space character is a separator for executable name and argument list.
+</para>
+<para>%% will give you a single %. %u turns into the username of the launcher. So, if you use "/home/dfterm2/bin/nethack -u %u" as a name, it will turn into "/home/dfterm2/bin/nethack -u Adeon", if the launcher's name was Adeon. You can use this to make underlying process know who launched it (has been found essential for public NetHack servers).
+</para>
 
 <para><emphasis>Game working directory</emphasis></para>
 <para>This should point to the directory from where game executable is run. On Windows, it could be something like "C:\df_31_12_win" and on Linux it could be "/home/mikko/df_linux"</para>
+<para>The same escaping code (%) character issues apply, but if you use arguments in the working directory string, they will all be ignored and discarded.
+</para>
 
 <para><emphasis>Allowed watchers/launchers/players/force closers</emphasis></para>
 <para>This is fine-grained access control on how users can interact with slots created from this slot profile. Under these menus, you can select which users can do the specific action. Watching refers to seeing what's in the slot. Launching refers to being able to launch the slot from <emphasis>"Launch a new game"</emphasis>. Playing refers to being able to give input to the slot. Force closer refers to the ability to forcefully close the slot from main menu.</para>
