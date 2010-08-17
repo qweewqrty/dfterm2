@@ -605,7 +605,7 @@ void ConfigurationDatabase::saveAllowedAndForbiddenSocketAddressRanges(bool defa
     ss << "INSERT INTO AllowedAndForbiddenSocketAddressRanges(Allowed, Forbidden, DefaultAllowance) VALUES(\'" << bytes_to_hex(allowed_str) << "\', \'" << bytes_to_hex(forbidden_str) << "\', \'" << default_allowance_str << "\');";
     result = sqlite3_exec(db, ss.str().c_str(), 0, 0, &errormsg);
     if (result != SQLITE_OK)
-    { LOG(Error, "Error while executing SQL statement \"" << statement << "\": " << errormsg); };
+    { LOG(Error, "Error while executing SQL statement \"" << ss.str() << "\": " << errormsg); };
 
     if (errormsg) sqlite3_free(errormsg);
 }
