@@ -114,9 +114,9 @@ There are a few parameters that can be configured for a new slot profile. Here t
 <para>If you mess up here, and accidentally firewall yourself off of dfterm2, you can use the command line tool dfterm2_configure to purge all connection restriction settings.</para>
 
 <para>
-Example on Windows, on author's computer. You need to know where dfterm2 has its database.
+Example on Windows, on author's computer. You need to know where dfterm2 has its database. This purges connection restrictions.
 <programlisting>
-$ dfterm2_configure --database c:\users\mikko\appdata\roaming\dfterm2\dfterm2.database
+$ dfterm2_configure --database c:\users\mikko\appdata\roaming\dfterm2\dfterm2.database --removeaddressrestrictions
 </programlisting>
 </para>
 
