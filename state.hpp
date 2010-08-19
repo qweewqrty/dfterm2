@@ -64,7 +64,9 @@ class State
 
         /* Checks a client if it should be banned and disconnects it if this is the case.
            Returns true if a client was disconnected. */
-        bool checkAddressAllowance(SP<Client> client);
+        bool checkClientAllowance(SP<Client> client);
+        /* Same but directly for socket. */
+        bool checkSocketAllowance(SP<trankesbel::Socket> s);
 
         /* Running slots */
         std::vector<SP<Slot> > slots;

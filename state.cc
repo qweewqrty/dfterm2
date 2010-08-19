@@ -1130,14 +1130,24 @@ void State::checkAddressRestrictions()
     vector<SP<Client> >::iterator i1, cli_end = cli.end();
     for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ( (*i1) )
-            checkAddressAllowance(*i1);
+            checkClientAllowance(*i1);
 }
 
-bool State::checkAddressAllowance(SP<Client> client)
+bool State::checkClientAllowance(SP<Client> client)
 {
     assert(client);
 
     SP<Socket> s = client->getSocket();
+    if (!s) return false;
+    if (!s->active()) return false;
+
+    return checkSocketAllowance(s);
+}
+
+bool State::checkSocketAllowance(SP<Socket> s)
+{
+    assert(s);
+
     if (!s) return false;
     if (!s->active()) return false;
 
@@ -1151,11 +1161,7 @@ bool State::checkAddressAllowance(SP<Client> client)
 
     if (!default_address_allowance && is_in_forbidden)
     {
-        SP<User> u = client->getUser();
-        if (!u || u->getNameUTF8().empty())
-        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address."); }
-        else
-        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address. User was \"" << u->getNameUTF8() << "\"."); };
+        LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address.");
         s->close();
         return true;
     }
@@ -1168,11 +1174,7 @@ bool State::checkAddressAllowance(SP<Client> client)
 
     if (default_address_allowance && is_in_forbidden)
     {
-        SP<User> u = client->getUser();
-        if (!u || u->getNameUTF8().empty())
-        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address."); }
-        else
-        { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address. User was \"" << u->getNameUTF8() << "\"."); };
+        LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it matched a forbidden address.");
         s->close();
         return true;
     }
@@ -1185,11 +1187,7 @@ bool State::checkAddressAllowance(SP<Client> client)
 
     assert(!default_address_allowance);
 
-    SP<User> u = client->getUser();
-    if (!u || u->getNameUTF8().empty())
-    { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it did not match an allowed address."); }
-    else
-    { LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it did not match an allowed address. User was \"" << u->getNameUTF8() << "\"."); };
+    LOG(Note, "Disconnected connection from " << sa.getHumanReadablePlainUTF8() << " because it did not match an allowed address.");
 
     s->close();
     return true;
@@ -1219,7 +1217,7 @@ bool State::new_connection(SP<Socket> listening_socket)
         new_client->setState(self);
         
         /* Do early check of banned/allowed addresses. Hostname is probably not resolved yet at this point though. */
-        if (checkAddressAllowance(new_client))
+        if (checkClientAllowance(new_client))
             return true;
 
         new_client->setConfigurationDatabase(configuration);
