@@ -222,6 +222,21 @@ void DFGlue::thread_function()
     }
 
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
+
+    bool version = detectDFVersion();
+    if (!version)
+    {
+        if (df_process != INVALID_HANDLE_VALUE && dont_take_running_process) TerminateProcess(df_process, 1);
+
+        LOG(Error, "Can't launch slot because of unknown version.");
+        CloseHandle(df_process);
+        this->df_handle = INVALID_HANDLE_VALUE;
+        this->df_windows.clear();;
+        alive = false;
+        alive_lock.unlock();
+        return;
+    }
+
     this->df_windows = df_windows;
     this->df_handle = df_process;
 
@@ -236,6 +251,8 @@ void DFGlue::thread_function()
     }
     catch (const thread_interrupted &ti)
     {
+        if (df_process != INVALID_HANDLE_VALUE && dont_take_running_process) TerminateProcess(df_process, 1);
+
         CloseHandle(df_process);
         this->df_handle = INVALID_HANDLE_VALUE;
         this->df_windows.clear();;
@@ -244,16 +261,6 @@ void DFGlue::thread_function()
         return;
     }
 
-    bool version = detectDFVersion();
-    if (!version)
-    {
-        CloseHandle(df_process);
-        this->df_handle = INVALID_HANDLE_VALUE;
-        this->df_windows.clear();;
-        alive = false;
-        alive_lock.unlock();
-        return;
-    }
     alive_lock.unlock();
     try
     {
