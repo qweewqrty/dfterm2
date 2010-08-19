@@ -60,6 +60,8 @@ static ui32 checksum(string str)
 
 DFGlue::DFGlue() : Slot()
 {
+    df_version = 0;
+
     df_terminal.setCursorVisibility(false);
     reported_memory_error = false;
 
@@ -86,6 +88,8 @@ DFGlue::DFGlue() : Slot()
 
 DFGlue::DFGlue(bool dummy) : Slot()
 {
+    df_version = 0;
+
     df_terminal.setCursorVisibility(false);
     reported_memory_error = false;
 
@@ -222,6 +226,8 @@ void DFGlue::thread_function()
     }
 
     unique_lock<recursive_mutex> alive_lock(glue_mutex);
+    this->df_windows = df_windows;
+    this->df_handle = df_process;
 
     bool version = detectDFVersion();
     if (!version)
@@ -237,13 +243,13 @@ void DFGlue::thread_function()
         return;
     }
 
-    this->df_windows = df_windows;
-    this->df_handle = df_process;
-
     string injection_glue_dll = TO_UTF8(local_directory, local_directory_size) + string("\\dfterm_injection_glue.dll");
     LOG(Note, "Injecting " << injection_glue_dll << " to process.");
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
+
+    if (df_version != 0)
+        SendMessage(df_windows, WM_USER, df_version, 4);
 
     try
     {
@@ -752,42 +758,42 @@ bool DFGlue::detectDFVersion()
     af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0142015C, utf8_image_base_name);
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3112, 4);
+    df_version = 3112;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.12 SDL version)");
     break;
     case 0xc61cac7e: /* DF 0.31.11 (SDL) */
     af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0142015C, utf8_image_base_name);
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3111, 4);
+    df_version = 3111;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.11 SDL version)");
     break;
     case 0xdb942094: /* DF 0.31.10 (SDL) */
     af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3110, 4);
+    df_version = 3110;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.10 SDL version)");
     break;
     case 0xc58b306c:  /* DF 0.31.09 (SDL) */
     af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3109, 4);
+    df_version = 3109;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.09 SDL version)");
     break;
     case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
     af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x140C11C, utf8_image_base_name);
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3108, 4);
+    df_version = 3108;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.08 SDL version)");
     break;
     case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
     af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, utf8_image_base_name);
     data_format = PackedVarying;
-    SendMessage(df_windows, WM_USER, 3106, 4);
+    df_version = 3106;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.06 SDL version)");
     break;
     case 0x9404d33d:  /* DF 0.31.03 */

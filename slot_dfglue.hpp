@@ -224,6 +224,7 @@ class DFGlue : public Slot
 
         std::map<std::string, UnicodeString> parameters;
 
+        trankesbel::ui32 df_version;
 
         /* Like ReadProcessMemory(), but logs a message if it fails. */
         void LoggerReadProcessMemory(HANDLE handle, const void* address, void* target, SIZE_T size, SIZE_T* read_size);
