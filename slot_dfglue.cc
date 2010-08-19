@@ -244,6 +244,27 @@ void DFGlue::thread_function()
     }
 
     string injection_glue_dll = TO_UTF8(local_directory, local_directory_size) + string("\\dfterm_injection_glue.dll");
+    string msvcr100dll = TO_UTF8(local_directory, local_directory_size) + string("\\msvcr100.dll");
+    string msvcp100dll = TO_UTF8(local_directory, local_directory_size) + string("\\msvcr100.dll");
+    LOG(Note, "Injecting " << msvcr100dll << " and " << msvcp100dll << " to process and waiting one second.");
+    injectDLL(msvcr100dll);
+    injectDLL(msvcp100dll);
+    try
+    {
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(1000000LL)));
+    }
+    catch (const thread_interrupted &ti)
+    {
+        if (df_process != INVALID_HANDLE_VALUE && dont_take_running_process) TerminateProcess(df_process, 1);
+
+        CloseHandle(df_process);
+        this->df_handle = INVALID_HANDLE_VALUE;
+        this->df_windows.clear();;
+        alive = false;
+        alive_lock.unlock();
+        return;
+    }
+
     LOG(Note, "Injecting " << injection_glue_dll << " to process.");
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
