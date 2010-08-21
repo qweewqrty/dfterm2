@@ -65,22 +65,17 @@ class ServerToServerSession
 
         WP<ServerToServerSession> self;
 
-        ServerToServerSession() { assert(false); };
+        ServerToServerSession() { };
 
         /* No copies */
         ServerToServerSession(const ServerToServerSession &stss) { assert(false); };
         ServerToServerSession& operator=(const ServerToServerSession &stss) { assert(false); return (*this); };
 
-        ServerToServerSession(const ServerToServerConfigurationPair &pair);
+        void construct(const ServerToServerConfigurationPair &pair);
     public:
 
         /* Creates a new session. */
-        static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair)
-        {
-            SP<ServerToServerSession> result(new ServerToServerSession(pair));
-            result->self = result;
-            return result;
-        }
+        static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair);
 
         ~ServerToServerSession();
 

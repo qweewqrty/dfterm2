@@ -40,7 +40,21 @@ try {
     nanowait(1000000000ULL); /* 1 second */
     if (!session->isConnectionReady())
     {
-        cout << "Connection did not get ready in 1 second to localhost." << endl;
+        cout << "Connection did not get ready in 1 second to localhost. (failure)" << endl;
+        return 1;
+    }
+
+    cout << "Trying incorrect port next." << endl;
+
+    /* Now, try a session with incorrect port, should not get ready. */
+    ServerToServerConfigurationPair pair2 = pair;
+    pair2.setTargetUTF8("127.0.0.1", "23457");
+    SP<ServerToServerSession> session2 = ServerToServerSession::create(pair2);
+    cout << "Readyness status at start (undeterministic due to threads, can be 1 or 0): " << session2->isConnectionReady() << endl;
+    nanowait(1000000000ULL); /* 1 second */
+    if (session2->isConnectionReady())
+    {
+        cout << "Connection got ready in 1 second to localhost. (failure)" << endl;
         return 1;
     }
 }

@@ -6,6 +6,15 @@ using namespace trankesbel;
 using namespace std;
 using namespace boost;
 
+
+SP<ServerToServerSession> ServerToServerSession::create(const ServerToServerConfigurationPair &pair)
+{
+    SP<ServerToServerSession> result(new ServerToServerSession);
+    result->self = result;
+    result->construct(pair);
+    return result;
+}
+
 ServerToServerSession::~ServerToServerSession()
 {
     unique_lock<recursive_mutex> lock(session_mutex);
@@ -26,12 +35,13 @@ ServerToServerSession::~ServerToServerSession()
     lock.unlock();
 }
 
-ServerToServerSession::ServerToServerSession(const ServerToServerConfigurationPair &pair)
+void ServerToServerSession::construct(const ServerToServerConfigurationPair &pair)
 {
     lock_guard<recursive_mutex> lock(session_mutex);
 
     this->pair = pair;
     broken = false;
+    connection_ready = false;
 
     /* Launch thread */
     try
@@ -104,6 +114,7 @@ void ServerToServerSession::server_to_server_session()
 
     LOG(Note, "Successfully connected server-to-server session to hostname \"" << hostname << "\" to port \"" << port << "\".");
     lock.lock();
+    assert(connection);
     connection_ready = true;
     lock.unlock();
 }
