@@ -40,14 +40,30 @@ class ServerToServerConfigurationPair
 
 
 /* Maintains a server-to-server session. Set configuration with
-   ServerToServerConfigurationPair. */
+   ServerToServerConfigurationPair. 
+   
+   You cannot update ServerToServerConfigurationPair in a session
+   once it has been created. */
 class ServerToServerSession
 {
     private:
         ServerToServerConfigurationPair pair;
         SP<trankesbel::Socket> server_socket;
         trankesbel::SocketAddress server_address;
-        bool server_address_resolved;
+
+        /* This class internally uses threads, so we need a mutex. */
+        boost::recursive_mutex session_mutex;
+
+        /* This thread handles (re)connecting and resolving. */
+        SP<boost::thread> session_thread;
+        /* And this is the function for it */
+        static void static_server_to_server_session(ServerToServerSession* self);
+        void server_to_server_session();
+
+        bool broken; /* Used when thread creation fails or some other unrecoverable error occurs. */
+        bool connection_ready; /* Set to true, when sending and receiving data through the session is ok. */
+
+        WP<ServerToServerSession> self;
 
         ServerToServerSession() { assert(false); };
 
@@ -55,8 +71,26 @@ class ServerToServerSession
         ServerToServerSession(const ServerToServerSession &stss) { assert(false); };
         ServerToServerSession& operator=(const ServerToServerSession &stss) { assert(false); return (*this); };
 
-    public:
         ServerToServerSession(const ServerToServerConfigurationPair &pair);
+    public:
+
+        /* Creates a new session. */
+        static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair)
+        {
+            SP<ServerToServerSession> result(new ServerToServerSession(pair));
+            result->self = result;
+            return result;
+        }
+
+        ~ServerToServerSession();
+
+        /* Returns true if some unrecoverable error has occursed in the session. 
+           Currently happens only if has not been possible to create a thread for
+           resolving address. */
+        bool isBroken();
+
+        /* Returns true if connection has been established. */
+        bool isConnectionReady();
 };
 
 
