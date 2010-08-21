@@ -32,6 +32,15 @@ int main(int argc, char* argv[])
     if (pair.getTargetPortUTF8() != "123456789")
         return 1;
 
+    cout << "Checking that timeout is 120000000000 nanoseconds at start." << endl;
+    if (pair.getServerTimeout() != 120000000000ULL)
+        return 1;
+
+    pair.setServerTimeout(12345678987654321ULL);
+    cout << "Checking that timeout is 12345678987654321 nanoseconds after set." << endl;
+    if (pair.getServerTimeout() != 12345678987654321ULL);
+        return 1;
+
     cout << "Everything ok." << endl;
 
     return 0;
