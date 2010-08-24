@@ -1416,12 +1416,15 @@ void State::callback_ServerToServerSocketReady(SP<Socket> s)
     assert(s->active());
 
     /* This callback is called from another thread so lock up. */
-    lock_guard<recursive_mutex> lock(cycle_mutex);
+    LockedObject<SocketEvents> se = socketevents.lock();
+    se->addSocket(s);
 }
 
 void State::addServerToServerConnection(const ServerToServerConfigurationPair &c_pair)
 {
-    SP<ServerToServerSession> session = ServerToServerSession::create(c_pair);
+    function1<void, SP<Socket> > callback_function = boost::bind(&State::callback_ServerToServerSocketReady, this, _1);
+
+    SP<ServerToServerSession> session = ServerToServerSession::create(c_pair, callback_function);
     assert(session);
 
     server_to_server_connections.insert(std::pair<ServerToServerConfigurationPair, SP<ServerToServerSession> >(c_pair, session));
