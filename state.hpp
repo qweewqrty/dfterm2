@@ -102,18 +102,6 @@ class State
         /* Pending delayed notifications. In here, order matters. */
         std::map<trankesbel::ui64, WP<Client> > pending_delayed_notifications;
 
-        /* Creates a new server-to-server configuration pair. The
-           connection attempts will immediately start after creating one. */
-        void addServerToServerConnection(const ServerToServerConfigurationPair &pair);
-        /* Deletes a server-to-server configuration pair. If there's no such
-           pair as given in argument, does nothing. */
-        void deleteServerToServerConnection(const ServerToServerConfigurationPair &pair);
-        /* Returns current server to server configuration pairs in a vector. */
-        std::vector<ServerToServerConfigurationPair> getServerToServerConnections() const;
-        /* Or to a pointer. No checking for bad pointers is done. Use this to avoid 
-           needless copying. */
-        void getServerToServerConnections(std::vector<ServerToServerConfigurationPair>* result) const;
-
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
         static SP<State> createState();
@@ -240,6 +228,20 @@ class State
 
         /* Checks all currently connected clients for restrictions. */
         void checkAddressRestrictions();
+
+
+        /* Creates a new server-to-server configuration pair. The
+           connection attempts will immediately start after creating one. */
+        void addServerToServerConnection(const ServerToServerConfigurationPair &pair);
+        /* Deletes a server-to-server configuration pair. If there's no such
+           pair as given in argument, does nothing. */
+        void deleteServerToServerConnection(const ServerToServerConfigurationPair &pair);
+        /* Returns current server to server configuration pairs in a vector. */
+        std::vector<ServerToServerConfigurationPair> getServerToServerConnections() const;
+        /* Or to a pointer. No checking for bad pointers is done. Use this to avoid 
+           needless copying. */
+        void getServerToServerConnections(std::vector<ServerToServerConfigurationPair>* result) const;
+
 
         /* Runs until admin tells it to stop. */
         void loop();
