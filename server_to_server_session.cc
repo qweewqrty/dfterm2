@@ -7,10 +7,12 @@ using namespace std;
 using namespace boost;
 
 
-SP<ServerToServerSession> ServerToServerSession::create(const ServerToServerConfigurationPair &pair)
+SP<ServerToServerSession> ServerToServerSession::create(const ServerToServerConfigurationPair &pair,
+                                                        function1<void, SP<Socket> > callback_function)
 {
     SP<ServerToServerSession> result(new ServerToServerSession);
     result->self = result;
+    result->callback_function = callback_function;
     result->construct(pair);
     return result;
 }
@@ -118,7 +120,10 @@ void ServerToServerSession::server_to_server_session()
     connection_ready = true;
     server_socket = connection;
     server_address = sa;
+    function1<void, SP<Socket> > cf = callback_function;
     lock.unlock();
+
+    if (cf) cf(connection);
 }
 
 bool ServerToServerSession::isBroken()

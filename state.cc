@@ -404,7 +404,11 @@ bool State::addHTTPService(SocketAddress address, SocketAddress flashpolicy_addr
 
     http_server.addListeningSocket(s);
 
-    socketevents.addSocket(s);
+    LockedObject<SocketEvents> lo = socketevents.lock();
+    SocketEvents* se = lo.get();
+    assert(se);
+
+    se->addSocket(s);
 
     SP<Socket> s2(new Socket);
     result = s2->listen(flashpolicy_address);
@@ -416,7 +420,7 @@ bool State::addHTTPService(SocketAddress address, SocketAddress flashpolicy_addr
     LOG(Note, "flashpolicy.xml service started on address " << flashpolicy_address.getHumanReadablePlainUTF8());
 
     http_server.addPlainListeningSocket(s2, "/crossdomain.xml");
-    socketevents.addSocket(s2);
+    se->addSocket(s2);
 
     return true;
 }
@@ -433,7 +437,8 @@ bool State::addTelnetService(SocketAddress address)
     LOG(Note, "Telnet service started on address " << address.getHumanReadablePlainUTF8());
     listening_sockets.insert(s);
 
-    socketevents.addSocket(s);
+    LockedObject<SocketEvents> lo = socketevents.lock();
+    lo->addSocket(s);
 
     return true;
 }
@@ -948,19 +953,22 @@ bool State::launchSlot(const ID &slot_id, SP<User> launcher)
 
 void State::notifyAllClients()
 {
+    LockedObject<SocketEvents> lo = socketevents.lock();
+
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
     vector<SP<Client> >::iterator i1, cli_end = cli.end();
     for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if (*i1 && (*i1)->getSocket())
-            socketevents.forceEvent((*i1)->getSocket());
+            lo->forceEvent((*i1)->getSocket());
 }
 
 void State::notifyClient(SP<Client> client)
 {
     assert(client);
 
+    LockedObject<SocketEvents> lo = socketevents.lock();
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
@@ -968,7 +976,7 @@ void State::notifyClient(SP<Client> client)
     for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ((*i1) == client)
         {
-            socketevents.forceEvent(client->getSocket());
+            lo->forceEvent(client->getSocket());
             return;
         }
 
@@ -978,6 +986,7 @@ void State::notifyClient(SP<User> user)
 {
     assert(user);
 
+    LockedObject<SocketEvents> lo = socketevents.lock();
     LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
     vector<SP<Client> > &cli = *lo_clients.get();
 
@@ -985,7 +994,7 @@ void State::notifyClient(SP<User> user)
     for (i1 = cli.begin(); i1 != cli_end; ++i1)
         if ((*i1) && (*i1)->getUser()->getIDRef() == user->getIDRef())
         {
-            socketevents.forceEvent((*i1)->getSocket());
+            lo->forceEvent((*i1)->getSocket());
             return;
         }
 }
@@ -993,7 +1002,9 @@ void State::notifyClient(SP<User> user)
 void State::notifyClient(SP<Socket> socket)
 {
     assert(socket);
-    socketevents.forceEvent(socket);
+    
+    LockedObject<SocketEvents> lo = socketevents.lock();
+    lo->forceEvent(socket);
 }
 
 void State::delayedNotifyClient(SP<Client> c, ui64 nanoseconds)
@@ -1243,8 +1254,6 @@ bool State::new_connection(SP<Socket> listening_socket)
         weak_cli.push_back(new_client);
         
         LOG(Note, "New connection from " << new_connection->getAddress().getHumanReadablePlainUTF8());
-        socketevents.addSocket(new_connection);
-        socketevents.forceEvent(new_connection);
         
         new_client->sendPrivateChatMessage(MOTD);
         
@@ -1252,6 +1261,15 @@ bool State::new_connection(SP<Socket> listening_socket)
         for (i1 = 0; i1 < len; ++i1)
             if (cli[i1])
                 cli[i1]->updateClientNicklist(&cli);
+
+        lo_clients.release();
+        lo_weak_clients.release();
+
+        LockedObject<SocketEvents> se = socketevents.lock();
+        se->addSocket(new_connection);
+        se->forceEvent(new_connection);
+        se.release();
+
         return true;
     }
 
@@ -1260,6 +1278,13 @@ bool State::new_connection(SP<Socket> listening_socket)
 
 void State::loop()
 {
+    /* As a temporary test, connect to 127.0.0.1 port 1234 to make a server-to-server connection. */
+    ServerToServerConfigurationPair pair;
+    pair.setTargetUTF8("127.0.0.1", "1234");
+    pair.setServerTimeout(3000000000ULL);
+
+    addServerToServerConnection(pair);
+
     /* 10 seconds. */
     ui64 address_restriction_check_time = 10000000000ULL + nanoclock();;
     
@@ -1285,7 +1310,15 @@ void State::loop()
         pruneInactiveSlots();
         flush_messages();
         cycle_mutex.unlock();
-        SP<Socket> s = socketevents.getEvent(next_event_time);
+
+        LockedObject<SocketEvents> lo = socketevents.lock();
+
+        SocketEvents* se = lo.get();
+        assert(se);
+
+        SP<Socket> s = se->getEvent(next_event_time);
+        lo.release();
+
         cycle_mutex.lock();
         if (!s) 
         {
@@ -1300,6 +1333,20 @@ void State::loop()
             }
 
             if (!s) continue;
+        }
+
+        /* Test server-to-server sockets for events. */
+        multimap<ServerToServerConfigurationPair, SP<ServerToServerSession> >::iterator i3, server_to_server_connections_end;
+        server_to_server_connections_end = server_to_server_connections.end();
+        for (i3 = server_to_server_connections.begin(); i3 != server_to_server_connections_end; ++i3)
+        {
+            SP<ServerToServerSession> session = i3->second;
+            if (!session) continue;
+            if (session->getSocket() == s)
+            {
+                session->cycle();
+                continue;
+            }
         }
 
         /* Test if it's a listening socket */
@@ -1334,7 +1381,9 @@ void State::loop()
                 SP<Socket> s = http_server.cycle();
                 if (!s)
                     break;
-                socketevents.addSocket(s);
+
+                LockedObject<SocketEvents> se = socketevents.lock();
+                se->addSocket(s);
             }
         };
 
@@ -1361,6 +1410,14 @@ void State::signalSlotData(SP<Slot> who)
     }
 }
 
+void State::callback_ServerToServerSocketReady(SP<Socket> s)
+{
+    assert(s);
+    assert(s->active());
+
+    /* This callback is called from another thread so lock up. */
+    lock_guard<recursive_mutex> lock(cycle_mutex);
+}
 
 void State::addServerToServerConnection(const ServerToServerConfigurationPair &c_pair)
 {

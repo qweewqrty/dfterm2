@@ -61,6 +61,9 @@ class ServerToServerSession
         /* This class internally uses threads, so we need a mutex. */
         boost::recursive_mutex session_mutex;
 
+        /* The function that will be called when socket goes ready. */
+        boost::function1<void, SP<trankesbel::Socket> > callback_function;
+
         /* This thread handles (re)connecting and resolving. */
         SP<boost::thread> session_thread;
         /* And this is the function for it */
@@ -81,8 +84,17 @@ class ServerToServerSession
         void construct(const ServerToServerConfigurationPair &pair);
     public:
 
-        /* Creates a new session. */
-        static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair);
+        /* Creates a new session. 
+           You can set a callback here that will be called
+           when the server session becomes ready. The
+           argument will be the socket object associated with the 
+           session. (So you can drop it to SocketEvents when called).
+           Note that the callback is called from another thread.
+         */
+        static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair,
+                                                boost::function1<void, SP<trankesbel::Socket> > callback_function);
+        static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair)
+        { return create(pair, boost::function1<void, SP<trankesbel::Socket> >()); };
 
         /* Destructor */
         ~ServerToServerSession();
@@ -99,6 +111,8 @@ class ServerToServerSession
            to know when to call ServerToServerSession::read() or ServerToServerSession::write().
            Returns a null reference if session is not ready. */
         SP<trankesbel::Socket> getSocket();
+
+        void cycle() { };
 };
 
 

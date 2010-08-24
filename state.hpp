@@ -90,7 +90,7 @@ class State
 
         bool close;
 
-        trankesbel::SocketEvents socketevents;
+        LockedResource<trankesbel::SocketEvents> socketevents;
 
         bool new_connection(SP<trankesbel::Socket> listening_socket);
         void client_signal_function(WP<Client> client, SP<trankesbel::Socket> from_where);
@@ -101,6 +101,11 @@ class State
 
         /* Pending delayed notifications. In here, order matters. */
         std::map<trankesbel::ui64, WP<Client> > pending_delayed_notifications;
+
+
+        /* Called by ServerToServerSession class to signal a new ready
+           server to server socket. */
+        void callback_ServerToServerSocketReady(SP<trankesbel::Socket> s);
 
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
