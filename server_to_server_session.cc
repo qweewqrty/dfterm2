@@ -116,12 +116,29 @@ void ServerToServerSession::server_to_server_session()
     lock.lock();
     assert(connection);
     connection_ready = true;
+    server_socket = connection;
+    server_address = sa;
     lock.unlock();
+}
+
+bool ServerToServerSession::isBroken()
+{
+    lock_guard<recursive_mutex> lock(session_mutex);
+    return broken;
 }
 
 bool ServerToServerSession::isConnectionReady()
 {
     lock_guard<recursive_mutex> lock(session_mutex);
     return connection_ready;
+}
+
+SP<Socket> ServerToServerSession::getSocket()
+{
+    lock_guard<recursive_mutex> lock(session_mutex);
+    if (broken) return SP<Socket>();
+    if (!connection_ready) return SP<Socket>();
+
+    return server_socket;
 }
 

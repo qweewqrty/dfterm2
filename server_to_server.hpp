@@ -36,6 +36,13 @@ class ServerToServerConfigurationPair
         void setServerTimeout(trankesbel::ui64 nanoseconds);
         /* And gets the timeout */
         trankesbel::ui64 getServerTimeout() const;
+
+        bool operator<(const ServerToServerConfigurationPair &c_pair) const
+        {
+            if (server_timeout != c_pair.server_timeout) return server_timeout < c_pair.server_timeout;
+            if (remotehostname != c_pair.remotehostname) return remotehostname < c_pair.remotehostname;
+            return remoteport < c_pair.remoteport;
+        }
 };
 
 
@@ -77,6 +84,7 @@ class ServerToServerSession
         /* Creates a new session. */
         static SP<ServerToServerSession> create(const ServerToServerConfigurationPair &pair);
 
+        /* Destructor */
         ~ServerToServerSession();
 
         /* Returns true if some unrecoverable error has occursed in the session. 
@@ -86,6 +94,11 @@ class ServerToServerSession
 
         /* Returns true if connection has been established. */
         bool isConnectionReady();
+
+        /* Returns the socket class used by session. You can put it in SocketEvents
+           to know when to call ServerToServerSession::read() or ServerToServerSession::write().
+           Returns a null reference if session is not ready. */
+        SP<trankesbel::Socket> getSocket();
 };
 
 

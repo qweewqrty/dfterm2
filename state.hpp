@@ -15,6 +15,8 @@ class State;
 #include <sstream>
 #include "lockedresource.hpp"
 #include "minimal_http_server.hpp"
+#include "server_to_server.hpp"
+#include <map>
 
 namespace dfterm {
 
@@ -40,6 +42,10 @@ class State
 
         std::set<SP<trankesbel::Socket> > listening_sockets;
         HTTPServer http_server;
+
+        /* This one holds all server-to-server connections. */
+        /* Key is the configuration pair and value is the actual session derived from it. */
+        std::multimap<ServerToServerConfigurationPair, SP<ServerToServerSession> > server_to_server_connections;
 
         /* This is the list of connected clients. */
         LockedResource<std::vector<SP<Client> > > clients;
@@ -96,6 +102,17 @@ class State
         /* Pending delayed notifications. In here, order matters. */
         std::map<trankesbel::ui64, WP<Client> > pending_delayed_notifications;
 
+        /* Creates a new server-to-server configuration pair. The
+           connection attempts will immediately start after creating one. */
+        void addServerToServerConnection(const ServerToServerConfigurationPair &pair);
+        /* Deletes a server-to-server configuration pair. If there's no such
+           pair as given in argument, does nothing. */
+        void deleteServerToServerConnection(const ServerToServerConfigurationPair &pair);
+        /* Returns current server to server configuration pairs in a vector. */
+        std::vector<ServerToServerConfigurationPair> getServerToServerConnections() const;
+        /* Or to a pointer. No checking for bad pointers is done. Use this to avoid 
+           needless copying. */
+        void getServerToServerConnections(std::vector<ServerToServerConfigurationPair>* result) const;
 
     public:
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
@@ -200,7 +217,8 @@ class State
         void saveUser(const ID& user_id);
         
         /* Force closes slot user is currently watching. 
-           Returns true if that succeeded and false if it did not. */
+           Returns true if that succeeded and false if it did not. 
+           It can fail because of missing privileges. */
         bool forceCloseSlotOfUser(SP<User> user);
 
         /* Returns the address ranges that are allowed for connections. */

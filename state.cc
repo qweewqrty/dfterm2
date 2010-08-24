@@ -1361,3 +1361,38 @@ void State::signalSlotData(SP<Slot> who)
     }
 }
 
+
+void State::addServerToServerConnection(const ServerToServerConfigurationPair &c_pair)
+{
+    SP<ServerToServerSession> session = ServerToServerSession::create(c_pair);
+    assert(session);
+
+    server_to_server_connections.insert(std::pair<ServerToServerConfigurationPair, SP<ServerToServerSession> >(c_pair, session));
+}
+
+void State::deleteServerToServerConnection(const ServerToServerConfigurationPair &c_pair)
+{
+    multimap<ServerToServerConfigurationPair, SP<ServerToServerSession> >::iterator i1;
+    i1 = server_to_server_connections.find(c_pair);
+    if (i1 != server_to_server_connections.end())
+        server_to_server_connections.erase(i1);
+}
+
+void State::getServerToServerConnections(vector<ServerToServerConfigurationPair>* result) const
+{
+    assert(result);
+    result->reserve(server_to_server_connections.size());
+
+    multimap<ServerToServerConfigurationPair, SP<ServerToServerSession> >::const_iterator i1, server_to_server_connections_end;
+    server_to_server_connections_end = server_to_server_connections.end();
+    for (i1 = server_to_server_connections.begin(); i1 != server_to_server_connections_end; ++i1)
+        result->push_back(i1->first);
+}
+
+vector<ServerToServerConfigurationPair> State::getServerToServerConnections() const
+{
+    vector<ServerToServerConfigurationPair> result;
+    getServerToServerConnections(&result);
+    return result;
+}
+
