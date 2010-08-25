@@ -99,6 +99,9 @@ Client::Client(SP<Socket> client_socket)
 {
     config_interface = SP<ConfigurationInterface>(new ConfigurationInterface);
 
+    last_refresh = 0;
+    refresh_per_second = 1000000000ULL;
+
     this->client_socket = client_socket;
     packet_pending = false;
     packet_pending_index = 0;
@@ -136,6 +139,9 @@ Client::Client(SP<Socket> client_socket)
 
     /* Hide cursor */
     ts.sendPacket("\x1b[?25l", 6);
+
+    /* Enable changed lines recording on interface terminal */
+    Terminal& t = interface->getTerminal();
 }
 
 Client::~Client()
@@ -206,53 +212,22 @@ void Client::cycleChat()
     }
 }
 
-void Client::cycle()
+bool Client::cycleCheck()
 {
-    lock_guard<recursive_mutex> cycle_lock(cycle_mutex);
-
-    if (!isActive()) return;
-    assert(user);
-
-    if (!user->isActive() && client_socket) 
-    { 
-        client_socket->close(); 
+    if (!isActive()) return false;
+    if (!user) return false;
+    if (!user->isActive() && client_socket)
+    {
+        client_socket->close();
         state.lock()->notifyClient(self.lock());
-        return; 
-    };
+        return false;
+    }
     if (identified) identify_window = SP<InterfaceElementWindow>();
+    return true;
+}
 
-    config_interface->cycle();
-
-    ts.cycle();
-
-    char buf[500];
-    size_t buf_size = 500;
-    bool pushed_something = false;
-    do
-    {
-        buf_size = 500;
-        ts.receive((void*) buf, &buf_size);
-        if (buf_size == 0) break;
-
-        size_t i1;
-        for (i1 = 0; i1 < buf_size; ++i1)
-        {
-            KeyPress kp((KeyCode) buf[i1], false);
-            interface->pushKeyPress(kp);
-            pushed_something = true;
-        }
-    }
-    while(buf_size > 0);
-
-    if (pushed_something)
-    {
-        SP<State> s = state.lock();
-        if (s) 
-            s->delayedNotifyClient(self.lock(), 1000000000LL);
-    }
-
-    cycleChat();
-
+void Client::doCycleRefresh()
+{
     /* Check if client has resized their terminal, adjust
        if necessary. */
     do_full_redraw = false;
@@ -266,7 +241,6 @@ void Client::cycle()
 
     if (w != (ui32) buffer_terminal.getWidth() || h != (ui32) buffer_terminal.getHeight())
     {
-
         buffer_terminal.resize(w, h);
         buffer_terminal.feedString("\x1b[2J", 4);
         do_full_redraw = true;
@@ -307,16 +281,17 @@ void Client::cycle()
         }
     }
 
-    interface->cycle();
     interface->refresh();
+    interface->cycle();
 
-    const Terminal& client_t = interface->getTerminal();
-
+    Terminal& client_t = interface->getTerminal();
     if (packet_pending && ts.isPacketCancellable(packet_pending_index))
         ts.cancelPacket(packet_pending_index);
     else if (deltas.size() > 0)
     {
-        buffer_terminal.copyPreserve(&last_client_terminal);
+        if (last_client_terminal.getWidth() == buffer_terminal.getWidth() &&
+            last_client_terminal.getHeight() == buffer_terminal.getHeight())
+            buffer_terminal.copyPreserve(&last_client_terminal);
         deltas.clear();
         packet_pending = false;
         packet_pending_index = 0;
@@ -328,7 +303,7 @@ void Client::cycle()
     last_client_terminal.copyPreserve(&client_t);
 
     if (!do_full_redraw)
-        deltas = client_t.restrictedUpdateCycle(&buffer_terminal); 
+        client_t.restrictedUpdateCycle(&buffer_terminal, NULL, &deltas);
     else
         deltas = client_t.updateCycle();
     if (deltas.size() > 0)
@@ -342,9 +317,65 @@ void Client::cycle()
             packet_pending = false;
             packet_pending_index = 0;
             deltas.clear();
-            buffer_terminal.copyPreserve(&client_t);
+            if (buffer_terminal.getWidth() == client_t.getWidth() &&
+                buffer_terminal.getHeight() == client_t.getHeight())
+                buffer_terminal.copyPreserve(&client_t);
         }
     }
+}
+
+void Client::cycle()
+{
+    assert(state.lock());
+
+    lock_guard<recursive_mutex> cycle_lock(cycle_mutex);
+    if (!cycleCheck()) return;
+
+    config_interface->cycle();
+    ts.cycle();
+
+    char buf[500];
+    size_t buf_size = 500;
+    bool pushed_something = false;
+    do
+    {
+        buf_size = 500;
+        ts.receive((void*) buf, &buf_size);
+        if (buf_size == 0) break;
+
+        size_t i1;
+        for (i1 = 0; i1 < buf_size; ++i1)
+        {
+            KeyPress kp((KeyCode) buf[i1], false);
+            interface->pushKeyPress(kp);
+            pushed_something = true;
+        }
+    }
+    while(buf_size > 0);
+
+    if (pushed_something)
+    {
+        SP<State> s = state.lock();
+        if (s) 
+            s->delayedNotifyClient(self.lock(), 1000000000LL);
+    }
+
+    cycleChat();
+
+    interface->refresh();
+    interface->cycle();
+
+    bool allowed_refresh = false;
+    ui64 time_now = nanoclock();
+    if (last_refresh + 1000000000ULL / refresh_per_second < time_now)
+        allowed_refresh = true;
+    if (allowed_refresh)
+    {
+        doCycleRefresh();
+        last_refresh = time_now;
+    }
+    else
+        state.lock()->delayedNotifyClient(self.lock(), time_now - 1000000000ULL / refresh_per_second);
 
     if (!isActive()) return;
     if (!user)

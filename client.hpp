@@ -115,6 +115,11 @@ class Client
         trankesbel::ui32 packet_pending_index;
         std::string deltas;
 
+        /* These are used to control how many times
+           client can have its windows refreshed per second. */
+        trankesbel::ui64 refresh_per_second;
+        trankesbel::ui64 last_refresh;
+
         WP<Client> self;
         WP<State> state;
 
@@ -136,6 +141,11 @@ class Client
         bool identifySelectFunction(trankesbel::ui32 index);
         void gameInputFunction(const trankesbel::KeyPress &kp);
         void gameResizeFunction(trankesbel::ui32 w, trankesbel::ui32 h);
+
+        /* Checks if normal cycle can be done. */
+        bool cycleCheck();
+        /* Refreshes interface and screen. */
+        void doCycleRefresh();
 
     public:
         static SP<Client> createClient(SP<trankesbel::Socket> client_socket);
