@@ -10,7 +10,8 @@ namespace dfterm
                     DFLaunch = 1,        /* Launch a DF process and use that. */
                     TerminalLaunch = 2,  /* Launch a DF (or any other terminal) process and use that. */
                     DFGrabHackSlot = 3,  /* Grab a running DF instance from local, with DFHack. */
-                    InvalidSlotType = 4, /* Have this at the last slot. Other code use this as the last type. */ };
+                    DFGrabHackSlotLinux = 4, /* Grab a running DF instance from local, with DFHack (linux only) */
+                    InvalidSlotType = 5, /* Have this at the last slot. Other code use this as the last type. */ };
     /* Slots DFLaunch and TerminalLaunch need parameters "path" and "work" to be set in the first 60 seconds
      * they were created or slot goes dead. DFGrab needs no parameters. "path" is the path to the DF executable
      * and "work" is the path to DF work directory (so DF can find its files. */
@@ -30,7 +31,8 @@ namespace dfterm
 const std::string SlotNames[] = { "Grab a running DF instance.",
                              "Launch a new DF instance.",
                              "Launch a new terminal program instance.",
-                             "Grab a running DF instance and use DFHack.", };
+                             "Grab a running DF instance and use DFHack.", 
+                             "Grab a running DF instance and use DFHack (linux)." };
 
 /* A slot. Slots display game window.
    Slot implements DF program finding and grabbing or pty reading. */

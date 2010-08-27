@@ -9,6 +9,11 @@
 
 #else
 #include "slot_terminal.hpp"
+
+#ifndef NO_DFHACK
+    #include "slot_dfhack_linux.hpp"
+#endif
+
 #endif
 
 using namespace dfterm;
@@ -22,13 +27,17 @@ SP<Slot> Slot::createSlot(string slottype)
     for (i1 = 0; i1 < num_slots; ++i1)
         if (slottype == SlotNames[i1])
             break;
-    if (i1 >= num_slots) return SP<Slot>();
+    if (i1 >= num_slots) 
+    {
+        LOG(Error, "Tried to create a slot with unknown slot type name \"" << slottype << "\"");
+        return SP<Slot>();
+    }
 
     SP<Slot> result;
 
     switch((SlotType) i1)
     {
-        #ifdef __WIN32
+        #ifdef _WIN32
         case DFGrab:
             result = SP<Slot>(new DFGlue);
         break;
@@ -45,9 +54,16 @@ SP<Slot> Slot::createSlot(string slottype)
         case TerminalLaunch:
             result = SP<Slot>(new TerminalGlue);
         break;
+        #ifndef NO_DFHACK
+        case DFGrabHackSlotLinux:
+            result = SP<Slot>(new DFHackSlotLinux);
+        break;
+        #endif
+
         #endif
 
         default:
+            LOG(Error, "Tried to create a slot with unknown slot type number " << (int) i1);
             return SP<Slot>();
     };
 

@@ -1,6 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 project (dfterm2)
 
+# For DFHack headers to work correctly
+IF(UNIX)
+  add_definitions(-DLINUX_BUILD)
+ENDIF(UNIX)
+
 link_directories(${Boost_LIBRARY_DIRS})
 
 FIND_PACKAGE (Threads REQUIRED)
@@ -14,7 +19,11 @@ SET(NO_CURSES 1)
 
 OPTION(BUILD_DFHACK "Build DFHack and DFHack slot type. (buggy)" OFF)
 IF (BUILD_DFHACK)
-    SET(DFHACK_SLOT_SOURCE slot_dfhack.cc)
+    IF (WIN32)
+        SET(DFHACK_SLOT_SOURCE slot_dfhack.cc)
+    ELSE (WIN32)
+        SET(DFHACK_SLOT_SOURCE slot_dfhack_linux.cc)
+    ENDIF (WIN32)
 ELSE (BUILD_DFHACK)
     ADD_DEFINITIONS(-DNO_DFHACK)
 ENDIF (BUILD_DFHACK)
@@ -22,10 +31,10 @@ ENDIF (BUILD_DFHACK)
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
 IF (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc ${SLOT_DFHACK_SOURCE})
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc ${DFHACK_SLOT_SOURCE})
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc)
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc ${DFHACK_SLOT_SOURCE})
     target_link_libraries(dfterm2 dl)
 ENDIF (WIN32)
 
