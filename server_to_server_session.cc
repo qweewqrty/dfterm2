@@ -147,3 +147,8 @@ SP<Socket> ServerToServerSession::getSocket()
     return server_socket;
 }
 
+void ServerToServerSession::cycle()
+{
+    lock_guard<recursive_mutex> lock(session_mutex);
+}
+

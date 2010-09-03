@@ -112,7 +112,7 @@ class ServerToServerSession
            Returns a null reference if session is not ready. */
         SP<trankesbel::Socket> getSocket();
 
-        void cycle() { };
+        void cycle();
 };
 
 

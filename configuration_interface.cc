@@ -130,6 +130,7 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Manage users", "manage_users", true, false);
     window->addListElement("Manage connection restrictions", "manage_connections", true, false);
+    window->addListElement("Manage server-to-server links", "manage_servertoserver", true, false);
     window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Change your password", "setuserpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
@@ -362,6 +363,24 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->addListElementUTF8(string("Password salt: ") + user->getPasswordSalt(), "", true, false);
     window->addListElementUTF8("Set new password", "setpassword", true, false);
     window->addListElementUTF8("Delete user", "deleteuser", true, false);
+}
+
+void ConfigurationInterface::enterManageServerToServerMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    window->setTitle("Server-to-server management");
+    window->setHint("default");
+
+    current_menu = ManageConnectionsMenu;
+
+    int back_index = window->addListElement("Back to main menu", "mainmenu", true, false);
+    window->addListElement("Link to another server", "link_to_server", true, false);
+    window->addListElement("Expect a link from another server", "expect_from_server", true, false);
+    window->addListElement("Set exported slots", "manage_exported_slots", true, false);
+
+    window->modifyListSelectionIndex(back_index);
 }
 
 void ConfigurationInterface::enterManageConnectionsMenu()
@@ -1004,6 +1023,13 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         LOG(Note, "Connection restrictions have been updated by " << user->getNameUTF8());
 
         enterMainMenu();
+    }
+    else if (selection == "manage_servertoserver")
+    {
+        SP<State> st = state.lock();
+        assert(st);
+
+        enterManageServerToServerMenu();
     }
     else if (selection == "manage_connections")
     {

@@ -68,6 +68,7 @@ class ConfigurationInterface
         void enterManageAddressesMenu();
         void enterAddIndividualAddressMenu();
         void enterAddRegexAddressMenu();
+        void enterManageServerToServerMenu();
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
         void checkManageConnectionsMenu(bool no_read);
