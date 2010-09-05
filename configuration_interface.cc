@@ -365,6 +365,26 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->addListElementUTF8("Delete user", "deleteuser", true, false);
 }
 
+void ConfigurationInterface::enterLinkToServerMenu()
+{
+    if (!admin) return;
+
+    window->deleteAllListElements();
+    window->setTitle("Link to server");
+    window->setHint("wide");
+
+    int back_index = window->addListElement("Back to server-to-server menu", "manage_servertoserver", true, false);
+    window->addListElement("", "Address: ", "link_to_server_address", true, true);
+    window->addListElement("", "Port: ", "link_to_server_port", true, true);
+    window->addListElement("", "Nanoseconds to wait before reconnecting: ", "link_to_server_nanoseconds", true, true);
+    window->addListElement("", "Link name: ", "link_to_server_name", true, true);
+    window->addListElement("Add server-to-server link", "add_servertoserver_link", true, false);
+
+    window->modifyListSelectionIndex(back_index);
+
+    checkLinkToServerMenu(true);
+}
+
 void ConfigurationInterface::enterManageServerToServerMenu()
 {
     if (!admin) return;
@@ -652,6 +672,28 @@ void ConfigurationInterface::checkManageConnectionsMenu(bool no_read)
         edit_default_address_allowance = true;
     else
         edit_default_address_allowance = false;
+}
+
+void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
+{
+    assert(window);
+
+    if (no_read)
+    {
+        ui32 i;
+        i = window->getListDataIndex("link_to_server_address");
+        window->modifyListElementTextUTF8(i, edit_pair.getTargetHostnameUTF8());
+        i = window->getListDataIndex("link_to_server_port");
+        window->modifyListElementTextUTF8(i, edit_pair.getTargetPortUTF8());
+        i = window->getListDataIndex("link_to_server_nanoseconds");
+        char str[100];
+        str[99] = 0;
+        snprintf(str, 99, "%lld", edit_pair.getServerTimeout());
+        window->modifyListElementTextUTF8(i, str);
+        i = window->getListDataIndex("link_to_server_name");
+        window->modifyListElementTextUTF8(i, edit_pair.getNameUTF8());
+        return;
+    }
 }
 
 void ConfigurationInterface::checkSlotsMenu(bool no_read)
@@ -1024,13 +1066,13 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
 
         enterMainMenu();
     }
-    else if (selection == "manage_servertoserver")
+    else if (selection == "link_to_server")
     {
-        SP<State> st = state.lock();
-        assert(st);
-
-        enterManageServerToServerMenu();
+        edit_pair = ServerToServerConfigurationPair();
+        enterLinkToServerMenu();
     }
+    else if (selection == "manage_servertoserver")
+        enterManageServerToServerMenu();
     else if (selection == "manage_connections")
     {
         SP<State> st = state.lock();

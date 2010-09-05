@@ -16,6 +16,7 @@ class ServerToServerConfigurationPair
     private:
         std::string remotehostname;
         std::string remoteport;
+        std::string name;
         trankesbel::ui64 server_timeout;
 
     public:
@@ -31,6 +32,11 @@ class ServerToServerConfigurationPair
            This is "0" if not set before. */
         std::string getTargetPortUTF8() const;
 
+        /* Set and get the name of the link. */
+        void setNameUTF8(const std::string &name);
+        std::string getNameUTF8() const;
+        void getNameUTF8(std::string* name) const;
+
         /* This is the number of nanoseconds to wait until trying again to connect
            to another server. It defaults to 120000000000. (120 seconds) */
         void setServerTimeout(trankesbel::ui64 nanoseconds);
@@ -39,6 +45,7 @@ class ServerToServerConfigurationPair
 
         bool operator<(const ServerToServerConfigurationPair &c_pair) const
         {
+            if (name != c_pair.name) return name < c_pair.name;
             if (server_timeout != c_pair.server_timeout) return server_timeout < c_pair.server_timeout;
             if (remotehostname != c_pair.remotehostname) return remotehostname < c_pair.remotehostname;
             return remoteport < c_pair.remoteport;

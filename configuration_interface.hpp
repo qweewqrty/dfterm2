@@ -18,6 +18,8 @@ class ConfigurationInterface;
 #include "configuration_db.hpp"
 #include "configuration_primitives.hpp"
 
+#include "server_to_server.hpp"
+
 namespace dfterm {
 
 enum Menu { /* These are menus for all of us! */
@@ -69,8 +71,10 @@ class ConfigurationInterface
         void enterAddIndividualAddressMenu();
         void enterAddRegexAddressMenu();
         void enterManageServerToServerMenu();
+        void enterLinkToServerMenu();
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
+        void checkLinkToServerMenu(bool no_read);
         void checkManageConnectionsMenu(bool no_read);
 
         void auxiliaryEnterUsergroupWindow();
@@ -93,6 +97,9 @@ class ConfigurationInterface
         ID client_target;
         /* And same for user */
         ID user_target;
+
+        /* Edited server-to-server pair */
+        ServerToServerConfigurationPair edit_pair;
 
         /* When changing passwords, these indices are set to the elements
            that user edits, and then they are checked. */

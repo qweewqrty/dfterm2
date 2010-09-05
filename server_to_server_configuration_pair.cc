@@ -36,3 +36,19 @@ ui64 ServerToServerConfigurationPair::getServerTimeout() const
     return server_timeout;
 }
 
+void ServerToServerConfigurationPair::setNameUTF8(const std::string &name)
+{
+    this->name = name;
+}
+
+std::string ServerToServerConfigurationPair::getNameUTF8() const
+{
+    return name;
+}
+
+void ServerToServerConfigurationPair::getNameUTF8(std::string* name) const
+{
+    assert(name);
+    (*name) = this->name;
+}
+
