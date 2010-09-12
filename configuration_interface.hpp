@@ -81,6 +81,8 @@ class ConfigurationInterface
         void auxiliaryEnterSpecificUsersWindow();
         void checkAuxiliaryWindowUsergroupSelections();
 
+        void addServerToServerLink();
+
         /* When defining user groups, this is the currently edited user group. */
         UserGroup edit_usergroup;
         /* And this is currently edited slot profile */

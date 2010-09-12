@@ -694,6 +694,51 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         window->modifyListElementTextUTF8(i, edit_pair.getNameUTF8());
         return;
     }
+
+    ui32 i;
+    i = window->getListDataIndex("link_to_server_address");
+    string address = window->getListElementUTF8(i);
+    i = window->getListDataIndex("link_to_server_port");
+    string port = window->getListElementUTF8(i);
+    i = window->getListDataIndex("link_to_server_nanoseconds");
+    string nanoseconds = window->getListElementUTF8(i);
+    i = window->getListDataIndex("link_to_server_name");
+    string name = window->getListElementUTF8(i);
+
+    // Validate some of the data
+
+    // name must not be empty
+    if (name.size() == 0)
+    {
+        window->modifyListSelectionIndex(window->getListDataIndex("link_to_server_name"));
+        return;
+    }
+
+    // Turn nanosecond field to an integer type,
+    // and check if turning it back yields the same result.
+    // If it does not, refuse to continue. 
+    ui64 nanoseconds_64 = (ui64) strtoll(nanoseconds.c_str(), NULL, 10);
+    char str[50];
+    str[49] = 0;
+    snprintf(str, 49, "%llu", nanoseconds_64);
+    if (strcmp(str, nanoseconds.c_str()))
+    {
+        ui32 index = window->getListDataIndex("link_to_server_nanoseconds");
+        window->modifyListElementTextUTF8(index, str);
+        window->modifyListSelectionIndex(index);
+        return;
+    }
+
+    // Same for port
+    ui16 port_16 = (ui16) strtol(port.c_str(), NULL, 10);
+    snprintf(str, 49, "%hu", port_16);
+    if (strcmp(str, port.c_str()))
+    {
+        ui32 index = window->getListDataIndex("link_to_server_port");
+        window->modifyListElementTextUTF8(index, str);
+        window->modifyListSelectionIndex(index);
+        return;
+    }
 }
 
 void ConfigurationInterface::checkSlotsMenu(bool no_read)
@@ -907,6 +952,11 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
     return false;
 }
 
+void ConfigurationInterface::addServerToServerLink()
+{
+    checkLinkToServerMenu(false);
+}
+
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
 {
     assert(window);
@@ -1071,6 +1121,8 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         edit_pair = ServerToServerConfigurationPair();
         enterLinkToServerMenu();
     }
+    else if (selection == "add_servertoserver_link")
+        addServerToServerLink();
     else if (selection == "manage_servertoserver")
         enterManageServerToServerMenu();
     else if (selection == "manage_connections")
