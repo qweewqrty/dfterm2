@@ -18,6 +18,10 @@ CTRL+R can be used to remove the borders of currently focused window.
 </para>
 
 <para>
+CTRL+X is used to hide a window. You can unhide the window by pressing CTRL+X again while focused on it. This is useful if, for example, you don't use the chat dfterm2 provides. You can press CTRL+X when focused on chat window and it goes away.
+</para>
+
+<para>
 There is a chat in dfterm2 you can access after logging in. In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown.
 </para>
 
