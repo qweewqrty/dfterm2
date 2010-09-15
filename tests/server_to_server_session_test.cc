@@ -13,6 +13,7 @@ using namespace trankesbel;
 
 int main(int argc, char* argv[])
 {
+    initializeSockets();
 try {
     bool success = false;
 
@@ -22,12 +23,14 @@ try {
     if (!success)
     {
         cout << "Resolving 127.0.0.1:23456 failed." << endl;
+        shutdownSockets();
         return 1;
     }
 
     if (!s.listen(sa))
     {
         cout << "Listening on 127.0.0.1:23456 failed. " << s.getError() << endl;
+        shutdownSockets();
         return 1;
     }
 
@@ -41,6 +44,7 @@ try {
     if (!session->isConnectionReady())
     {
         cout << "Connection did not get ready in 1 second to localhost. (failure)" << endl;
+        shutdownSockets();
         return 1;
     }
 
@@ -55,15 +59,18 @@ try {
     if (session2->isConnectionReady())
     {
         cout << "Connection got ready in 1 second to localhost. (failure)" << endl;
+        shutdownSockets();
         return 1;
     }
 }
 catch (const std::exception &e)
 {
     cout << "Standard exception: " << e.what() << endl;
+    shutdownSockets();
     return 1;
 }
     cout << "Everything ok." << endl;
+    shutdownSockets();
     return 0;
 }
 

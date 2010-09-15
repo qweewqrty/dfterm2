@@ -10,6 +10,11 @@ using namespace boost;
 using namespace std;
 using namespace trankesbel;
 
+// Hackity hack for windows
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 ConfigurationInterface::ConfigurationInterface()
 {
     current_menu = MainMenu;
@@ -718,7 +723,13 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
     // Turn nanosecond field to an integer type,
     // and check if turning it back yields the same result.
     // If it does not, refuse to continue. 
+
+    // FIXME: Windows 32-bit doesn't have strtoll and strtol is not enough
+#ifndef _WIN32
     ui64 nanoseconds_64 = (ui64) strtoll(nanoseconds.c_str(), NULL, 10);
+#else
+    ui64 nanoseconds_64 = (ui64) strtol(nanoseconds.c_str(), NULL, 10);
+#endif
     char str[50];
     str[49] = 0;
     snprintf(str, 49, "%llu", nanoseconds_64);
