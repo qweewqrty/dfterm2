@@ -6,8 +6,8 @@ namespace dfterm
     class Slot;
 
     /* Slot types. */
-    enum SlotType { DFGrab =   0,        /* Grab a running DF instance from local */
-                    DFLaunch = 1,        /* Launch a DF process and use that. */
+    enum SlotType { DFLaunch = 0,        /* Launch a DF process and use that. */
+                    DFGrab =   1,        /* Grab a running DF instance from local */                    
                     TerminalLaunch = 2,  /* Launch a DF (or any other terminal) process and use that. */
                     DFGrabHackSlot = 3,  /* Grab a running DF instance from local, with DFHack. */
                     DFGrabHackSlotLinux = 4, /* Grab a running DF instance from local, with DFHack (linux only) */

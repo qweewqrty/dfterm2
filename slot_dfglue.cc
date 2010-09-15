@@ -775,43 +775,50 @@ bool DFGlue::detectDFVersion()
 
     switch(csum)
     {
+    case 0xad6215b4: /* DF 0.31.13 (SDL) */
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    sz.pushAddress(0x013DC8BC, utf8_image_base_name);
+    data_format = PackedVarying;
+    df_version = 3113;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.13 SDL version)");
+    break;
     case 0xc6b98be5: /* DF 0.31.12 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0142015C, utf8_image_base_name);
     data_format = PackedVarying;
     df_version = 3112;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.12 SDL version)");
     break;
     case 0xc61cac7e: /* DF 0.31.11 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0142015C, utf8_image_base_name);
     data_format = PackedVarying;
     df_version = 3111;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.11 SDL version)");
     break;
     case 0xdb942094: /* DF 0.31.10 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
     df_version = 3110;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.10 SDL version)");
     break;
     case 0xc58b306c:  /* DF 0.31.09 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x01419144, utf8_image_base_name);
     data_format = PackedVarying;
     df_version = 3109;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.09 SDL version)");
     break;
     case 0xc4fe6f50:  /* DF 0.31.08 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x140C11C, utf8_image_base_name);
     data_format = PackedVarying;
     df_version = 3108;
     LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.08 SDL version)");
     break;
     case 0xf6afb6c9:  /* DF 0.31.06 (SDL) */
-    af.pushAddress(0x000050C0, "dfterm_injection_glue.dll");
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0140B11C, utf8_image_base_name);
     data_format = PackedVarying;
     df_version = 3106;
