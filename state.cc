@@ -1279,11 +1279,11 @@ bool State::new_connection(SP<Socket> listening_socket)
 void State::loop()
 {
     /* As a temporary test, connect to 127.0.0.1 port 1234 to make a server-to-server connection. */
-    ServerToServerConfigurationPair pair;
+    /*ServerToServerConfigurationPair pair;
     pair.setTargetUTF8("127.0.0.1", "1234");
     pair.setServerTimeout(3000000000ULL);
 
-    addServerToServerConnection(pair);
+    addServerToServerConnection(pair);*/
 
     /* 10 seconds. */
     ui64 address_restriction_check_time = 10000000000ULL + nanoclock();;
