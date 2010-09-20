@@ -74,7 +74,7 @@ class ConfigurationInterface
         void enterLinkToServerMenu();
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
-        void checkLinkToServerMenu(bool no_read);
+        bool checkLinkToServerMenu(bool no_read);
         void checkManageConnectionsMenu(bool no_read);
 
         void auxiliaryEnterUsergroupWindow();

@@ -679,7 +679,8 @@ void ConfigurationInterface::checkManageConnectionsMenu(bool no_read)
         edit_default_address_allowance = false;
 }
 
-void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
+// Return true if settings appear ok.
+bool ConfigurationInterface::checkLinkToServerMenu(bool no_read)
 {
     assert(window);
 
@@ -697,7 +698,7 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         window->modifyListElementTextUTF8(i, str);
         i = window->getListDataIndex("link_to_server_name");
         window->modifyListElementTextUTF8(i, edit_pair.getNameUTF8());
-        return;
+        return true;
     }
 
     ui32 i;
@@ -716,7 +717,7 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
     if (name.size() == 0)
     {
         window->modifyListSelectionIndex(window->getListDataIndex("link_to_server_name"));
-        return;
+        return false;
     }
 
     // Turn nanosecond field to an integer type,
@@ -737,7 +738,7 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         ui32 index = window->getListDataIndex("link_to_server_nanoseconds");
         window->modifyListElementTextUTF8(index, str);
         window->modifyListSelectionIndex(index);
-        return;
+        return false;
     }
 
     // Same for port
@@ -748,8 +749,13 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         ui32 index = window->getListDataIndex("link_to_server_port");
         window->modifyListElementTextUTF8(index, str);
         window->modifyListSelectionIndex(index);
-        return;
+        return false;
     }
+
+    edit_pair.setTargetUTF8(address, str);
+    edit_pair.setNameUTF8(name);
+    edit_pair.setServerTimeout(nanoseconds_64);
+    return true;
 }
 
 void ConfigurationInterface::checkSlotsMenu(bool no_read)
@@ -965,7 +971,16 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
 
 void ConfigurationInterface::addServerToServerLink()
 {
-    checkLinkToServerMenu(false);
+    if (checkLinkToServerMenu(false))
+    {
+        SP<State> st = state.lock();
+        assert(st);
+        assert(user);
+
+        st->addServerToServerConnection(edit_pair);
+        LOG(Note, "User " << user->getNameUTF8() << " added a server-to-server configuration pair.");
+        enterManageServerToServerMenu();
+    }
 }
 
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
