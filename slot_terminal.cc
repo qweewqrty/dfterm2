@@ -380,6 +380,13 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
                 fore_c = back_c;
                 back_c = temp;
             }
+            // Flip colors in case of inversed element
+            if (t.getInverse())
+            {
+                temp = fore_c;
+                fore_c = back_c;
+                back_c = temp;
+            }
             elements[i1 + i2 * actual_window_w] = CursesElement(symbol, (Color) fore_c, (Color) back_c, t.getBold());
         }
     target_window->setScreenDisplayNewElements(elements, sizeof(CursesElement), actual_window_w, actual_window_w, actual_window_h, 0, 0);
