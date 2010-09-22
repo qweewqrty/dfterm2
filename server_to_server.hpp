@@ -22,6 +22,9 @@ class ServerToServerConfigurationPair
     public:
         ServerToServerConfigurationPair();
 
+        std::string serialize() const;
+        bool unSerialize(const std::string &stscp);
+
         /* Sets the remote server host. The address will be resolved
            with SocketAddress::resolveUTF8() in a ServerToServerSession. */
         void setTargetUTF8(const std::string &remotehost, const std::string &port);

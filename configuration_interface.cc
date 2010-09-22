@@ -135,8 +135,9 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Manage users", "manage_users", true, false);
     window->addListElement("Manage connection restrictions", "manage_connections", true, false);
-    // Let's hide unfinished server to server stuff because I didn't branch :-<
-    // window->addListElement("Manage server-to-server links", "manage_servertoserver", true, false);
+    #ifdef ENABLE_SERVER_TO_SERVER
+    window->addListElement("Manage server-to-server links", "manage_servertoserver", true, false);
+    #endif
     window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Change your password", "setuserpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
@@ -371,7 +372,7 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->addListElementUTF8("Delete user", "deleteuser", true, false);
 }
 
-void ConfigurationInterface::enterLinkToServerMenu()
+void ConfigurationInterface::enterLinkToServerMenu(bool update_instead_of_adding)
 {
     if (!admin) return;
 
@@ -379,12 +380,19 @@ void ConfigurationInterface::enterLinkToServerMenu()
     window->setTitle("Link to server");
     window->setHint("wide");
 
-    int back_index = window->addListElement("Back to server-to-server menu", "manage_servertoserver", true, false);
+    int back_index;
+    if (!update_instead_of_adding)
+        back_index = window->addListElement("Back to server-to-server menu", "manage_servertoserver", true, false);
+    else
+        back_index = window->addListElement("Back to server-to-server menu (don't save)", "manage_servertoserver", true, false);
     window->addListElement("", "Address: ", "link_to_server_address", true, true);
     window->addListElement("", "Port: ", "link_to_server_port", true, true);
     window->addListElement("", "Nanoseconds to wait before reconnecting: ", "link_to_server_nanoseconds", true, true);
     window->addListElement("", "Link name: ", "link_to_server_name", true, true);
-    window->addListElement("Add server-to-server link", "add_servertoserver_link", true, false);
+    if (!update_instead_of_adding)
+        window->addListElement("Add server-to-server link", "add_servertoserver_link", true, false);
+    else
+        window->addListElement("Update server-to-server link (causes reconnect)", "update_servertoserver_link", true, false);
 
     window->modifyListSelectionIndex(back_index);
 
@@ -407,6 +415,18 @@ void ConfigurationInterface::enterManageServerToServerMenu()
     window->addListElement("Set exported slots", "manage_exported_slots", true, false);
 
     window->modifyListSelectionIndex(back_index);
+
+    SP<State> st = state.lock();
+    assert(st);
+
+    /* Add current server-to-server links to the list. */
+    std::vector<ServerToServerConfigurationPair> pairs = st->getServerToServerConnections();
+    ui32 i1, len = pairs.size();
+    for (i1 = 0; i1 < len; ++i1)
+    {
+        std::string name = pairs[i1].getNameUTF8();
+        window->addListElementUTF8(string("\"") + name + string("\""), "edit_servertoserver_link_" + pairs[i1].serialize(), true, false);
+    }
 }
 
 void ConfigurationInterface::enterManageConnectionsMenu()
@@ -680,7 +700,8 @@ void ConfigurationInterface::checkManageConnectionsMenu(bool no_read)
         edit_default_address_allowance = false;
 }
 
-void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
+// Return true if settings appear ok.
+bool ConfigurationInterface::checkLinkToServerMenu(bool no_read)
 {
     assert(window);
 
@@ -698,7 +719,7 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         window->modifyListElementTextUTF8(i, str);
         i = window->getListDataIndex("link_to_server_name");
         window->modifyListElementTextUTF8(i, edit_pair.getNameUTF8());
-        return;
+        return true;
     }
 
     ui32 i;
@@ -717,7 +738,7 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
     if (name.size() == 0)
     {
         window->modifyListSelectionIndex(window->getListDataIndex("link_to_server_name"));
-        return;
+        return false;
     }
 
     // Turn nanosecond field to an integer type,
@@ -738,7 +759,7 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         ui32 index = window->getListDataIndex("link_to_server_nanoseconds");
         window->modifyListElementTextUTF8(index, str);
         window->modifyListSelectionIndex(index);
-        return;
+        return false;
     }
 
     // Same for port
@@ -749,8 +770,13 @@ void ConfigurationInterface::checkLinkToServerMenu(bool no_read)
         ui32 index = window->getListDataIndex("link_to_server_port");
         window->modifyListElementTextUTF8(index, str);
         window->modifyListSelectionIndex(index);
-        return;
+        return false;
     }
+
+    edit_pair.setTargetUTF8(address, str);
+    edit_pair.setNameUTF8(name);
+    edit_pair.setServerTimeout(nanoseconds_64);
+    return true;
 }
 
 void ConfigurationInterface::checkSlotsMenu(bool no_read)
@@ -964,9 +990,28 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
     return false;
 }
 
-void ConfigurationInterface::addServerToServerLink()
+void ConfigurationInterface::addServerToServerLink(bool update_instead_of_adding)
 {
-    checkLinkToServerMenu(false);
+    if (checkLinkToServerMenu(false))
+    {
+        SP<State> st = state.lock();
+        assert(st);
+        assert(user);
+
+        if (!update_instead_of_adding)
+        {
+            st->addServerToServerConnection(edit_pair);
+            LOG(Note, "User " << user->getNameUTF8() << " added a server-to-server configuration pair.");
+        }
+        else
+        {
+            st->deleteServerToServerConnection(old_pair);
+            st->addServerToServerConnection(edit_pair);
+            LOG(Note, "User " << user->getNameUTF8() << " updated a server-to-server configuration pair.");
+        }
+
+        enterManageServerToServerMenu();
+    }
 }
 
 bool ConfigurationInterface::menuSelectFunction(ui32 index)
@@ -1131,10 +1176,21 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "link_to_server")
     {
         edit_pair = ServerToServerConfigurationPair();
-        enterLinkToServerMenu();
+        enterLinkToServerMenu(false);
+    }
+    /* When editing a server-to-server link settings. */
+    else if (!selection.compare(0, min(selection.size(), (size_t) 25), "edit_servertoserver_link_", 25))
+    {
+        bool result = edit_pair.unSerialize(selection.substr(25));
+        old_pair = edit_pair;
+        assert(result);
+        
+        enterLinkToServerMenu(true);
     }
     else if (selection == "add_servertoserver_link")
-        addServerToServerLink();
+        addServerToServerLink(false);
+    else if (selection == "update_servertoserver_link")
+        addServerToServerLink(true);
     else if (selection == "manage_servertoserver")
         enterManageServerToServerMenu();
     else if (selection == "manage_connections")

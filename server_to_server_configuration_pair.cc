@@ -1,4 +1,5 @@
 #include "server_to_server.hpp"
+#include "marshal.hpp"
 
 using namespace dfterm;
 using namespace trankesbel;
@@ -50,5 +51,31 @@ void ServerToServerConfigurationPair::getNameUTF8(std::string* name) const
 {
     assert(name);
     (*name) = this->name;
+}
+
+std::string ServerToServerConfigurationPair::serialize() const
+{
+    return marshalString(name) + marshalString(remoteport) + marshalString(remotehostname) + marshalUnsignedInteger64(server_timeout);
+}
+
+bool ServerToServerConfigurationPair::unSerialize(const std::string &stscp)
+{
+    size_t consumed = 0, cursor = 0;
+    name = unMarshalString(stscp, consumed, &consumed);
+    if (consumed == 0) return false;
+    cursor += consumed;
+
+    remoteport = unMarshalString(stscp, cursor, &consumed);
+    if (consumed == 0) return false;
+    cursor += consumed;
+
+    remotehostname = unMarshalString(stscp, cursor, &consumed);
+    if (consumed == 0) return false;
+    cursor += consumed;
+
+    server_timeout = unMarshalUnsignedInteger64(stscp, cursor, &consumed);
+    if (consumed == 0) return false;
+
+    return true;
 }
 

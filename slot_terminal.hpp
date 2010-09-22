@@ -31,6 +31,9 @@ class TerminalGlue : public Slot
         void flushInput(Pty* program_pty);
 
         trankesbel::ui32 terminal_w, terminal_h;
+        trankesbel::ui32 old_w, old_h;
+
+        bool try_resize_again;
 
         volatile bool close_thread;
 

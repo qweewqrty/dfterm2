@@ -23,6 +23,9 @@ const trankesbel::ui32 MAX_REGISTERED_USERS = 50;
 /* Maximum number of (telnet) connections at a time */
 const trankesbel::ui32 MAX_CONNECTIONS = 50;
 
+/* Maximum number of server-to-server links at a time. */
+const trankesbel::ui32 MAX_SERVER_TO_SERVER_LINKS = 30;
+
 /* Maximum number of HTTP connections at a time. */
 const trankesbel::ui32 MAX_HTTP_CONNECTIONS = 50;
 
