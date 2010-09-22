@@ -25,6 +25,9 @@ TerminalGlue::TerminalGlue() : Slot()
 
     terminal_w = 80;
     terminal_h = 25;
+    old_w = old_h = 0;
+
+    try_resize_again = true;
 
     glue_thread = SP<thread>(new thread(static_thread_function, this));
     if (glue_thread->get_id() == thread::id())
@@ -253,9 +256,9 @@ void TerminalGlue::thread_function()
     bool result = program_pty.launchExecutable(terminal_w, terminal_h, path_str.c_str(), argv, (char**) 0, work_dir_str.c_str());
     for (ui32 i1 = 0; i1 < arguments.size()+1; ++i1)
     {
-        delete argv[i1];
+        delete[] argv[i1];
     }
-    delete argv;
+    delete[] argv;
 
     if (!result)
     {
@@ -342,7 +345,16 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     ui32 t_w = min(terminal_w, (ui32) game_terminal.getWidth());
     ui32 t_h = min(terminal_h, (ui32) game_terminal.getHeight());
 
-    target_window->setMinimumSize(t_w, t_h);
+    if (old_w != t_w || old_h != t_h)
+        try_resize_again = true;
+    old_w = t_w;
+    old_h = t_h;
+
+    if (try_resize_again)
+    {
+        target_window->setMinimumSize(t_w, t_h);
+        try_resize_again = false;
+    }
 
     ui32 actual_window_w, actual_window_h;
     target_window->getSize(&actual_window_w, &actual_window_h);
