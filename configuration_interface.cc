@@ -370,7 +370,7 @@ void ConfigurationInterface::enterManageAccountMenu(const ID &user_id)
     window->addListElementUTF8("Delete user", "deleteuser", true, false);
 }
 
-void ConfigurationInterface::enterLinkToServerMenu()
+void ConfigurationInterface::enterLinkToServerMenu(bool update_instead_of_adding)
 {
     if (!admin) return;
 
@@ -378,12 +378,19 @@ void ConfigurationInterface::enterLinkToServerMenu()
     window->setTitle("Link to server");
     window->setHint("wide");
 
-    int back_index = window->addListElement("Back to server-to-server menu", "manage_servertoserver", true, false);
+    int back_index;
+    if (!update_instead_of_adding)
+        back_index = window->addListElement("Back to server-to-server menu", "manage_servertoserver", true, false);
+    else
+        back_index = window->addListElement("Back to server-to-server menu (don't save)", "manage_servertoserver", true, false);
     window->addListElement("", "Address: ", "link_to_server_address", true, true);
     window->addListElement("", "Port: ", "link_to_server_port", true, true);
     window->addListElement("", "Nanoseconds to wait before reconnecting: ", "link_to_server_nanoseconds", true, true);
     window->addListElement("", "Link name: ", "link_to_server_name", true, true);
-    window->addListElement("Add server-to-server link", "add_servertoserver_link", true, false);
+    if (!update_instead_of_adding)
+        window->addListElement("Add server-to-server link", "add_servertoserver_link", true, false);
+    else
+        window->addListElement("Update server-to-server link (causes reconnect)", "update_servertoserver_link", true, false);
 
     window->modifyListSelectionIndex(back_index);
 
@@ -981,7 +988,7 @@ bool ConfigurationInterface::auxiliaryMenuSelectFunction(ui32 index)
     return false;
 }
 
-void ConfigurationInterface::addServerToServerLink()
+void ConfigurationInterface::addServerToServerLink(bool update_instead_of_adding)
 {
     if (checkLinkToServerMenu(false))
     {
@@ -989,8 +996,18 @@ void ConfigurationInterface::addServerToServerLink()
         assert(st);
         assert(user);
 
-        st->addServerToServerConnection(edit_pair);
-        LOG(Note, "User " << user->getNameUTF8() << " added a server-to-server configuration pair.");
+        if (!update_instead_of_adding)
+        {
+            st->addServerToServerConnection(edit_pair);
+            LOG(Note, "User " << user->getNameUTF8() << " added a server-to-server configuration pair.");
+        }
+        else
+        {
+            st->deleteServerToServerConnection(old_pair);
+            st->addServerToServerConnection(edit_pair);
+            LOG(Note, "User " << user->getNameUTF8() << " updated a server-to-server configuration pair.");
+        }
+
         enterManageServerToServerMenu();
     }
 }
@@ -1157,10 +1174,21 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     else if (selection == "link_to_server")
     {
         edit_pair = ServerToServerConfigurationPair();
-        enterLinkToServerMenu();
+        enterLinkToServerMenu(false);
+    }
+    /* When editing a server-to-server link settings. */
+    else if (!selection.compare(0, min(selection.size(), (size_t) 25), "edit_servertoserver_link_", 25))
+    {
+        bool result = edit_pair.unSerialize(selection.substr(25));
+        old_pair = edit_pair;
+        assert(result);
+        
+        enterLinkToServerMenu(true);
     }
     else if (selection == "add_servertoserver_link")
-        addServerToServerLink();
+        addServerToServerLink(false);
+    else if (selection == "update_servertoserver_link")
+        addServerToServerLink(true);
     else if (selection == "manage_servertoserver")
         enterManageServerToServerMenu();
     else if (selection == "manage_connections")

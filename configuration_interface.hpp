@@ -71,7 +71,7 @@ class ConfigurationInterface
         void enterAddIndividualAddressMenu();
         void enterAddRegexAddressMenu();
         void enterManageServerToServerMenu();
-        void enterLinkToServerMenu();
+        void enterLinkToServerMenu(bool update_instead_of_adding);
         void checkSlotProfileMenu(bool no_read = false);
         void checkSlotsMenu(bool no_read = false);
         bool checkLinkToServerMenu(bool no_read);
@@ -81,7 +81,7 @@ class ConfigurationInterface
         void auxiliaryEnterSpecificUsersWindow();
         void checkAuxiliaryWindowUsergroupSelections();
 
-        void addServerToServerLink();
+        void addServerToServerLink(bool update_instead_of_adding);
 
         /* When defining user groups, this is the currently edited user group. */
         UserGroup edit_usergroup;
@@ -102,6 +102,8 @@ class ConfigurationInterface
 
         /* Edited server-to-server pair */
         ServerToServerConfigurationPair edit_pair;
+        /* Used in editing server-to-server pairs, this used to delete the old pair. */
+        ServerToServerConfigurationPair old_pair;
 
         /* When changing passwords, these indices are set to the elements
            that user edits, and then they are checked. */
