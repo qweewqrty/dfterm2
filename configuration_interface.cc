@@ -135,7 +135,9 @@ void ConfigurationInterface::enterAdminMainMenu()
     window->addListElement("Set MotD", "motd", true, false);
     window->addListElement("Manage users", "manage_users", true, false);
     window->addListElement("Manage connection restrictions", "manage_connections", true, false);
+    #ifdef ENABLE_SERVER_TO_SERVER
     window->addListElement("Manage server-to-server links", "manage_servertoserver", true, false);
+    #endif
     window->addListElement("Force close running slot", "forceclose", true, false);
     window->addListElement("Change your password", "setuserpassword", true, false);
     window->addListElement("Disconnect", "disconnect", true, false); 
