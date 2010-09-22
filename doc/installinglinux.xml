@@ -35,6 +35,9 @@ Here is presented a step-by-step guide to set up dfterm2 for Linux. Before you s
 <para>g++ and usual development tools</para>
 </listitem>
 <listitem>
+<para>Lua 5.1 development files</para>
+</listitem>
+<listitem>
 <para>git</para>
 </listitem>
 </itemizedlist>
