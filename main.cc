@@ -346,17 +346,17 @@ int main(int argc, char* argv[])
     else
     {
         string logfile2 = TO_UTF8(log_file), database2 = database_file;
-        if (!readConfigurationFile(conffile, &logfile2, &database2))
-            return 1;
-
-        if (use_luaconf_logfile)
-            log_file = TO_UNICODESTRING(logfile2);
-        else
-            cout << "Will not use configuration specified log file " << logfile2 << " because log file was specified on command line." << endl;
-        if (use_luaconf_database)
-            database_file = database2;
-        else
-            cout << "Will not use configuration specified database file " << database2 << " because database file was specified on command line." << endl;
+        if (readConfigurationFile(conffile, &logfile2, &database2))
+        {
+            if (use_luaconf_logfile)
+                log_file = TO_UNICODESTRING(logfile2);
+            else
+                cout << "Will not use configuration specified log file " << logfile2 << " because log file was specified on command line." << endl;
+            if (use_luaconf_database)
+                database_file = database2;
+            else
+                cout << "Will not use configuration specified database file " << database2 << " because database file was specified on command line." << endl;
+        }
     }
 
     #ifdef _WIN32
