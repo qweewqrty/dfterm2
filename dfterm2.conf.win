@@ -1,0 +1,7 @@
+-- Configuration file for Windows.
+--
+
+-- Create directory for the stuff
+database = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2_database.sqlite3"
+logfile = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2.log"
+

@@ -24,12 +24,12 @@ static int getenv_unicode(lua_State* l)
     #ifdef _WIN32
     wchar_t* wc = (wchar_t*) 0;
     size_t wc_size = 0;
-    TO_WCHAR_STRING(conffile, wc, &wc_size);
+    TO_WCHAR_STRING(string(str), wc, &wc_size);
     if (wc_size == 0)
-        luaL_error("Environment variable name string is corrupted.");
+        luaL_error(l, "Environment variable name string is corrupted.");
     wc = new wchar_t[wc_size+1];
     memset(wc, 0, sizeof(wchar_t)+1);
-    TO_WCHAR_STRING(conffile, wc, &wc_size);
+    TO_WCHAR_STRING(string(str), wc, &wc_size);
 
     wchar_t* result = _wgetenv(wc);
     delete[] wc;
