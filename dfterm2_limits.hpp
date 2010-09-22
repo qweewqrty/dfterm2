@@ -32,6 +32,9 @@ const trankesbel::ui32 MAX_HTTP_CONNECTIONS = 50;
 /* Maximum size for a file served through HTTP. */
 const trankesbel::ui64 MAX_HTTP_FILE_SIZE = 1000000;
 
+/* Maximum size of configuration file. */
+const trankesbel::ui64 CONFIGURATION_FILE_MAX_SIZE = 100000;
+
 };
 
 #endif

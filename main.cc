@@ -9,12 +9,165 @@
 #include "logger.hpp"
 #include "state.hpp"
 
+#include "lua.hpp"
+
 #include <clocale>
 
 using namespace dfterm;
 using namespace trankesbel;
 using namespace boost;
 using namespace std;
+
+static int getenv_unicode(lua_State* l)
+{
+    const char* str = luaL_checkstring(l, 1);
+    #ifdef _WIN32
+    wchar_t* wc = (wchar_t*) 0;
+    size_t wc_size = 0;
+    TO_WCHAR_STRING(conffile, wc, &wc_size);
+    if (wc_size == 0)
+        luaL_error("Environment variable name string is corrupted.");
+    wc = new wchar_t[wc_size+1];
+    memset(wc, 0, sizeof(wchar_t)+1);
+    TO_WCHAR_STRING(conffile, wc, &wc_size);
+
+    wchar_t* result = _wgetenv(wc);
+    delete[] wc;
+    if (!result)
+    {
+        lua_pushnil(l);
+        return 1;
+    }
+    string result2 = TO_UTF8(result);
+    lua_pushlstring(l, result2.c_str(), result2.size());
+    return 1;
+    #else
+    char* result = getenv(str);
+    if (!result)
+    {
+        lua_pushnil(l);
+        return 1;
+    }
+    lua_pushstring(l, result);
+    return 1;
+    #endif
+}
+
+/* Read from lua script what to use as database and logfile */
+static bool readConfigurationFile(const std::string &conffile, std::string* logfile, std::string* database)
+{
+    wchar_t* wc = (wchar_t*) 0;
+    size_t wc_size = 0;
+    TO_WCHAR_STRING(conffile, wc, &wc_size);
+    if (wc_size == 0)
+    {
+        cout << "Configuration file name is corrupted. Can't read configuration." << endl;
+        return false;
+    }
+    wc = new wchar_t[wc_size+1];
+    memset(wc, 0, (wc_size+1) * sizeof(wchar_t));
+    TO_WCHAR_STRING(conffile, wc, &wc_size);
+
+    #ifdef _WIN32
+    FILE* f = _wfopen(wc, L"rb");
+    #else
+    FILE* f = fopen(conffile.c_str(), "rb");
+    #endif
+    if (!f)
+    {
+        int err = errno;
+        wprintf(L"Could not open configuration file %ls, errno %d.\n", wc, err);
+        delete[] wc;
+        return false;
+    }
+    delete[] wc;
+
+    fseek(f, 0, SEEK_END);
+    ui64 size = ftell(f);
+    if (size > CONFIGURATION_FILE_MAX_SIZE)
+    {
+        cout << "Configuration file is too large. (Over " << CONFIGURATION_FILE_MAX_SIZE << " bytes)" << endl;
+        return false;
+    }
+    fseek(f, 0, SEEK_SET);
+
+    char* buf = new char[size];
+    fread(buf, size, 1, f);
+    if (ferror(f))
+    {
+        cout << "Error while reading configuration file, error code " << ferror(f) << endl;
+        delete[] buf;
+        return false;
+    }
+
+    lua_State* l = luaL_newstate();
+    if (!l)
+    {
+        cout << "Could not create a lua state when reading configuration file." << endl;
+        delete[] buf;
+        return false;
+    }
+    luaL_openlibs(l);
+
+    /* Replace os.getenv in lua with a version that takes unicode. */
+    lua_getfield(l, LUA_GLOBALSINDEX, "os");
+    lua_pushcfunction(l, getenv_unicode);
+    lua_setfield(l, -2, "getenv");
+    lua_pop(l, 1);
+
+    int result = luaL_loadbuffer(l, buf, size, "conffile");
+    if (result != 0)
+    {
+        delete[] buf;
+        cout << "Could not load configuration file. ";
+        if (result != LUA_ERRMEM)
+            cout << lua_tostring(l, -1) << endl;
+        else
+            cout << "Memory error." << endl;
+        return false;
+    }
+
+    delete[] buf;
+    result = lua_pcall(l, 0, 0, 0);
+    if (result != 0)
+    {
+        cout << "Could not run configuration file. ";
+        if (result != LUA_ERRMEM)
+            cout << lua_tostring(l, -1) << endl;
+        else
+            cout << "Memory error." << endl;
+        return false;
+    }
+    cout << "Ran through configuration file." << endl;
+
+    bool set_database = false;
+    bool set_logfile = false;
+
+    lua_getfield(l, LUA_GLOBALSINDEX, "database");
+    if (lua_isstring(l, -1))
+    {
+        cout << "Database: " << lua_tostring(l, -1) << endl;
+        set_database = true;
+        (*database) = lua_tostring(l, -1);
+        lua_pop(l, 1);
+    }
+    else
+        cout << "Database not set." << endl;
+    lua_getfield(l, LUA_GLOBALSINDEX, "logfile");
+    if (lua_isstring(l, -1))
+    {
+        cout << "Logfile: " << lua_tostring(l, -1) << endl;
+        set_logfile = true;
+        (*logfile) = lua_tostring(l, -1);
+        lua_pop(l, 1);
+    }
+    else
+        cout << "Logfile not set." << endl;
+
+    lua_close(l);
+
+    return true;
+}
 
 void resolve_success(bool *success_p,
                      SocketAddress *sa, 
@@ -82,17 +235,26 @@ int main(int argc, char* argv[])
 
     bool create_app_dir = false;
 
+    bool use_luaconf_database = true;
+    bool use_luaconf_logfile = true;
+    string conffile("dfterm2.conf");
+
     int i1;
     for (i1 = 1; i1 < argc; ++i1)
     {
         if ((!strcmp(argv[i1], "--create-appdir")))
             create_app_dir = true;
+        if ((!strcmp(argv[i1], "--conf")))
+            conffile = argv[++i1];
         else if ((!strcmp(argv[i1], "--port") || !strcmp(argv[i1], "-p")) && i1 < argc-1)
             port = argv[++i1];
         else if ((!strcmp(argv[i1], "--httpport") || !strcmp(argv[i1], "-hp")) && i1 < argc-1)
             httpport = argv[++i1];
         else if ((!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "-db")) && i1 < argc-1)
+        {
             database_file = argv[++i1];
+            use_luaconf_database = false;
+        }
         else if ((!strcmp(argv[i1], "--address") || !strcmp(argv[i1], "-a")) && i1 < argc-1)
             address = argv[++i1];
         else if ((!strcmp(argv[i1], "--httpaddress") || !strcmp(argv[i1], "-ha")) && i1 < argc-1)
@@ -119,6 +281,7 @@ int main(int argc, char* argv[])
         }
         else if (!strcmp(argv[i1], "--logfile") && i1 < argc-1)
         {
+            use_luaconf_logfile = false;
             log_file = TO_UNICODESTRING(string(argv[i1+1]));
             ++i1;
         }
@@ -152,6 +315,11 @@ int main(int argc, char* argv[])
             cout << "--database (database file)" << endl;
             cout << "-db (database file)   Set the database file used. By default dfterm2 will try to look for" << endl;
             cout << "                      dfterm2_database.sqlite3 as database." << endl;
+            cout << "--conf (conf file)    Set the configuration file to be used. Defaults to dfterm2.conf." << endl;
+            cout << "                      Configuration file is a lua script, that should set variables" << endl;
+            cout << "                      \"database\" and \"logfile\" to global environment pointing to the files" << endl;
+            cout << "                      to be used. Configuration file is superseded by --database and --log-file" << endl;
+            cout << "                      settings. The strings are interpreted as UTF-8." << endl;
             #ifdef _WIN32
             cout << "--create-appdir       Creates %APPDIR%\\dfterm2 on start-up, if the" << endl;
             cout << "                      directory does not exist. Windows only." << endl;
@@ -171,6 +339,24 @@ int main(int argc, char* argv[])
             cout << endl;
             return 0;
         }
+    }
+
+    if (!use_luaconf_logfile && !use_luaconf_database)
+        cout << "Will not run configuration file, because both log file and database were specified on command line." << endl;
+    else
+    {
+        string logfile2 = TO_UTF8(log_file), database2 = database_file;
+        if (!readConfigurationFile(conffile, &logfile2, &database2))
+            return 1;
+
+        if (use_luaconf_logfile)
+            log_file = TO_UNICODESTRING(logfile2);
+        else
+            cout << "Will not use configuration specified log file " << logfile2 << " because log file was specified on command line." << endl;
+        if (use_luaconf_database)
+            database_file = database2;
+        else
+            cout << "Will not use configuration specified database file " << database2 << " because database file was specified on command line." << endl;
     }
 
     #ifdef _WIN32

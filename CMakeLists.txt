@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 2.8)
 project (dfterm2)
 
+SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/trankesbel)
+FIND_PACKAGE(Lua REQUIRED)
+INCLUDE_DIRECTORIES(${LUA_INCLUDE_PATH})
+
 # For DFHack headers to work correctly
 IF(UNIX)
   add_definitions(-DLINUX_BUILD)
@@ -38,7 +42,7 @@ ELSE (WIN32)
     target_link_libraries(dfterm2 dl)
 ENDIF (WIN32)
 
-target_link_libraries(dfterm2 trankesbel)
+target_link_libraries(dfterm2 trankesbel ${LUA_LIBRARIES})
 
 add_executable(dfterm2_configure dfterm2_configure.cc configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc id.cc hash.cc rng.cc)
 IF(NOT WIN32)
