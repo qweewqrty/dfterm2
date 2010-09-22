@@ -27,6 +27,9 @@ files installed:
                               but it might work with older versions.
                               http://site.icu-project.org/
 
+    Lua 5.1               -   Lua is a scripting language. It is used
+                              for configuration files.
+
     CMake                 -   The tool dfterm2 is built with.
                               http://www.cmake.org/
 
@@ -87,9 +90,6 @@ files installed:
 
 
     --- On Windows ---
-    (The instructions are somewhat vague here.)
-
-
 
     1. Grab yourself Microsoft Visual C++ 10 and Microsoft Windows SDK.
 
@@ -102,8 +102,6 @@ files installed:
     4. Starting and configuring dfterm2 is the same as with Linux, in 
        steps #4 and #5.
 
-    5. Note that on Windows, you need to copy the dfterm_injection_glue.dll
-       to the Dwarf Fortress directory from where you launch the game.
-       Otherwise, you might not see anything.
-
+    5. There's a NSIS installer script in root directory that you can use
+       to build an installer package.
 
