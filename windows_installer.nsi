@@ -94,7 +94,7 @@ Section "Start Menu Shortcuts"
                  
   CreateShortCut "$SMPROGRAMS\dfterm2\Dfterm2.lnk" \
                  "$INSTDIR\dfterm2" \
-                 "--create-appdir --logfile %APPDATA%\dfterm2\dfterm2.log --database %APPDATA%\dfterm2\dfterm2.database" \
+                 "--create-appdir" \
                  "$INSTDIR\dfterm2.exe" \
                  0
   
