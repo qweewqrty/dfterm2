@@ -407,16 +407,16 @@ void ConfigurationInterface::enterManageServerToServerMenu()
 
     window->modifyListSelectionIndex(back_index);
 
-    SP<State> = st.lock();
-    assert(state);
+    SP<State> st = state.lock();
+    assert(st);
 
     /* Add current server-to-server links to the list. */
-    std::vector<ServerToServerConfigurationPair> pairs = window->getServerToServerConnections();
+    std::vector<ServerToServerConfigurationPair> pairs = st->getServerToServerConnections();
     ui32 i1, len = pairs.size();
     for (i1 = 0; i1 < len; ++i1)
     {
         std::string name = pairs[i1].getNameUTF8();
-        window->addListElement(string("\"") + name + string("\""), "edit_servertoserver_link_" + pairs[i1].serialize());
+        window->addListElementUTF8(string("\"") + name + string("\""), "edit_servertoserver_link_" + pairs[i1].serialize(), true, false);
     }
 }
 
