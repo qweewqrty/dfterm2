@@ -465,7 +465,9 @@ bool Client::identifySelectFunction(ui32 index)
             identify_window->addListElementUTF8("If you want to make this a permanent account, enter your password here.", "dummy", false, false);
             identify_window->addListElementUTF8("Otherwise, leave them empty; your user data will not be preserved.", "dummy", false, false);
             password1_index = identify_window->addListElementUTF8("", "Password: ", "new_password1", true, true);
+            identify_window->modifyListElementStars(password1_index, true);
             password2_index = identify_window->addListElementUTF8("", "Retype password: ", "new_password2", true, true);
+            identify_window->modifyListElementStars(password2_index, true);
             identify_window->modifyListSelectionIndex(password1_index);
         }
         else
@@ -479,6 +481,7 @@ bool Client::identifySelectFunction(ui32 index)
             identify_window->setTitle("Existing user - Password");
             identify_window->deleteAllListElements();
             password1_index = identify_window->addListElementUTF8("", "Password: ", "password1", true, true);
+            identify_window->modifyListElementStars(password1_index, true);
             identify_window->modifyListSelectionIndex(password1_index);
         }
     } /* if "nickname" */

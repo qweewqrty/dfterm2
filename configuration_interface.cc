@@ -247,15 +247,20 @@ void ConfigurationInterface::enterSetPasswordMenu(const ID &user_id, bool admin_
     {
         back_index = window->addListElementUTF8("Back to user accounts menu", "showaccounts", true, false);
         password_index = window->addListElementUTF8("", "Password: ", "password", true, true);
+        window->modifyListElementStars(password_index, true);
         retype_password_index = window->addListElementUTF8("", "Retype password: ", "retype_password", true, true);
+        window->modifyListElementStars(retype_password_index, true);
         window->addListElementUTF8("Save", "savepassword", true, false);
     }
     else
     {
         back_index = window->addListElementUTF8("Back to main menu", "mainmenu", true, false);
         old_password_index = window->addListElementUTF8("", "Old password: ", "old_password", true, true);
+        window->modifyListElementStars(old_password_index, true);
         password_index = window->addListElementUTF8("", "Password: ", "password", true, true);
+        window->modifyListElementStars(password_index, true);
         retype_password_index = window->addListElementUTF8("", "Retype password: ", "retype_password", true, true);
+        window->modifyListElementStars(retype_password_index, true);
         window->addListElementUTF8("Save", "savepassword", true, false);
     }
 
