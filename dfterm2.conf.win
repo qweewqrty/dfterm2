@@ -1,5 +1,5 @@
 -- Configuration file for Windows.
 --
-database = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2_database.sqlite3"
+database = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2.database"
 logfile = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2.log"
 
