@@ -345,8 +345,12 @@ void TerminalGlue::unloadToWindow(SP<Interface2DWindow> target_window)
     ui32 t_w = min(terminal_w, (ui32) game_terminal.getWidth());
     ui32 t_h = min(terminal_h, (ui32) game_terminal.getHeight());
 
+    /*
+    Disable this functionality for now.
     if (old_w != t_w || old_h != t_h)
         try_resize_again = true;
+    */
+    try_resize_again = true;
     old_w = t_w;
     old_h = t_h;
 
