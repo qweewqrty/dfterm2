@@ -34,6 +34,9 @@ Dfterm2 has some limits on it that somewhat mitigate DoS attacks made against it
 <listitem>
 <para>Largest file dfterm2 will server through HTTP is 1000000 bytes.</para>
 </listitem>
+<listitem>
+<para>Configuration file can be at most 100000 bytes long.</para>
+</listitem>
 </itemizedlist>
 
 </chapter>

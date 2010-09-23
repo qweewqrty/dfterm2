@@ -35,20 +35,20 @@ ENDIF (BUILD_DFHACK)
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
 IF (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc ${DFHACK_SLOT_SOURCE})
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_dfglue.cc cp437_to_unicode.cc pointerpath.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc lua_configuration.cc ${DFHACK_SLOT_SOURCE})
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
-    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc ${DFHACK_SLOT_SOURCE})
+    add_executable(dfterm2 main.cc client.cc logger.cc slot.cc slot_terminal.cc cp437_to_unicode.cc pty.cc bsd_pty.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc lua_configuration.cc ${DFHACK_SLOT_SOURCE})
     target_link_libraries(dfterm2 dl)
 ENDIF (WIN32)
 
 target_link_libraries(dfterm2 trankesbel ${LUA_LIBRARIES})
 
-add_executable(dfterm2_configure dfterm2_configure.cc configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc id.cc hash.cc rng.cc)
+add_executable(dfterm2_configure dfterm2_configure.cc configuration_db.cc sqlite3.c usergroup_serialize.cc logger.cc id.cc hash.cc rng.cc lua_configuration.cc)
 IF(NOT WIN32)
-target_link_libraries(dfterm2_configure trankesbel dl)
+target_link_libraries(dfterm2_configure trankesbel dl ${LUA_LIBRARIES})
 ELSE(NOT WIN32)
-target_link_libraries(dfterm2_configure trankesbel)
+target_link_libraries(dfterm2_configure trankesbel ${LUA_LIBRARIES})
 ENDIF(NOT WIN32)
 
 add_executable(dfterm2_sha512 dfterm2_sha512.cc hash.cc)

@@ -211,6 +211,6 @@ Function OnAccountCreate
     ${EndIf}
     
     CreateDirectory "$APPDATA\dfterm2"
-    ExecWait "$INSTDIR\dfterm2_configure.exe --database $APPDATA\dfterm2\dfterm2.database --adduser $\"$0$\" $\"$1$\" admin"
+    ExecWait "$INSTDIR\dfterm2_configure.exe --adduser $\"$0$\" $\"$1$\" admin"
 
 FunctionEnd

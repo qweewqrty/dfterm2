@@ -10,6 +10,7 @@
 #include <unicode/uclean.h>
 #include <cstring>
 #include "sockets.hpp"
+#include "lua_configuration.hpp"
 
 #include <clocale>
 
@@ -74,11 +75,19 @@ int main(int argc, char* argv[])
 
     bool make_admin = false;
 
+    bool use_luaconf_database = true;
+    string conffile("dfterm2.conf");
+
     int i1;
     for (i1 = 1; i1 < argc; ++i1)
     {
         if ((!strcmp(argv[i1], "--database") || !strcmp(argv[i1], "--db")) && i1 < argc-1)
+        {
             database_file = argv[++i1];
+            use_luaconf_database = false;
+        }
+        else if (!strcmp(argv[i1], "--conffile"))
+            conffile = argv[++i1];
         else if (!strcmp(argv[i1], "--adduser") && i1 < argc - 2)
         {
             username = UnicodeString::fromUTF8(string(argv[i1+1]));
@@ -139,6 +148,10 @@ int main(int argc, char* argv[])
             cout << "--motd                Print out current Message of the Day." << endl;
             cout << "--userinfo (name)" << endl;
             cout << "                      Shows user information." << endl;
+            cout << "--conffile (configuration file)" << endl;
+            cout << "                      Use given configuration file to look for what database to use." << endl;
+            cout << "                      Defaults to dfterm2.conf. --database argument takes preference over this" << endl;
+            cout << "                      argument." << endl;
             cout << endl;
             cout << "Examples:" << endl;
             cout << "  Adding an administrator: " << endl;
@@ -147,6 +160,16 @@ int main(int argc, char* argv[])
             cout << "    dfterm2_configure --setmotd \"Hello. This is Adeon's b3stest server on da earth. Close DF before disconnecting, if at all possible." << endl; 
             return 0;
         }
+    }
+
+    if (!use_luaconf_database)
+        cout << "Will not use configuration file because database was specified on command line." << endl;
+    else
+    {
+        string database2, logfile2;
+        bool result = readConfigurationFile(conffile, &logfile2, &database2);
+        if (result)
+            database_file = database2;
     }
 
     cout << "Selecting database file " << database_file << endl;
