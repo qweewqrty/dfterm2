@@ -3,8 +3,10 @@
 #include "dfterm2_limits.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
+#include <errno.h>
 #include "lua.hpp"
 
 using namespace dfterm;
