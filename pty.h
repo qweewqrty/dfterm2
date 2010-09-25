@@ -43,6 +43,9 @@ class Pty
         // Returns the number of bytes read or 0 if pty has been closed and -1
         // if pty is in an erroneus state.
         int fetch(char* data, size_t n);
+
+        // Returns the pid of the process. Return value is undefined if pty is not active.
+        pid_t getPID() const;
         
         // Returns the character needed for CTRL+character. Returns 0 if character
         // is invalid in some way. 0 may also be a valid result for some keys...

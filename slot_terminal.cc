@@ -7,6 +7,8 @@
 #include "interface_ncurses.hpp"
 #include <iostream>
 
+#include "slot_linux_common.hpp"
+
 #include "bsd_pty.h"
 
 #ifdef __WIN32
@@ -162,106 +164,12 @@ void TerminalGlue::flushInput(Pty* program_pty)
 
 void TerminalGlue::thread_function()
 {
-    /* Wait until "path", "work", "w" and "h" are set. 60 seconds. */
-    ui8 counter = 60;
-    map<string, UnicodeString>::iterator i1;
+    Pty program_pty;
 
-    
-    vector<string> arguments;
-    string next_arg("arg0");
-    ui32 num_arg = 0;
-
-    while (counter > 0)
-    {
-        unique_lock<recursive_mutex> lock(glue_mutex);
-        if (close_thread)
-        {
-            lock.unlock();
-            return;
-        }
-
-        // Collect arguments to 'arguments' vector
-        while (parameters.find(next_arg) != parameters.end())
-        {
-            arguments.push_back(TO_UTF8(parameters[next_arg]));
-            stringstream next_arg_ss;
-            next_arg_ss << "arg" << (++num_arg);
-            next_arg = next_arg_ss.str();
-        }
-
-        if (parameters.find("path") != parameters.end() &&
-            parameters.find("work") != parameters.end() &&
-            parameters.find("w") != parameters.end() &&
-            parameters.find("h") != parameters.end())
-            break;
-        lock.unlock();
-        --counter;
-        sleep(1);
-    }
-    if (counter == 0)
+    pid_t pid;
+    if (!waitAndLaunchProcess(&pid, &glue_mutex, &close_thread, &parameters, &program_pty, &terminal_w, &terminal_h))
     {
         lock_guard<recursive_mutex> lock(glue_mutex);
-        alive = false;
-        return;
-    }
-
-    unique_lock<recursive_mutex> ulock(glue_mutex);
-    Pty program_pty;
-    UnicodeString path = parameters["path"];
-    UnicodeString work_dir = parameters["work"];
-    string path_str = TO_UTF8(path);
-    string work_dir_str = TO_UTF8(work_dir);
-
-    /* Get width and height from parameters, default to 80x25 */
-    terminal_w = 80;
-    terminal_h = 25;
-    i1 = parameters.find("w");
-    if (i1 != parameters.end())
-    {
-        string n = TO_UTF8(i1->second);
-        terminal_w = (ui32) strtol(n.c_str(), NULL, 10);
-        if (terminal_w == 0) terminal_w = 1;
-        if (terminal_w > 500) terminal_w = 500;
-    }
-    i1 = parameters.find("h");
-    if (i1 != parameters.end())
-    {
-        string n = TO_UTF8(i1->second);
-        terminal_h = (ui32) strtol(n.c_str(), NULL, 10);
-        if (terminal_h == 0) terminal_h = 1;
-        if (terminal_h > 500) terminal_h = 500;
-    }
-
-    char **argv;
-    argv = new char*[arguments.size() + 2];
-    memset(argv, 0, sizeof(char*) * (arguments.size() + 2));
-    argv[0] = new char[path_str.size()+1];
-    argv[0][path_str.size()] = 0;
-    memcpy(argv[0], path_str.c_str(), path_str.size());
-
-    stringstream logmessage;
-
-    logmessage << "Launching a program \"" << path_str.c_str() << "\" in a pty, with terminal size " << terminal_w << "x" << terminal_h << " and with following arguments: ";
-    for (ui32 i1 = 0; i1 < arguments.size(); ++i1)
-    {
-        argv[i1+1] = new char[arguments[i1].size()+1];
-        argv[i1+1][arguments[i1].size()] = 0;
-        memcpy(argv[i1+1], arguments[i1].c_str(), arguments[i1].size());
-        logmessage << "\"" << argv[i1+1] << "\"";
-        if (i1 < arguments.size() - 1)
-            logmessage << " ";
-    }
-    LOG(Note, logmessage.str());
-
-    bool result = program_pty.launchExecutable(terminal_w, terminal_h, path_str.c_str(), argv, (char**) 0, work_dir_str.c_str());
-    for (ui32 i1 = 0; i1 < arguments.size()+1; ++i1)
-    {
-        delete[] argv[i1];
-    }
-    delete[] argv;
-
-    if (!result)
-    {
         alive = false;
         return;
     }
@@ -277,7 +185,6 @@ void TerminalGlue::thread_function()
      * As far as I know, I'd need one additional thread or two to be able to wait on both.
      * So for now, let's go with ticking system like on slot_dfglue.cc. We tick, say,
      * 30 times per second and then check the status of those both. */
-    ulock.unlock();
     while (!program_pty.isClosed() && !close_thread)
     {
         unique_lock<recursive_mutex> ulock(glue_mutex);

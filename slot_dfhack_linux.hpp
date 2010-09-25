@@ -21,6 +21,7 @@
 #include "interface_ncurses.hpp"
 #include "dfscreendataformat.hpp"
 #include "lockedresource.hpp"
+#include "pty.h"
 
 namespace dfterm
 {
@@ -64,16 +65,11 @@ class DFHackSlotLinux : public Slot
         /* Reads current DF window size from memory. */
         void updateWindowSizeFromDFMemory();
 
-        /* Detects DF version and fills in pointer paths for them. */
-        bool detectDFVersion();
-
-        /* Injects a DLL to the DF process.  */
-        bool injectDLL(std::string dllname);
-
         bool dont_take_running_process;
 
         std::map<std::string, UnicodeString> parameters;
 
+        bool launchDFProcess(Pty* program_pty, pid_t *pid);
 
     public:
         DFHackSlotLinux();

@@ -883,12 +883,14 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
                 {
                     #ifdef NO_DFHACK
                     if (st == DFGrabHackSlot) st = DFGrab;
+                    if (st == DFGrabHackSlotLinux) st = DFTerminalLaunch;
+                    if (st == DFHackSlotLinux) st = DFTerminalLaunch;
                     #endif
 
                     #ifdef _WIN32
                     if (st != DFGrab && st != DFLaunch && st != DFGrabHackSlot) st = DFLaunch;
                     #else
-                    if (st != TerminalLaunch && st != DFGrabHackSlotLinux) st = TerminalLaunch;
+                    if (st != TerminalLaunch && st != DFGrabHackSlotLinux && st != LaunchDFHackSlotLinux) st = TerminalLaunch;
                     #endif
                     edit_slotprofile.setSlotType(st);
                 }
@@ -903,6 +905,8 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
                     window->modifyListElementTextUTF8(index, "Grab a running DF instance and use DFHack (win32)");
                 else if (st == DFGrabHackSlotLinux)
                     window->modifyListElementTextUTF8(index, "Grab a running DF instance and use DFHack (linux)");
+                else if (st == LaunchDFHackSlotLinux)
+                    window->modifyListElementTextUTF8(index, "Launch a new DF instance and use DFHack (linux)");
                 else 
                     window->modifyListElementTextUTF8(index, "Unknown slot type");
             }
@@ -1374,7 +1378,9 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
         SlotType st = (SlotType) edit_slotprofile.getSlotType();
         if (st == TerminalLaunch)
             edit_slotprofile.setSlotType((ui32) DFGrabHackSlotLinux);
-        else
+        else if (st == DFGrabHackSlotLinux)
+            edit_slotprofile.setSlotType((ui32) LaunchDFHackSlotLinux);
+        else if (st == LaunchDFHackSlotLinux)
             edit_slotprofile.setSlotType((ui32) TerminalLaunch);
         #endif
     }

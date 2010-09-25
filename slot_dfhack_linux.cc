@@ -11,6 +11,10 @@
 #include <algorithm>
 #include <cstring>
 
+#include "slot_linux_common.hpp"
+
+#include "pty.h"
+
 #include "state.hpp"
 
 using namespace dfterm;
@@ -114,6 +118,17 @@ bool DFHackSlotLinux::isAlive()
     return alive_bool;
 }
 
+bool DFHackSlotLinux::launchDFProcess(Pty* program_pty, pid_t *pid)
+{
+    assert(program_pty);
+    assert(pid);
+
+    ui32 w1, w2;
+
+    bool result = dfterm::waitAndLaunchProcess(pid, &glue_mutex, &close_thread, &parameters, program_pty, &w1, &w2);
+    return result;
+}
+
 void DFHackSlotLinux::static_thread_function(DFHackSlotLinux* self)
 {
     assert(self);
@@ -125,10 +140,14 @@ void DFHackSlotLinux::thread_function()
     assert(!df_context);
     assert(df_contextmanager);
 
+    bool poll_pty = false;
+    Pty program_pty;
+
     if (!dont_take_running_process)
     {
         try
         {
+            df_contextmanager->Refresh(NULL);
             df_context = df_contextmanager->getSingleContext();
             df_context->Attach();
             df_position_module = df_context->getPosition();
@@ -146,17 +165,40 @@ void DFHackSlotLinux::thread_function()
     else
     // Launch a new DF process
     {
-        // Oops. doesn't work yet
-        alive = false;
-        return;
-
-        /*
-        if (!launchDFProcess(&df_process, &df_windows))
+        pid_t pid;
+        if (!launchDFProcess(&program_pty, &pid))
         {
             alive = false;
             return;
         }
-        */
+        try
+        {
+            this_thread::sleep(posix_time::time_duration(posix_time::microseconds(2000000LL)));
+        }
+        catch (const thread_interrupted &ti)
+        {
+            lock_guard<recursive_mutex> lock(glue_mutex);
+            alive = false;
+            return;
+        }
+        poll_pty = true;
+
+        try
+        {
+            df_contextmanager->Refresh(NULL);
+            df_context = df_contextmanager->getSingleContextWithPID((int) pid);
+            df_context->Attach();
+            df_position_module = df_context->getPosition();
+        }
+        catch (std::exception &e)
+        {
+            LOG(Error, "Cannot get a working contect to DF with dfhack. \"" << e.what() << "\"");
+            alive = false;
+            return;
+        }
+
+        DFHack::Process* p = df_context->getProcess();
+        assert(p);
     }
 
     assert(df_context->isAttached());
@@ -206,6 +248,17 @@ void DFHackSlotLinux::thread_function()
             }
 
             this_thread::sleep(posix_time::time_duration(posix_time::microseconds(1000000LL / ticks_per_second)));
+
+            if (poll_pty)
+            {
+                while(program_pty.poll())
+                {
+                    char dummy[5000];
+                    if (program_pty.fetch(dummy, 5000) == -1)
+                        break;
+                }
+            }
+                
         }
     }
     catch (const thread_interrupted &ti)

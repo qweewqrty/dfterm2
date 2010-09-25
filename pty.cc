@@ -157,4 +157,8 @@ int Pty::fetch(char* data, size_t n)
     return result;
 }
 
+pid_t Pty::getPID() const
+{
+    return ChildPid;
+}
 

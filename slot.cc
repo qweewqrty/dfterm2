@@ -58,6 +58,9 @@ SP<Slot> Slot::createSlot(string slottype)
         case DFGrabHackSlotLinux:
             result = SP<Slot>(new DFHackSlotLinux);
         break;
+        case LaunchDFHackSlotLinux:
+            result = SP<Slot>(new DFHackSlotLinux(true));
+        break;
         #endif
 
         #endif
