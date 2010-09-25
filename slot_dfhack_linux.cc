@@ -321,7 +321,7 @@ void DFHackSlotLinux::updateWindowSizeFromDFMemory()
 
 void DFHackSlotLinux::unloadToWindow(SP<Interface2DWindow> target_window)
 {
-    assert(alive && target_window);
+    assert(target_window);
 
     LockedObject<Terminal> term = df_cache_terminal.lock();
     ui32 t_w = term->getWidth(), t_h = term->getHeight();
