@@ -75,7 +75,11 @@ bool dfterm::readConfigurationFile(const std::string &conffile, std::string* log
     if (!f)
     {
         int err = errno;
+        #ifdef _WIN32
         wprintf(L"Could not open configuration file %ls, errno %d.\n", wc, err);
+        #else
+        cout << "Could not open configuration file " << conffile << ", errno " << err << "." << endl;
+        #endif
         delete[] wc;
         return false;
     }

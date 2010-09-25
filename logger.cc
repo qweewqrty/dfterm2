@@ -63,8 +63,13 @@ void dfterm::flush_messages()
             continue;
         }
 
-        /* wcout not supported by mingw, so we use wprintf */
+        /* wcout not supported by mingw, so we use wprintf, but only do it
+           on Windows. */
+        #ifdef _WIN32
         wprintf(L"%ls\n", dest_str);
+        #else
+        cout << TO_UTF8(us) << "\n";
+        #endif
         fflush(stdout);
         delete[] dest_str;
 
