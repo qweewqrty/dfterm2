@@ -883,8 +883,8 @@ void ConfigurationInterface::checkSlotProfileMenu(bool no_read)
                 {
                     #ifdef NO_DFHACK
                     if (st == DFGrabHackSlot) st = DFGrab;
-                    if (st == DFGrabHackSlotLinux) st = DFTerminalLaunch;
-                    if (st == DFHackSlotLinux) st = DFTerminalLaunch;
+                    if (st == DFGrabHackSlotLinux) st = TerminalLaunch;
+                    if (st == LaunchDFHackSlotLinux) st = TerminalLaunch;
                     #endif
 
                     #ifdef _WIN32
