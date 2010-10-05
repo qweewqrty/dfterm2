@@ -775,6 +775,13 @@ bool DFGlue::detectDFVersion()
 
     switch(csum)
     {
+    case 0x92589853: /* DF 0.31.16 (SDL) */
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    sz.pushAddress(0x013DE914, utf8_image_base_name);
+    data_format = PackedVarying;
+    df_version = 3116;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.16 SDL version)");
+    break;
     case 0x887f99c7: /* DF 0.31.14 (SDL) */
     af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x013DD8C4, utf8_image_base_name);
