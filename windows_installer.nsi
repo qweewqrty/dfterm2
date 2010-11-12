@@ -72,6 +72,7 @@ Section "Installer Section"
     File "version.txt"
     File "manual.pdf"
     File "interface_keymappings.conf"
+    File "symbols.txt"
     CreateDirectory $INSTDIR\soiled
     File /oname=soiled\AC_OETags.js "soiled\AC_OETags.js"
     File /oname=soiled\beep.mp3 "soiled\beep.mp3"
