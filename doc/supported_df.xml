@@ -7,6 +7,9 @@ Currently supported Dwarf Fortress versions on Windows are:
 
 <itemizedlist>
 <listitem>
+<para>0.31.17 (SDL)</para>
+</listitem>
+<listitem>
 <para>0.31.16 (SDL)</para>
 </listitem>
 <listitem>

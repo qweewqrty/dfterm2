@@ -25,5 +25,17 @@ CTRL+X is used to hide a window. You can unhide the window by pressing CTRL+X ag
 There is a chat in dfterm2 you can access after logging in. In chat, you just type in your message and press enter. You can navigate old chat history by using arrow keys or pgup/pgdown.
 </para>
 
+<simplesect>
+<title>Remapping keys for the interface</title>
+
+<para>It is possible to change the keys used for the interface. This is one of the few things in dfterm2 that are configured by modifying a configuration file.</para>
+<para>There are some limitations in remapping the keys. The keys cannot be remapped per user. In other words, the keymapping configuration will be the same for everyone connecting to your server.</para>
+<para>Another limitation is that the interface windows still say "Alt+1", "Alt+2" etc. in their titles, even though these may be mapped to something completely different.</para>
+<para>Finally, know that some characters cannot be transmitted through a terminal. Most notably, shift+arrow keys or shift+return don't work. You may need some trial and error to see what works and what doesn't.
+</para>
+<para>The keymapping configuration file is called <emphasis>interface_keymappings.conf</emphasis>. You can edit this with any text editor, such as Windows' notepad. Instructions on modifying this file is in the file itself.
+</para>
+</simplesect>
+
 </chapter>
 
