@@ -1,0 +1,142 @@
+This file lists the symbols understood by dfterm2 in
+interface_keymappings.conf file. Note that most of these
+can't actually be interpreted. The list is more or less
+equivalent to keys understood by curses.
+
+
+
+InvalidKey is never used.
+
+  InvalidKey
+  Break
+
+These four are arrow keys
+
+  ADown
+  AUp
+  ALeft
+  ARight
+
+These should work
+
+  Home
+  Backspace
+  F0
+  F1
+  F2
+  F3
+  F4
+  F5
+  F6
+  F7
+  F8
+  F9
+  F10
+  F11
+  F12
+
+Most of thse probably don't work. PgDown and PgUp should, and maybe Enter.
+
+  DeleteLine
+  InsertLine
+  DeleteChar
+  InsertChar
+  ExitInsert
+  Clear
+  ClearEoS
+  ClearEoL
+  SF
+  SR
+  PgDown
+  PgUp
+  SetTab
+  ClearTab
+  ClearAllTab
+  Enter
+  SReset
+  HReset
+  Print
+  HomeDown
+  A1
+  A3
+  B2
+  C1
+  C3
+  BTab
+  Beginning
+  Cancel
+  Close
+  Command
+  Copy
+  Create
+  End
+  Exit
+  Find
+  Help
+  Mark
+  Message
+  Mouse
+  Move
+  Next
+  Open
+  Options
+  Previous
+  Redo
+  Reference
+  Refresh
+  Replace
+  Resize
+  Restart
+  Resume
+  Save
+  SBeg
+  SCancel
+  SCommand
+  SCopy
+  SCreate
+  SDC
+  SDL
+  Select
+  SEnd
+  SEol
+  SExit
+  SFind
+  SHelp
+  SHome
+  SLeft
+  SMessage
+  SMove
+  SNext
+  SOptions
+  SPrevious
+  SPrint
+  SRedo
+  SReplace
+  SRight
+  SResume
+  SSave
+  SSuspend
+  SUndo
+  Suspend
+  Undo
+
+Use 0 for CTRL and ALT for these in keymappings file. These should work.
+
+  CtrlUp
+  CtrlDown
+  CtrlRight
+  CtrlLeft
+  Alt0
+  Alt1
+  Alt2
+  Alt3
+  Alt4
+  Alt5
+  Alt6
+  Alt7
+  Alt8
+  Alt9
+  AltUp
+  AltDown
+  AltRight
+  AltLeft
