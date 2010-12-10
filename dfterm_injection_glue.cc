@@ -212,6 +212,17 @@ int WINAPI hooked_SDLNumJoysticks()
             SendMessage(ke.hwnd, ke.msg, ke.wparam, ke.lparam);
     }
     ReleaseMutex(events_mutex);*/
+    if (set_buffer_address && buffer_address == 3118)
+    {
+        unsigned int w = 1, h = 1;
+        ReadProcessMemory(me_process, (void*) (0x71307C+dwarfort_base), &w, sizeof(unsigned int), NULL);
+        ReadProcessMemory(me_process, (void*) (0x71307C+dwarfort_base+sizeof(int)), &h, sizeof(unsigned int), NULL);
+
+        ptrdiff_t final_address = 0x00712D1C+dwarfort_base;
+        ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
+        ReadProcessMemory(me_process, (void*) last_read_address, buffer, w*h*sizeof(int), NULL);
+        last_read_address = final_address;
+    }
     if (set_buffer_address && buffer_address == 3117)
     {
         unsigned int w = 1, h = 1;
