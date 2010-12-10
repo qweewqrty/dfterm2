@@ -7,7 +7,7 @@ to be accessed remotely using Telnet and ANSI/VT102 compliant terminals, or
 using a browser with a flash plugin.
 </para>
 <para>
-It has several features designed for building public Dwarf Fortress servers
+It has several features designed to make building public Dwarf Fortress servers
 feasible, such as user registration system and a chat.
 </para>
 <para>
