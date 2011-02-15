@@ -1,7 +1,4 @@
 [submodule "trankesbel"]
 	path = trankesbel
 	url = git://genodeen.net/trankesbel2
-[submodule "dfhack"]
-    path = dfhack
-    url = git://genodeen.net/adeon_dfhack
 
