@@ -773,8 +773,17 @@ bool DFGlue::detectDFVersion()
     PointerPath af;
     PointerPath sz;
 
+    /* NOTE: this isn't the only place where you add new entries for versions.
+             You also need to modify dfterm_injection_glue.cc */
     switch(csum)
     {
+    case 0x19b25b44: /* DF 0.31.19 (SDL) */
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    sz.pushAddress(0x0074B07C, utf8_image_base_name);
+    data_format = PackedVarying;
+    df_version = 3119;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.19 SDL version)");
+    break;
     case 0xf3527029: /* DF 0.31.18 (SDL) */
     af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0071307C, utf8_image_base_name);
