@@ -6,6 +6,7 @@
 <!ENTITY configuring SYSTEM "configuring.xml">
 <!ENTITY interface SYSTEM "interface.xml">
 <!ENTITY supported_df SYSTEM "supported_df.xml">
+<!ENTITY known_issues SYSTEM "known_issues.xml">
 <!ENTITY security SYSTEM "security.xml">
 <!ENTITY dfterm2_configure SYSTEM "dfterm2_configure.xml">
 <!ENTITY licenses SYSTEM "licenses.xml">
@@ -18,7 +19,7 @@
 <firstname>Mikko</firstname>
 <surname>Juola</surname>
 </author>
-<copyright><year>2010</year><holder>Mikko Juola</holder></copyright>
+<copyright><year>2010-2011</year><holder>Mikko Juola</holder></copyright>
 </info>
 
 &introduction;
@@ -29,6 +30,7 @@
 &interface;
 &dfterm2_configure;
 &security;
+&known_issues;
 &licenses;
 </book>
 
