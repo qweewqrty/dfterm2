@@ -777,6 +777,13 @@ bool DFGlue::detectDFVersion()
              You also need to modify dfterm_injection_glue.cc */
     switch(csum)
     {
+    case 0xfbff0fc9: /* DF 0.31.25 (SDL) */
+    af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
+    sz.pushAddress(0x0073507C, utf8_image_base_name);
+    data_format = PackedVarying;
+    df_version = 3125;
+    LOG(Note, "Dwarf Fortress executable checksum calculated to " << (void*) csum << " (DF 0.31.25 SDL version)");
+    break;
     case 0x19b25b44: /* DF 0.31.19 (SDL) */
     af.pushAddress(0x000060C0, "dfterm_injection_glue.dll");
     sz.pushAddress(0x0074B07C, utf8_image_base_name);
