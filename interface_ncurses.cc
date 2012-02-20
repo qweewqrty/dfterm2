@@ -1450,7 +1450,7 @@ KeyPress InterfaceCurses::nextQueuePress()
     if (!key_queue.empty() || !partial_key_queue.empty())
     {
         bool no_wait = false;
-        if (nanoclock() - key_queue_last_check > 50000000LL)
+        if (nanoclock() - key_queue_last_check > 10000000LL)
             no_wait = true;
         if (update_key_queue)
             parseKeyQueue(no_wait);
