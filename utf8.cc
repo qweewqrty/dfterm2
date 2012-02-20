@@ -1,5 +1,6 @@
 #include "utf8.h"
 #include "logger.hpp"
+#include "ucnv.h"
 
 using namespace dfterm;
 
@@ -14,6 +15,10 @@ void checkForUTF8Locale()
     {
         LOG(Error, "The current locale is not a UTF-8 locale. "
                    "UTF-8 games (such as DF) may look weird and wrong.");
+    }
+    else
+    {
+        ucnv_setDefaultName("UTF-8");
     }
 }
 #endif

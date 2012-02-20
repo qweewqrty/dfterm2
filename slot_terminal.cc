@@ -140,7 +140,7 @@ void TerminalGlue::flushInput(Pty* program_pty)
          * all locales we care about. */
         char localized_key[10];
         memset(localized_key, 0, 10);
-        UErrorCode errorcode;
+        UErrorCode errorcode = U_ZERO_ERROR;
 
         UnicodeString us((UChar32) keycode);
         us.extract(localized_key, 9, NULL, errorcode);
@@ -207,12 +207,15 @@ void TerminalGlue::thread_function()
             if (terminated)
                 break;
 
-            UErrorCode errorcode;
+            UErrorCode errorcode = U_ZERO_ERROR;
             UnicodeString converted(read_buffer.data(), read_buffer.size(),
                                     NULL, errorcode);
 
             if (U_FAILURE(errorcode))
+            {
+                printf("%d\n", errorcode);
                 converted = UnicodeString();
+            }
 
             read_buffer.clear();
             converted.toUTF8String(read_buffer);
