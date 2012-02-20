@@ -182,7 +182,7 @@ void TerminalGlue::thread_function()
      *
      * As far as I know, I'd need one additional thread or two to be able to wait on both.
      * So for now, let's go with ticking system like on slot_dfglue.cc. We tick, say,
-     * 30 times per second and then check the status of those both. */
+     * 60 times per second and then check the status of those both. */
     while (!program_pty.isClosed() && !close_thread)
     {
         unique_lock<recursive_mutex> ulock(glue_mutex);
@@ -231,7 +231,7 @@ void TerminalGlue::thread_function()
         }
 
         ulock.unlock();
-        nanowait(1000000000LL / 30);
+        nanowait(1000000000LL / 60);
     }
 
     unique_lock<recursive_mutex> ulock2(glue_mutex);
