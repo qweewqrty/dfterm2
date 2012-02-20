@@ -164,9 +164,11 @@ void TelnetSession::sendPendingData()
 
 void TelnetSession::handShake()
 {
-    /* IAC WILL ECHO - IAC WILL SUPPRESS_GO_AHEAD - IAC WONT LINEMODE - IAC DO NAWS 
-       and that's all for handshaking. */
-    string handshake_material("\xff\xfb\x01\xff\xfb\x03\xff\xfc\x22\xff\xfd\x1f");
+    /* IAC WILL ECHO - IAC WILL SUPPRESS_GO_AHEAD - IAC WONT LINEMODE - IAC DO NAWS */
+    /* and \x1b[2J to clear the terminal. */
+    string handshake_material("\xff\xfb\x01\xff\xfb\x03"
+                              "\xff\xfc\x22\xff\xfd\x1f"
+                              "\x1b[2J");
     sendPacket(TelnetPacket(handshake_material));
 }
 
