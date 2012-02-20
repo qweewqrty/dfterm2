@@ -12,22 +12,22 @@ namespace dfterm
 /* How many slots can be running at a time, at max. 
    It will not be possible to configure dfterm2 to have
    larger value than this. */
-const trankesbel::ui32 MAX_SLOTS = 30;
+const trankesbel::ui32 MAX_SLOTS = 100;
 
 /* Maximum number of slot profiles */
-const trankesbel::ui32 MAX_SLOT_PROFILES = 30;
+const trankesbel::ui32 MAX_SLOT_PROFILES = 300;
 
 /* Maximum number of registered users */
-const trankesbel::ui32 MAX_REGISTERED_USERS = 50;
+const trankesbel::ui32 MAX_REGISTERED_USERS = 500;
 
 /* Maximum number of (telnet) connections at a time */
-const trankesbel::ui32 MAX_CONNECTIONS = 50;
+const trankesbel::ui32 MAX_CONNECTIONS = 500;
 
 /* Maximum number of server-to-server links at a time. */
 const trankesbel::ui32 MAX_SERVER_TO_SERVER_LINKS = 30;
 
 /* Maximum number of HTTP connections at a time. */
-const trankesbel::ui32 MAX_HTTP_CONNECTIONS = 50;
+const trankesbel::ui32 MAX_HTTP_CONNECTIONS = 100;
 
 /* Maximum size for a file served through HTTP. */
 const trankesbel::ui64 MAX_HTTP_FILE_SIZE = 1000000;
