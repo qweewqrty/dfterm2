@@ -18,21 +18,32 @@ FIND_PATH(LUA_INCLUDE_PATH lua.h
           /usr/local/include/luajit-2.0
           /usr/local/include/lua5.1
           /usr/local/include/lua
+          /usr/local/include/lua51
           /usr/local/include
           /usr/include/luajit-2.0
           /usr/include/lua5.1
+          /usr/include/lua51
           /usr/include/lua
           /opt/include/luajit-2.0
           /opt/include/lua5.1
+          /opt/include/lua51
           /opt/include/lua
           DOC "The directory where lua.h resides")
 
 FIND_LIBRARY(LUA_LIBRARIES NAMES ${LUA_SEARCH_LIBRARIES}
               HINTS
               /usr/local/lib64
+              /usr/local/lib64/lua51
+              /usr/local/lib64/lua
               /usr/local/lib
+              /usr/local/lib/lua51
+              /usr/local/lib/lua
               /usr/lib64
+              /usr/lib64/lua51
+              /usr/lib64/lua
               /usr/lib
+              /usr/lib/lua51
+              /usr/lib/lua
               /opt/lib64
               /opt/lib
               DOC "The directory where lua library resides")
