@@ -62,7 +62,6 @@ include_directories(${ICU_INCLUDE_PATH})
 include_directories(${BOOST_ROOT})
 include_directories(${CURSES_INCLUDE_DIR})
 include_directories(${PCRE_INCLUDE_PATH})
-include_directories(./dfhack/library/include)
 
 # The injection glue is only for Win32
 IF (WIN32)
