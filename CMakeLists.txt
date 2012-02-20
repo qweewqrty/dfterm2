@@ -13,6 +13,8 @@ link_directories(${Boost_LIBRARY_DIRS})
 FIND_PACKAGE(ICU REQUIRED)
 FIND_PACKAGE(PCRE REQUIRED)
 
+add_definitions(-DNO_DFHACK)
+
 IF(UNIX)
   add_definitions(-DLINUX_BUILD)
 ENDIF(UNIX)
