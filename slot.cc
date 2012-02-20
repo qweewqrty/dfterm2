@@ -3,10 +3,6 @@
 #ifdef _WIN32
 #include "slot_dfglue.hpp"
 
-#ifndef NO_DFHACK
-    #include "slot_dfhack.hpp"
-#endif
-
 #else
 #include "slot_terminal.hpp"
 
@@ -44,25 +40,10 @@ SP<Slot> Slot::createSlot(string slottype)
         case DFLaunch:
             result = SP<Slot>(new DFGlue(true));
         break;
-        #ifndef NO_DFHACK
-        case DFGrabHackSlot:
-            result = SP<Slot>(new DFHackSlot);
-        break;
-        #endif
-
         #else
         case TerminalLaunch:
             result = SP<Slot>(new TerminalGlue);
         break;
-        #ifndef NO_DFHACK
-        case DFGrabHackSlotLinux:
-            result = SP<Slot>(new DFHackSlotLinux);
-        break;
-        case LaunchDFHackSlotLinux:
-            result = SP<Slot>(new DFHackSlotLinux(true));
-        break;
-        #endif
-
         #endif
 
         default:
