@@ -30,5 +30,11 @@ unsigned int getTrueLengthUTF8(const char* str);
 /// Returns the UTF8 string until char_num-th character
 std::string getPrefixUTF8(const char* str, int char_num);
 
+#ifndef WIN32
+/// Checks if the system is using a UTF-8 locale and spits a warning to
+/// logger if it's not. Not applicable on WIN32
+void checkForUTF8Locale();
+#endif
+
 #endif
 

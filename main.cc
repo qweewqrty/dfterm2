@@ -8,6 +8,7 @@
 #include "cp437_to_unicode.hpp"
 #include "logger.hpp"
 #include "state.hpp"
+#include "utf8.h"
 
 #include "lua_configuration.hpp"
 
@@ -243,6 +244,10 @@ int main(int argc, char* argv[])
         cout << "Logging to file " << TO_UTF8(log_file) << endl;
 
     LOG(Note, "Starting up dfterm2.");
+
+#ifndef WIN32
+    checkForUTF8Locale();
+#endif
 
     SocketAddress::resolve(address, port, resolve_binding, true);
     if (!succeeded_resolve)

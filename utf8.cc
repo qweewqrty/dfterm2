@@ -1,4 +1,22 @@
 #include "utf8.h"
+#include "logger.hpp"
+
+using namespace dfterm;
+
+#ifndef WIN32
+#include <langinfo.h>
+void checkForUTF8Locale()
+{
+    const char* codeset;
+
+    codeset = nl_langinfo(CODESET);
+    if (strcmp(codeset, "UTF-8"))
+    {
+        LOG(Error, "The current locale is not a UTF-8 locale. "
+                   "UTF-8 games (such as DF) may look weird and wrong.");
+    }
+}
+#endif
 
 int getUTF8Str(unsigned int unicode_symbol, char* str)
 {
