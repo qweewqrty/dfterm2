@@ -341,10 +341,10 @@ void HTTPServer::serveFileUTF8(string filename, string contenttype, string servi
     fsize = _ftelli64(f);
     if (fsize == -1)
     #else
-    off64_t fsize = 0;
-    fseeko64(f, 0, SEEK_END);
-    fsize = ftello64(f);
-    if (fsize < (off64_t) 0)
+    off_t fsize = 0;
+    fseeko(f, 0, SEEK_END);
+    fsize = ftello(f);
+    if (fsize < (off_t) 0)
     #endif
     {
         LOG(Error, "Attempted to serve file \"" << filename << "\" but calculating file size failed.");
@@ -354,7 +354,7 @@ void HTTPServer::serveFileUTF8(string filename, string contenttype, string servi
     #ifdef _WIN32
     _fseeki64(f, 0, SEEK_SET);
     #else
-    fseeko64(f, 0, SEEK_SET);
+    fseeko(f, 0, SEEK_SET);
     #endif
 
     if ((ui64) fsize > MAX_HTTP_FILE_SIZE)

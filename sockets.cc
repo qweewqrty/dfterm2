@@ -306,11 +306,17 @@ static void resetSocketError() { errno = 0; };
 
 static string getErrorStringSocketsError(int error_code)
 {
-    /* GNU strerror_r */
     char node_buf[501];
     node_buf[500] = 0;
     node_buf[0] = 0;
+#ifdef _GNU_SOURCE
+    /* GNU strerror_r */
     return strerror_r(error_code, node_buf, 500);
+#else
+    strerror_r(error_code, node_buf, 500);
+    return string(node_buf);
+#endif
+
 #endif
 }
 
@@ -346,7 +352,12 @@ static string getErrorStringEAI(int errorcode)
         case EAI_SYSTEM:
             return getErrorStringSocketsError(errno);
             node_buf[0] = 0;
+#ifdef _GNU_SOURCE
             return strerror_r(errno, node_buf, 500);
+#else
+            strerror_r(errno, node_buf, 500);
+            return string(node_buf);
+#endif
         break;
 #endif
         default:

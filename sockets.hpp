@@ -451,9 +451,15 @@ class SocketEvents
 {
     private:
         #ifndef __WIN32
+        #ifdef __linux__
         int epoll_desc;
 
         WP<Socket> _getEvent(uint64_t timeout_nanoseconds, bool ignore_forced_events);
+        #elif __FreeBSD__
+        int kqueue_desc;
+
+        WP<Socket> _getEvent(uint64_t timeout_nanoseconds, bool ignore_forced_events);
+        #endif
 
         #else
         /* Normal c-style array for easy interfacing with winsock */

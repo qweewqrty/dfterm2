@@ -78,6 +78,16 @@ openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 		goto bad;
     }
 
+#ifdef __FreeBSD__
+    char* buf;
+    buf = ptsname(master);
+    if (!buf)
+    {
+        LOG(dfterm::Error, "ptsname(" << master << ") failed with errno == "
+                << errno);
+        goto bad;
+    }
+#else
     char buf[1001];
     memset(buf, 0, 1001);
 	result = ptsname_r(master, buf, 1000);
@@ -86,6 +96,7 @@ openpty(int *amaster, int *aslave, char *name, struct termios *termp,
         LOG(dfterm::Error, "ptsname_r(" << master << ", " << buf << ", 1000) failed with errno == " << errno);
 		goto bad;
     }
+#endif
 
 	slave = open(buf, O_RDWR);
 	if (slave == -1)

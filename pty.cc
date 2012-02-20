@@ -50,7 +50,7 @@ bool Pty::launchExecutable(int term_width, int term_height, const char* executab
     struct termios to;
     
     ioctl(0, TIOCGWINSZ, &ws);
-    ioctl(0, TCGETS, &to);
+    tcgetattr(0, &to);
     ws.ws_row = term_height;
     ws.ws_col = term_width;
     
