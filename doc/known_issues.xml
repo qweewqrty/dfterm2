@@ -1,0 +1,9 @@
+<chapter xml:id="known_issues">
+    <title>Known issues</title>
+
+    <para>
+        When disconnecting from the server, the terminal is not cleared.
+    </para>
+
+</chapter>
+
