@@ -214,7 +214,12 @@ void Client::cycleChat()
 
 bool Client::cycleCheck()
 {
-    if (!isActive()) return false;
+    /* make sure client is disconnected when it's not active */
+    if (!isActive()) 
+    {
+        if (client_socket) client_socket->close();
+        return false;
+    }
     if (!user) return false;
     if (!user->isActive() && client_socket)
     {
