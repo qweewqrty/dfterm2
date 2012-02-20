@@ -1538,7 +1538,7 @@ bool ConfigurationInterface::menuSelectFunction(ui32 index)
     {
         SP<State> st = state.lock();
         assert(st && user);
-        st->setUserToSlot(user, ID());
+        st->setUserToNoSlot(user);
     }
 
     checkSlotProfileMenu();

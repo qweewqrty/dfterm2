@@ -670,6 +670,28 @@ bool State::isAllowedWatcher(SP<User> user, SP<Slot> slot)
     return true;
 };
 
+void State::setUserToNoSlot(SP<User> user)
+{
+    assert(user);
+
+    LockedObject<vector<SP<Client> > > lo_clients = clients.lock();
+    vector<SP<Client> > &cli = *lo_clients.get();
+
+    SP<Client> client;
+    vector<SP<Client> >::iterator i1, cli_end = cli.end();
+    for (i1 = cli.begin(); i1 != cli_end; ++i1)
+        if ( (*i1)->getUser() == user)
+        {
+            client = (*i1);
+            break;
+        }
+
+    if (!client)
+        return;
+    
+    client->setSlot(SP<Slot>());
+}
+
 bool State::setUserToSlot(SP<User> user, const ID &slot_id)
 {
     assert(user);

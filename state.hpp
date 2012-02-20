@@ -144,6 +144,9 @@ class State
         /* Makes given user watch a slot with the given name. */
         bool setUserToSlot(SP<User> user, const ID& id);
 
+        /* Makes user to not watch any slot. */
+        void setUserToNoSlot(SP<User> user);
+
         /* Checks if given user is allowed to watch given slot. */
         bool isAllowedWatcher(SP<User> user, SP<Slot> slot);
         /* Checks if given user is allowed to launch given slot profile. */
