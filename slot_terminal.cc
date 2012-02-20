@@ -136,25 +136,22 @@ void TerminalGlue::flushInput(Pty* program_pty)
             continue;
         }
 
-        if (keycode > 127)
-        {
-            UChar32 uni32 = (UChar32) keycode;
-            UChar uni16[] = { 0, 0, 0 };
-            UErrorCode uerror = U_ZERO_ERROR;
-            u_strFromUTF32(uni16, 2, NULL, &uni32, 1, &uerror);
-            if (U_FAILURE(uerror)) continue;
+        /* ought to be enough to encode a unicode code point in
+         * all locales we care about. */
+        char localized_key[10];
+        memset(localized_key, 0, 10);
+        UErrorCode errorcode;
 
-            char uni8[] = { 0, 0, 0, 0, 0 };
+        UnicodeString us((UChar32) keycode);
+        us.extract(localized_key, 9, NULL, errorcode);
+        localized_key[9] = 0;
 
-            u_strToUTF8(uni8, 4, NULL, uni16, -1, &uerror);
-            if (U_FAILURE(uerror)) continue;
-
-            input_buf.append(uni8);
+        if (U_FAILURE(errorcode))
             continue;
-        }
 
         ui8 k = (ui8) keycode;
-        input_buf.push_back(k);
+        for (size_t i1 = 0; localized_key[i1]; ++i1)
+            input_buf.push_back(localized_key[i1]);
     }
 
 
@@ -165,6 +162,7 @@ void TerminalGlue::flushInput(Pty* program_pty)
 void TerminalGlue::thread_function()
 {
     Pty program_pty;
+    int terminated = 0;
 
     pid_t pid;
     if (!waitAndLaunchProcess(&pid, &glue_mutex, &close_thread, &parameters, &program_pty, &terminal_w, &terminal_h))
@@ -193,16 +191,34 @@ void TerminalGlue::thread_function()
         /* New output? */
         while (program_pty.poll())
         {
-            char buf[1000];
-            int data = program_pty.fetch(buf, 1000);
-            if (data <= 0)
+            string read_buffer;
+            while(program_pty.poll())
             {
-                program_pty.terminate();
-                break;
+                char buf[1000];
+                int data = program_pty.fetch(buf, 1000);
+                if (data <= 0)
+                {
+                    program_pty.terminate();
+                    terminated = 1;
+                    break;
+                }
+                read_buffer.append(buf, data);
             }
+            if (terminated)
+                break;
+
+            UErrorCode errorcode;
+            UnicodeString converted(read_buffer.data(), read_buffer.size(),
+                                    NULL, errorcode);
+
+            if (U_FAILURE(errorcode))
+                converted = UnicodeString();
+
+            read_buffer.clear();
+            converted.toUTF8String(read_buffer);
 
             unique_lock<recursive_mutex> lock2(game_terminal_mutex);
-            game_terminal.feedString(buf, data);
+            game_terminal.feedString(read_buffer.data(), read_buffer.size());
             lock2.unlock();
             SP<State> s = state.lock();
             if (s)
