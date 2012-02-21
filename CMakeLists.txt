@@ -23,7 +23,7 @@ FIND_PACKAGE (Threads REQUIRED)
 
 SET(NO_CURSES 1)
 
-SET(COMMON_SOURCE main.cc client.cc logger.cc slot.cc cp437_to_unicode.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc lua_configuration.cc sockets.cc telnet.cc nanoclock.cc cpp_regexes.cc types.cc socketevents.cc socketaddressrange.cc termemu.cc utf8.cc interface_ncurses.cc keypress.cc pty.cc)
+SET(COMMON_SOURCE main.cc client.cc logger.cc slot.cc cp437_to_unicode.cc configuration_interface.cc configuration_db.cc sqlite3.c state.cc usergroup_serialize.cc id.cc hash.cc rng.cc minimal_http_server.cc server_to_server_configuration_pair.cc server_to_server_session.cc lua_configuration.cc sockets.cc telnet.cc nanoclock.cc cpp_regexes.cc types.cc socketevents.cc socketaddressrange.cc termemu.cc utf8.cc interface_ncurses.cc keypress.cc)
 
 # Some parts of dfterm2 work very differently on different platforms and use different source files.
 # Maybe we should add directories for platform-dependent files at some point.
@@ -31,13 +31,16 @@ IF (WIN32)
     add_executable(dfterm2 ${COMMON_SOURCE} slot_dfglue.cc pointerpath.cc)
     target_link_libraries(dfterm2 psapi)
 ELSE (WIN32)
-    add_executable(dfterm2 ${COMMON_SOURCE} slot_terminal.cc slot_linux_common.cc bsd_pty.cc)
+    add_executable(dfterm2 ${COMMON_SOURCE} slot_terminal.cc slot_linux_common.cc bsd_pty.cc pty.cc)
     IF (NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         target_link_libraries(dfterm2 dl)
     ENDIF (NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
 ENDIF (WIN32)
 
 SET(COMMON_LIBS ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} ${ICU_LIBRARIES} ${PCRE_LIBRARIES} ${LUA_LIBRARIES})
+IF (WIN32)
+    SET(COMMON_LIBS ${COMMON_LIBS} ws2_32)
+ENDIF (WIN32)
 
 TARGET_LINK_LIBRARIES (dfterm2 ${COMMON_LIBS})
 
@@ -96,21 +99,6 @@ IF (PROFILE)
     SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure PROPERTIES LINK_FLAGS -pg)
 ENDIF (PROFILE)
 
-# Testing stuff
-ENABLE_TESTING()
-
-ADD_EXECUTABLE(lockedresource_test tests/lockedresource_test.cc)
-ADD_TEST(lockedresource_test ${EXECUTABLE_OUTPUT_PATH}/lockedresource_test)
-
-ADD_EXECUTABLE(server_to_server_configuration_pair_test tests/server_to_server_configuration_pair_test.cc server_to_server_configuration_pair.cc)
-TARGET_LINK_LIBRARIES(server_to_server_configuration_pair_test)
-ADD_TEST(server_to_server_configuration_pair_test ${EXECUTABLE_OUTPUT_PATH}/server_to_server_configuration_pair_test)
-
-# Test borken at the moment
-#ADD_EXECUTABLE(server_to_server_session_test tests/server_to_server_session_test.cc server_to_server_configuration_pair.cc server_to_server_session.cc logger.cc)
-#TARGET_LINK_LIBRARIES(server_to_server_session_test)
-#ADD_TEST(server_to_server_session_test ${EXECUTABLE_OUTPUT_PATH}/server_to_server_session_test)
-
-SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure lockedresource_test server_to_server_configuration_pair_test PROPERTIES COMPILE_DEFINITIONS _UNICODE)
+SET_TARGET_PROPERTIES(dfterm2_sha512 dfterm2 dfterm2_configure PROPERTIES COMPILE_DEFINITIONS _UNICODE)
 
 

@@ -71,7 +71,7 @@ DFGlue::DFGlue() : Slot()
 
     dont_take_running_process = false;
 
-    user_address_settings = false;
+    use_address_settings = false;
     found_base = false;
 
     df_w = 80;
@@ -760,7 +760,7 @@ void DFGlue::tryFindBase()
         if (wcscmp(namebuf, L"dfterm_injection_glue.dll"))
             continue;
 
-        for (size_t i2 = mi.lpBaseOfDll;
+        for (ptrdiff_t i2 = (ptrdiff_t) mi.lpBaseOfDll;
              i2 < mi.SizeOfImage; i2 += 4096)
         {
             memset(buf, 0, 4096);
@@ -772,9 +772,9 @@ void DFGlue::tryFindBase()
                 if (!memcmp(&buf[i3], "DFTERM2BASE_", 12))
                 {
                     found_base = true;
-                    sz.pushAddress(address_settings.size_address, 
+                    size_pp.pushAddress(address_settings.size_address, 
                                    utf8_image_base_name);
-                    af.pushAddress((i2+i3+12) - mi.lpBaseOfDll,
+                    symbol_pp.pushAddress((i2+i3+12) - (ptrdiff_t) mi.lpBaseOfDll,
                                    "dfterm_injection_glue.dll");
                     return;
                 }

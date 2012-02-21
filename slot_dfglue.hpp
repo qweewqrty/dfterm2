@@ -193,7 +193,7 @@ class DFGlue : public Slot
          * DLL yet. */
         bool found_base;
 
-        string utf8_image_base_name;
+        std::string utf8_image_base_name;
 
         void tryFindBase();
 

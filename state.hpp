@@ -117,10 +117,12 @@ class State
         ~State();
 
         /* Sets address settings to the state */
-        void addAddressSettings(
-                const std::vector<AddressSettings32> &settings);
+        void setAddressSettings(
+                const std::vector<AddressSettings32> &settings)
+        { this->settings = settings; };
         const std::vector<AddressSettings32>& getAddressSettings() 
-            const;
+            const
+        { return settings; };
 
         /* Disconnects a user with the given D. Unless it corresponds to the client 'exclude'. Both user ID and client IDs work. */
         void destroyClient(const ID &id, SP<Client> exclude = SP<Client>());

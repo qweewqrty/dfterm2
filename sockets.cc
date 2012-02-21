@@ -692,7 +692,7 @@ bool Socket::createSocket(const SocketAddress &sa, bool also_bind)
     {
         int result;
         const int flag = 1;
-        if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)))
+        if (setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (const char*) &flag, sizeof(flag)))
         {
             socket_error = string("setsockopt() failure. ") + getErrorStringSocketsError(getSocketError());
             closesocket(socket_desc);
