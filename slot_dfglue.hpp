@@ -185,6 +185,18 @@ class DFGlue : public Slot
         /* Pointer path for size information */
         PointerPath size_pp;
 
+        /* Address settings, if used */
+        AddressSettings32 address_settings;
+        bool use_address_settings;
+
+        /* If "DFTERM2BASE_" has been found from the injected
+         * DLL yet. */
+        bool found_base;
+
+        string utf8_image_base_name;
+
+        void tryFindBase();
+
         /* Data format in DF memory */
         DFScreenDataFormat data_format;
 

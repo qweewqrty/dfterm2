@@ -11,6 +11,10 @@
 
 using namespace std;
 
+bool address_settings = false;
+ptrdiff_t size_address = 0;
+ptrdiff_t screendata_address = 0;
+
 bool set_buffer_address = false;
 ptrdiff_t buffer_address = 0;
 
@@ -212,6 +216,29 @@ int WINAPI hooked_SDLNumJoysticks()
             SendMessage(ke.hwnd, ke.msg, ke.wparam, ke.lparam);
     }
     ReleaseMutex(events_mutex);*/
+
+    if (address_settings)
+    {
+        unsigned int w = 1, h = 1;
+        ReadProcessMemory(me_process, (void*) (size_address+dwarfort_base), &w, sizeof(unsigned int), NULL);
+        ReadProcessMemory(me_process, (void*) (size_address+dwarfort_base+sizeof(int)), &h, sizeof(unsigned int), NULL);
+
+        if (w > 450)
+            w = 450;
+        if (h > 450)
+            h = 450;
+
+        memcpy(buffer, "DFTERM2BASE_", 12);
+
+        ptrdiff_t final_address = screendata_address+dwarfort_base;
+        ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
+        ReadProcessMemory(me_process, (void*) last_read_address, 
+                &buffer[12], w*h*sizeof(int), NULL);
+        last_read_address = final_address;
+
+    }
+    else
+    {
     if (set_buffer_address && buffer_address == 3125)
     {
         unsigned int w = 1, h = 1;
@@ -354,6 +381,7 @@ int WINAPI hooked_SDLNumJoysticks()
         ReadProcessMemory(me_process, (void*) last_read_address, buffer, w*h*sizeof(int), NULL);
         last_read_address = final_address;
     }
+    }
 
     /* Don't patch SDLNumJoystics back */
     restore_old_function(SDLNumJoysticks_addr, SDLNumJoysticks_patch);
@@ -435,6 +463,16 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
                     };
                 }
             }
+        }
+        else if (lparam == 5)
+        {
+            address_settings = true;
+            size_address = (uint32_t) wparam;
+        }
+        else if (lparam == 6)
+        {
+            address_settings = true;
+            screendata_address = (uint32_t) wparam;
         }
     }
     return result;

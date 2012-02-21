@@ -5,6 +5,7 @@ namespace dfterm {
 class State;
 };
 
+#include "address_settings.hpp"
 #include "types.hpp"
 #include <set>
 #include "sockets.hpp"
@@ -102,6 +103,9 @@ class State
         /* Pending delayed notifications. In here, order matters. */
         std::map<trankesbel::ui64, WP<Client> > pending_delayed_notifications;
 
+        /* Address settings. */
+        std::vector<AddressSettings32> settings;
+
 
         /* Called by ServerToServerSession class to signal a new ready
            server to server socket. */
@@ -111,6 +115,12 @@ class State
         /* Creates a new state. There can be only one, so trying to create another of this class in the same process is going to return null. */
         static SP<State> createState();
         ~State();
+
+        /* Sets address settings to the state */
+        void addAddressSettings(
+                const std::vector<AddressSettings32> &settings);
+        const std::vector<AddressSettings32>& getAddressSettings() 
+            const;
 
         /* Disconnects a user with the given D. Unless it corresponds to the client 'exclude'. Both user ID and client IDs work. */
         void destroyClient(const ID &id, SP<Client> exclude = SP<Client>());

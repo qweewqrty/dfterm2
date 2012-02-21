@@ -16,7 +16,7 @@ using namespace dfterm;
 using namespace std;
 using namespace trankesbel;
 
-SP<Slot> Slot::createSlot(string slottype)
+SP<Slot> Slot::createSlot(string slottype, WP<State> state)
 {
     ui32 num_slots = (ui32) InvalidSlotType;
     ui32 i1;
@@ -51,6 +51,7 @@ SP<Slot> Slot::createSlot(string slottype)
             return SP<Slot>();
     };
 
+    result->setState(state);
     result->setSelf(result);
     return result;
 }

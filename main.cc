@@ -58,6 +58,8 @@ int main(int argc, char* argv[])
 
     sockets_initialize socket_initialization;
 
+    vector<AddressSettings32> settings;
+
     string port("8000");
     string address("0.0.0.0");
 
@@ -196,7 +198,7 @@ int main(int argc, char* argv[])
     else
     {
         string logfile2 = TO_UTF8(log_file), database2 = database_file;
-        if (readConfigurationFile(conffile, &logfile2, &database2))
+        if (readConfigurationFile(conffile, &logfile2, &database2, &settings))
         {
             if (use_luaconf_logfile)
                 log_file = TO_UNICODESTRING(logfile2);

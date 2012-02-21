@@ -69,8 +69,9 @@ class Slot
 
         /* Creates a slot of given slottype.
            If it fails, returns a null pointer. */
-        static SP<Slot> createSlot(std::string slottype);
-        static SP<Slot> createSlot(SlotType st) { return createSlot(SlotNames[(size_t) st]); };
+        static SP<Slot> createSlot(std::string slottype, WP<State> state);
+        static SP<Slot> createSlot(SlotType st, WP<State> state) 
+        { return createSlot(SlotNames[(size_t) st], state); };
 
         /* Sets/gets the slot profile used to create this slot. */
         void setSlotProfile(WP<SlotProfile> sp) { slotprofile = sp; };

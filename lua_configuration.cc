@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <vector>
 #include <string>
 #include <errno.h>
 #include "lua.hpp"
@@ -48,9 +49,90 @@ static int getenv_unicode(lua_State* l)
     #endif
 }
 
+static void readAddress(lua_State* l,
+                        vector<AddressSettings32>* settings)
+{
+    AddressSettings32 as;
+
+    if (!lua_istable(l, -1))
+        return;
+
+    lua_getfield(l, -1, "name");
+    if (!lua_isstring(l, -1))
+    {
+        printf("Invalid address entry: \"name\" doesn't exist or is "
+               "not a string.\n");
+        lua_pop(l, 1);
+        return;
+    }
+
+    as.name = string(lua_tostring(l, -1));
+    lua_pop(l, 1);
+
+    lua_getfield(l, -1, "size_address");
+    if (!lua_isnumber(l, -1))
+    {
+        printf("Invalid address entry: \"size_address\" doesn't exist or is "
+               "not a number.\n");
+        lua_pop(l, 1);
+        return;
+    }
+
+    as.size_address = (uint32_t) lua_tonumber(l, -1);
+    lua_pop(l, 1);
+
+    lua_getfield(l, -1, "screendata_address");
+    if (!lua_isnumber(l, -1))
+    {
+        printf("Invalid address entry: \"screendata_address\" doesn't exist "
+               "or is not a number.\n");
+        lua_pop(l, 1);
+        return;
+    }
+
+    as.screendata_address = (uint32_t) lua_tonumber(l, -1);
+    lua_pop(l, 1);
+
+    lua_getfield(l, -1, "method");
+    if (!lua_isstring(l, -1))
+    {
+        printf("Invalid address entry: \"method\" doesn't exist or is "
+               "not a string.\n");
+        lua_pop(l, 1);
+        return;
+    }
+    if (strcmp("PackedVarying", lua_tostring(l, -1)))
+    {
+        printf("Invalid address entry: \"method\" is not "
+               "\"PackedVarying\".\n"); 
+        lua_pop(l, 1);
+        return;
+    }
+
+    as.method = PackedVarying;
+    lua_pop(l, 1);
+
+    settings->push_back(as);
+}
+
+static void readAddresses(lua_State* l,
+                          vector<AddressSettings32>* settings)
+{
+    if (!lua_istable(l, -1))
+        return;
+   
+    lua_pushnil(l);
+    while(lua_next(l, -2) != 0)
+    {
+        readAddress(l, settings);
+        lua_pop(l, 1);
+    }
+}
 
 /* Read from lua script what to use as database and logfile */
-bool dfterm::readConfigurationFile(const std::string &conffile, std::string* logfile, std::string* database)
+bool dfterm::readConfigurationFile(const std::string &conffile, std::string*
+        logfile, std::string* database, std::vector<AddressSettings32>*
+        settings)
 {
     assert(logfile);
     assert(database);
@@ -145,6 +227,13 @@ bool dfterm::readConfigurationFile(const std::string &conffile, std::string* log
 
     bool set_database = false;
     bool set_logfile = false;
+
+    lua_getfield(l, LUA_GLOBALSINDEX, "addresses");
+    if (lua_istable(l, -1))
+    {
+        readAddresses(l, settings);
+        lua_pop(l, 1);
+    }
 
     lua_getfield(l, LUA_GLOBALSINDEX, "database");
     if (lua_isstring(l, -1))

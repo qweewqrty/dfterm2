@@ -71,6 +71,9 @@ DFGlue::DFGlue() : Slot()
 
     dont_take_running_process = false;
 
+    user_address_settings = false;
+    found_base = false;
+
     df_w = 80;
     df_h = 25;
 
@@ -269,8 +272,17 @@ void DFGlue::thread_function()
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
 
-    if (df_version != 0)
+    if (df_version != 0 && !use_address_settings)
         SendMessage(df_windows, WM_USER, df_version, 4);
+    else if (use_address_settings)
+    {
+        SendMessage(df_windows, 
+                    WM_USER, 
+                    address_settings.size_address, 5);
+        SendMessage(df_windows, 
+                    WM_USER, 
+                    address_settings.screendata_address, 6);
+    }
 
     try
     {
@@ -294,6 +306,11 @@ void DFGlue::thread_function()
         while(!isDFClosed())
         {
             this_thread::interruption_point();
+            if (use_address_settings && !found_base)
+            {
+                tryFindBase();
+                this_thread::sleep(posix_time::time_duration(posix_time::microseconds(500000LL)));
+            }
 
             unique_lock<recursive_mutex> update_mutex(glue_mutex);
 
@@ -717,6 +734,55 @@ void DFGlue::LoggerReadProcessMemory(HANDLE handle, const void* address, void* t
     }
 }
 
+void DFGlue::tryFindBase()
+{
+    WCHAR namebuf[1000];
+    namebuf[999] = 0;
+    DWORD num_modules;
+    HMODULE modules[1000];
+    char buf[4096];
+
+    EnumProcessModules(df_handle, modules, 
+                       1000 * sizeof(HMODULE), &num_modules);
+
+    for (size_t i1 = 0; i1 < num_modules; ++i1)
+    {
+        MODULEINFO mi;
+        int length = 
+            GetModuleBaseNameW(df_handle, modules[i1], namebuf, 999);
+        if (!GetModuleInformation(df_handle, modules[i1], &mi,
+                    sizeof(mi)))
+            continue;
+
+        if (length <= 0)
+            continue;
+
+        if (wcscmp(namebuf, L"dfterm_injection_glue.dll"))
+            continue;
+
+        for (size_t i2 = mi.lpBaseOfDll;
+             i2 < mi.SizeOfImage; i2 += 4096)
+        {
+            memset(buf, 0, 4096);
+            ReadProcessMemory(df_handle, (LPCVOID) i2, 
+                              buf, 4096, NULL);
+
+            for (size_t i3 = 0; i3 < 4096; i3++)
+            {
+                if (!memcmp(&buf[i3], "DFTERM2BASE_", 12))
+                {
+                    found_base = true;
+                    sz.pushAddress(address_settings.size_address, 
+                                   utf8_image_base_name);
+                    af.pushAddress((i2+i3+12) - mi.lpBaseOfDll,
+                                   "dfterm_injection_glue.dll");
+                    return;
+                }
+            }
+        }
+    }
+}
+
 void DFGlue::updateWindowSizeFromDFMemory()
 {
     lock_guard<recursive_mutex> alive_lock(glue_mutex);
@@ -756,7 +822,7 @@ bool DFGlue::detectDFVersion()
         memcpy(image_base_name, image_file_name, 1000 * sizeof(WCHAR));
     else
         wcscpy(image_base_name, last_p + 1);
-    string utf8_image_base_name = TO_UTF8(image_base_name);
+    utf8_image_base_name = TO_UTF8(image_base_name);
 
     FILE* f = _wfopen(image_file_name, L"rb");
     if (!f)
@@ -767,6 +833,26 @@ bool DFGlue::detectDFVersion()
     fread(buf, 100000, 1, f);
     fclose(f);
     ::uint32_t csum = checksum(buf, 100000);
+
+    {
+        SP<State> s = state.lock();
+        const vector<AddressSettings32> settings = 
+            s->getAddressSettings();
+
+        for (size_t i1 = 0; i1 < settings.size(); ++i1)
+        {
+            if (settings[i1].checksum == csum)
+            {
+                use_address_settings = true;
+                address_settings = settings[i1];
+                LOG(Note, "Configuration file checksum " <<
+                          (void*) csum <<
+                          "match "
+                          "with " << settings[i1].name);
+                return true;
+            }
+        }
+    }
 
     
 
