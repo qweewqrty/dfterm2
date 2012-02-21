@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
             use_http_service = true;
         else if (!strcmp(argv[i1], "--version") || !strcmp(argv[i1], "-v"))
         {
-            cout << "This is dfterm2, (c) 2010-2011 Mikko Juola" << endl;
+            cout << "This is dfterm2, (c) 2010-2012 Mikko Juola" << endl;
             cout << "This version was compiled " << __DATE__ << " " << __TIME__ << endl;
             cout << "This program is distributed under a BSD-style license. See license.txt" << endl << endl;
             cout << "This dfterm2 version supports IPv4 and IPv6." << endl;
