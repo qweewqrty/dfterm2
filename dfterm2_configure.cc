@@ -167,7 +167,9 @@ int main(int argc, char* argv[])
     else
     {
         string database2, logfile2;
-        bool result = readConfigurationFile(conffile, &logfile2, &database2);
+        vector<AddressSettings32> settings;
+        bool result = readConfigurationFile(conffile, &logfile2, &database2,
+                &settings);
         if (result)
             database_file = database2;
     }

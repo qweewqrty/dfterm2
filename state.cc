@@ -869,7 +869,8 @@ bool State::launchSlotNoCheck(SP<SlotProfile> slot_profile, SP<User> launcher)
         return false;
     }
 
-    SP<Slot> slot = Slot::createSlot((SlotType) slot_profile->getSlotType());
+    SP<Slot> slot = Slot::createSlot((SlotType) slot_profile->getSlotType(), 
+                                     self);
     if (!slot)
     {
         LOG(Error, "Slot::createSlot() failed with slot profile " << slot_profile->getNameUTF8());
