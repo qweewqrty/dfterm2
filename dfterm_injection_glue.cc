@@ -228,7 +228,15 @@ int WINAPI hooked_SDLNumJoysticks()
         if (h > 450)
             h = 450;
 
-        memcpy(buffer, "DFTERM2BASE_", 12);
+            /* We have to write DFTERM2BASE_ 12 bytes
+               before the buffer where we will write the data.
+
+               But if we have DFTERM2BASE_ as a string literal,
+               it'll end up being the bait instead of this address
+               where we want it to be. So we work around. */
+        memcpy(buffer, "DFTURN2BASE_", 12);
+        buffer[3] = 'E';
+        buffer[5] = 'M';
 
         ptrdiff_t final_address = screendata_address+dwarfort_base;
         ReadProcessMemory(me_process, (void*) final_address, (void*) &final_address, sizeof(ptrdiff_t), NULL);
@@ -468,6 +476,17 @@ LRESULT WINAPI hooked_DefWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
         {
             address_settings = true;
             size_address = (uint32_t) wparam;
+
+                HMODULE df_module = GetModuleHandleW(NULL);
+                if (df_module)
+                {
+                    MODULEINFO mi;
+                    if (GetModuleInformation(me_process, df_module, &mi, sizeof(mi)))
+                    {
+                        dwarfort_base = (ptrdiff_t) mi.lpBaseOfDll;
+                    }
+                }
+
         }
         else if (lparam == 6)
         {
