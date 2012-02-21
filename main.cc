@@ -284,6 +284,7 @@ int main(int argc, char* argv[])
         flush_messages();
         return -1;
     }
+    state->setAddressSettings(settings);
     LOG(Note, "Using database " << database_file);
 
     if (!state->addTelnetService(listen_address))

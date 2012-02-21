@@ -272,18 +272,6 @@ void DFGlue::thread_function()
     injectDLL(injection_glue_dll);
     LOG(Note, "Waiting 2 seconds for injection to land.");
 
-    if (df_version != 0 && !use_address_settings)
-        SendMessage(df_windows, WM_USER, df_version, 4);
-    else if (use_address_settings)
-    {
-        SendMessage(df_windows, 
-                    WM_USER, 
-                    address_settings.size_address, 5);
-        SendMessage(df_windows, 
-                    WM_USER, 
-                    address_settings.screendata_address, 6);
-    }
-
     try
     {
         this_thread::sleep(posix_time::time_duration(posix_time::microseconds(2000000LL)));
@@ -298,6 +286,18 @@ void DFGlue::thread_function()
         alive = false;
         alive_lock.unlock();
         return;
+    }
+
+    if (df_version != 0 && !use_address_settings)
+        SendMessage(df_windows, WM_USER, df_version, 4);
+    else if (use_address_settings)
+    {
+        SendMessage(df_windows, 
+                    WM_USER, 
+                    address_settings.size_address, 5);
+        SendMessage(df_windows, 
+                    WM_USER, 
+                    address_settings.screendata_address, 6);
     }
 
     alive_lock.unlock();
@@ -445,6 +445,9 @@ void DFGlue::buildColorFromFloats(float32 r, float32 g, float32 b, Color* color,
 
 void DFGlue::updateDFWindowTerminal()
 {
+    if (use_address_settings && !found_base)
+        return;
+
     if (data_format == PackedVarying && df_w < 256 && df_h < 256)
     {
         ptrdiff_t symbol_address = symbol_pp.getFinalAddress(df_handle);
@@ -761,17 +764,18 @@ void DFGlue::tryFindBase()
             continue;
 
         for (ptrdiff_t i2 = (ptrdiff_t) mi.lpBaseOfDll;
-             i2 < mi.SizeOfImage; i2 += 4096)
+             i2 < (ptrdiff_t) mi.lpBaseOfDll + mi.SizeOfImage; i2 += 4096)
         {
             memset(buf, 0, 4096);
             ReadProcessMemory(df_handle, (LPCVOID) i2, 
                               buf, 4096, NULL);
 
-            for (size_t i3 = 0; i3 < 4096; i3++)
+            for (ptrdiff_t i3 = 0; i3 < 4096; i3++)
             {
                 if (!memcmp(&buf[i3], "DFTERM2BASE_", 12))
                 {
                     found_base = true;
+                    data_format = PackedVarying;
                     size_pp.pushAddress(address_settings.size_address, 
                                    utf8_image_base_name);
                     symbol_pp.pushAddress((i2+i3+12) - (ptrdiff_t) mi.lpBaseOfDll,
@@ -847,7 +851,7 @@ bool DFGlue::detectDFVersion()
                 address_settings = settings[i1];
                 LOG(Note, "Configuration file checksum " <<
                           (void*) csum <<
-                          "match "
+                          " match "
                           "with " << settings[i1].name);
                 return true;
             }
