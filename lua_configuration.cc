@@ -81,6 +81,18 @@ static void readAddress(lua_State* l,
     as.size_address = (uint32_t) lua_tonumber(l, -1);
     lua_pop(l, 1);
 
+    lua_getfield(l, -1, "checksum");
+    if (!lua_isnumber(l, -1))
+    {
+        printf("Invalid address entry: \"checksum\" doesn't exist "
+               "or is not a number.\n");
+        lua_pop(l, 1);
+        return;
+    }
+
+    as.checksum = (uint32_t) lua_tonumber(l, -1);
+    lua_pop(l, 1);
+
     lua_getfield(l, -1, "screendata_address");
     if (!lua_isnumber(l, -1))
     {
