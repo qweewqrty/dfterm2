@@ -8,6 +8,11 @@ addresses = {
      size_address       = 0x0073507C,
      screendata_address = 0x00734D1C,
      checksum           = 0xFBFF0FC9,
+     method             = "PackedVarying" },
+   { name               = "DF 34.02",
+     size_address       = 0x008100F4,
+     screendata_address = 0x0080FD94,
+     checksum           = 0xD635560F,
      method             = "PackedVarying" }
  }
 
