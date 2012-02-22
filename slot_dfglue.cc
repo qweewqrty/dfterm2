@@ -107,6 +107,9 @@ DFGlue::DFGlue(bool dummy) : Slot()
 
     ticks_per_second = 20;
 
+    use_address_settings = false;
+    found_base = false;
+
     alive = true;
 
     initVkeyMappings();
