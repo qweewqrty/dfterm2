@@ -64,8 +64,6 @@ First step should be obtaining the source code. Use git for this. The exact comm
 <programlisting>
 $ git clone git://genodeen.net/dfterm2
 $ cd dfterm2
-$ git submodule init
-$ git submodule update
 </programlisting>
 </para>
 
@@ -103,6 +101,11 @@ $ cmake .
 
 <para>
 Next, type make to compile dfterm2. If compilation fails, there might be a temporary code breakage in source code repository or some of your packages are incompatible. You may ask help on the bay12 forums in dfterm2 thread.
+</para>
+
+<para>
+There have been changes in the dfterm2 codebase since these screenshots were
+taken so the output is not exactly what you see in the screenshots.
 </para>
 
 <para>

@@ -44,8 +44,6 @@ files installed:
 
     $ git clone git://genodeen.net/dfterm2
     $ cd dfterm2
-    $ git submodule init
-    $ git submodule update
     
     2. Run CMake to configure the building system.
        If this step goes wrong, there can be missing
