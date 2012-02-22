@@ -361,6 +361,14 @@ void DFGlue::thread_function()
                                 shift_down_now = true;
                             if (keycode == 127) // backspace
                                 vkey = VK_BACK;
+                            /* backspace hacks */
+                            if (vkey == VK_BACK)
+                                shift_down_now = false;
+                            else if (vkey == 72 && shift_down_now) /* PuTTY observed to send this */
+                            {
+                                vkey = VK_BACK;
+                                shift_down_now = true;
+                            }
                         }
                     }
                 }
