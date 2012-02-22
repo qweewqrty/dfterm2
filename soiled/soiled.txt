@@ -1,5 +1,0 @@
-
-This version of Soiled has been modified to Dfterm2 by Mikko Juola.
-
-Click on this window to connect.
-Write /help to read the documentation.
