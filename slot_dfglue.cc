@@ -277,7 +277,7 @@ void DFGlue::thread_function()
 
     try
     {
-        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(2000000LL)));
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(500000LL)));
     }
     catch (const thread_interrupted &ti)
     {
@@ -640,7 +640,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     }
 
     unique_lock<recursive_mutex> lock(glue_mutex);
-    df_terminal.printString("Take it easy!! Game is being launched and attached in 20 seconds.", 1, 1, 7, 0, false, false);
+    df_terminal.printString("Take it easy!! Game is being launched and attached in 5 seconds.", 1, 1, 7, 0, false, false);
     lock.unlock();
 
     /* Sleep for 18 seconds before attaching */
