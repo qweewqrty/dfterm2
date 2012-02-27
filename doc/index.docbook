@@ -14,12 +14,12 @@
 <book xmlns="http://docbook.org/ns/docbook" version="5.0">
 
 <info>
-<title>Dfterm2 0.15</title>
+<title>Dfterm2 0.16</title>
 <author>
 <firstname>Mikko</firstname>
 <surname>Juola</surname>
 </author>
-<copyright><year>2010-2011</year><holder>Mikko Juola</holder></copyright>
+<copyright><year>2010-2012</year><holder>Mikko Juola</holder></copyright>
 </info>
 
 &introduction;
