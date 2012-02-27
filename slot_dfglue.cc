@@ -277,7 +277,7 @@ void DFGlue::thread_function()
 
     try
     {
-        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(500000LL)));
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(2000000LL)));
     }
     catch (const thread_interrupted &ti)
     {
@@ -646,7 +646,7 @@ bool DFGlue::launchDFProcess(HANDLE* df_process, vector<HWND>* df_windows)
     /* Sleep for 18 seconds before attaching */
     try
     {
-        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(18000000LL)));
+        this_thread::sleep(posix_time::time_duration(posix_time::microseconds(3000000LL)));
     }
     catch (const thread_interrupted &ti)
     {
