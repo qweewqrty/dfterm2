@@ -1,6 +1,7 @@
 #include "utf8.h"
 #include "logger.hpp"
 #include "unicode/ucnv.h"
+#include <cstring>
 
 using namespace dfterm;
 
