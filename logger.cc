@@ -63,12 +63,26 @@ void dfterm::flush_messages()
             continue;
         }
 
+        /* Sanizite dest_str (to some point) 
+         * There are more characters that should be sanitized (see Unicode
+         * control characters or Firefox blacklist (google it)) but at the
+         * moment we aren't certain what encoding is actually used in the
+         * terminal. */
+        for (size_t i1 = 0; dest_str[i1]; ++i1)
+            if (dest_str[i1] < 32) /* control characters */
+                dest_str[i1] = '?';
+
+        std::string utf8_str = TO_UTF8(us);
+        for (size_t i1 = 0; i1 < utf8_str.size(); ++i1)
+            if (utf8_str[i1] < 32)
+                utf8_str[i1] = '?';
+
         /* wcout not supported by mingw, so we use wprintf, but only do it
            on Windows. */
         #ifdef _WIN32
         wprintf(L"%ls\n", dest_str);
         #else
-        cout << TO_UTF8(us) << "\n";
+        cout << utf8_str << "\n";
         #endif
         fflush(stdout);
         delete[] dest_str;
