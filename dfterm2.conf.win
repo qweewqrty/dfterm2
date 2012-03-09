@@ -4,25 +4,30 @@ database = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2.database"
 logfile = os.getenv("APPDATA") .. "\\dfterm2\\dfterm2.log"
 
 addresses = {
-   { name               = "DF 31.25",
+   { name               = "DF 0.31.25",
      size_address       = 0x0073507C,
      screendata_address = 0x00734D1C,
      checksum           = 0xFBFF0FC9,
      method             = "PackedVarying" },
-   { name               = "DF 34.02",
+   { name               = "DF 0.34.02",
      size_address       = 0x008100F4,
      screendata_address = 0x0080FD94,
      checksum           = 0xD635560F,
      method             = "PackedVarying" },
-   { name               = "DF 34.03",
+   { name               = "DF 0.34.03",
      size_address       = 0x008090F4,
      screendata_address = 0x00808D94,
      checksum           = 0x59C5B3DF,
      method             = "PackedVarying" },
-   { name               = "DF 34.04",
+   { name               = "DF 0.34.04",
      size_address       = 0x008090F4,
      screendata_address = 0x00808D94,
      checksum           = 0x5685E1E9,
+     method             = "PackedVarying" },
+   { name               = "DF 0.34.05", 
+     size_address       = 0x0080A0F4, 
+     screendata_address = 0x00809D94, 
+     checksum           = 0xEC10895F, 
      method             = "PackedVarying" }
  }
 
